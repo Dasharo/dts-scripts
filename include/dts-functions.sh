@@ -384,6 +384,7 @@ board_config() {
               NEED_BLOB_TRANSMISSION="false"
               PROGRAMMER_BIOS="internal"
               PROGRAMMER_EC="ite_ec:boardmismatch=force,romsize=128K,autoload=disable"
+              FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
               CAN_INSTALL_BIOS="false"
               ;;
             "V560TU")
@@ -406,6 +407,7 @@ board_config() {
               NEED_BLOB_TRANSMISSION="false"
               PROGRAMMER_BIOS="internal"
               PROGRAMMER_EC="ite_ec:boardmismatch=force,romsize=128K,autoload=disable"
+              FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
               CAN_INSTALL_BIOS="false"
               ;;
             *)
