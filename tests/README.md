@@ -3,7 +3,7 @@
 This directory contains stub scripts for testing DTS update and deploy logic
 in complex scenarios.
 
-##  Running on host
+## Running on host
 
 Running test on the host may result in unpredictable results because of the
 missing programs and different version of certain tools. It is advised to run
@@ -32,11 +32,11 @@ robot -L TRACE -v config:qemu -v rte_ip:127.0.0.1 -v snipeit:no dts/dts-tests.ro
 ### Running manually
 
 1. Boot the latest DTS image in QEMU. Recommended steps:
-  - start QEMU according to
+- start QEMU according to
     [OSFV documentation](https://github.com/Dasharo/open-source-firmware-validation/blob/develop/docs/qemu.md#booting)
     (use `os` switch, not `firmware`)
-  - enable network boot and boot into DTS via iPXE
-  - enable SSH server (option `8` in main menu)
+- enable network boot and boot into DTS via iPXE
+- enable SSH server (option `8` in main menu)
 
 1. Deploy updated scripts and tests into qemu
 
