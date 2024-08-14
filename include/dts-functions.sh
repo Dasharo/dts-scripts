@@ -773,6 +773,24 @@ board_config() {
       esac
       shopt -u nocasematch
       ;;
+    "Intel")
+      shopt -s nocasematch
+      case "$SYSTEM_MODEL" in
+        "Minnow Max")
+          DASHARO_REL_NAME="minnowboard_turbot"
+          DASHARO_REL_VER_DES="TBD"
+          HAVE_EC="false"
+          NEED_EC_RESET="false"
+          BIOS_LINK_DES="${FW_STORE_URL_DES}/minnowboard/v${DASHARO_REL_VER_DES}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DES}.rom"
+          FLASH_CHIP_LIST="W25Q64JV-.Q"
+          PROGRAMMER_BIOS="internal"
+          ;;
+        *)
+          print_error "Board model $SYSTEM_MODEL is currently not supported"
+          return 1
+          ;;
+      esac
+      shopt -u nocasematch
     *)
       print_error "Board vendor: $SYSTEM_VENDOR is currently not supported"
       return 1
