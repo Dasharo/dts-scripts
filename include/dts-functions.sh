@@ -1534,6 +1534,7 @@ footer_options(){
       return 0
       ;;
     "${SHELL_OPT_UP}" | "${SHELL_OPT_LOW}")
+      clear
       echo "Entering shell, to leave type exit and press Enter or press LCtrl+D"
       echo ""
       send_dts_logs
