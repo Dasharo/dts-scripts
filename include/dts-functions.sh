@@ -845,6 +845,7 @@ board_config() {
           BIOS_LINK_DES="${FW_STORE_URL_DES}/minnowboard/v${DASHARO_REL_VER_DES}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DES}.rom"
           FLASH_CHIP_LIST="W25Q64JV-.Q"
           PROGRAMMER_BIOS="internal"
+          DISABLE_WP="true"
           ;;
         *)
           print_error "Board model $SYSTEM_MODEL is currently not supported"
@@ -1191,6 +1192,9 @@ set_flashrom_update_params() {
     FLASHROM_ADD_OPT_UPDATE=""
   else
     FLASHROM_ADD_OPT_UPDATE="-N --ifd -i bios"
+  fi
+  if [ $DISABLE_WP == "true" ]; then
+    FLASHROM_ADD_OPT_UPDATE="$FLASHROM_ADD_OPT_UPDATE --wp-disable --wp-range=0x0,0x0"
   fi
   BINARY_HAS_RW_B=1
   # We need to read whole binary (or BIOS region), otherwise cbfstool will
