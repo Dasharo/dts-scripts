@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 SBIN_DIR="/usr/sbin"
-FUM_EFIVAR="/sys/firmware/efi/vars/FirmwareUpdateMode-d15b327e-ff2d-4fc1-abf6-c12bd08c1359"
+FUM_EFIVAR="/sys/firmware/efivars/FirmwareUpdateMode-d15b327e-ff2d-4fc1-abf6-c12bd08c1359"
 
 export DTS_FUNCS="$SBIN_DIR/dts-functions.sh"
 export DTS_ENV="$SBIN_DIR/dts-environment.sh"
