@@ -150,6 +150,7 @@ NEED_BOOTSPLASH_MIGRATION="false"
 NEED_BLOB_TRANSMISSION="false"
 NEED_ROMHOLE_MIGRATION="false"
 # Default flashrom parameters, may differ depending on a platform:
+CAN_USE_FLASHROM="false"
 PROGRAMMER_BIOS="internal"
 PROGRAMMER_EC="ite_ec"
 declare FLASHROM_ADD_OPT_UPDATE_OVERRIDE
