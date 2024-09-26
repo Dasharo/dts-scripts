@@ -1023,6 +1023,8 @@ update_workflow() {
 }
 
 restore() {
+  check_flash_chip
+
   while : ; do
     echo
     echo "Restoring firmware from HCL report."
@@ -1157,7 +1159,6 @@ if [ "$FUM" == "fum" ]; then
 fi
 
 board_config
-check_flash_chip
 if [ -n "$PLATFORM_SIGN_KEY" ]; then
     get_signing_keys
 fi

@@ -239,6 +239,7 @@ board_config() {
           BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
           EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
           CAN_INSTALL_BIOS="true"
+          CAN_USE_FLASHROM="true"
           HAVE_EC="true"
           NEED_EC_RESET="true"
           COMPATIBLE_EC_FW_VERSION="2022-10-07_c662165"
@@ -266,6 +267,7 @@ board_config() {
           BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
           EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
           CAN_INSTALL_BIOS="true"
+          CAN_USE_FLASHROM="true"
           HAVE_EC="true"
           NEED_EC_RESET="true"
           COMPATIBLE_EC_FW_VERSION="2022-08-31_cbff21b"
@@ -293,6 +295,7 @@ board_config() {
           BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
           EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
           CAN_INSTALL_BIOS="true"
+          CAN_USE_FLASHROM="true"
           HAVE_EC="true"
           NEED_EC_RESET="true"
           COMPATIBLE_EC_FW_VERSION="2022-08-31_cbff21b"
@@ -323,6 +326,7 @@ board_config() {
           BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
           EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
           CAN_INSTALL_BIOS="true"
+          CAN_USE_FLASHROM="true"
           HAVE_EC="true"
           NEED_EC_RESET="true"
           COMPATIBLE_EC_FW_VERSION="2022-08-31_cbff21b"
@@ -362,6 +366,7 @@ board_config() {
 
           # Common configuration for all V54x_6x_TU:
           DASHARO_REL_VER="0.9.0"
+          CAN_USE_FLASHROM="true"
           HAVE_EC="true"
           NEED_EC_RESET="true"
           COMPATIBLE_EC_FW_VERSION="2024-07-17_4ae73b9"
@@ -401,6 +406,7 @@ board_config() {
           PROGRAMMER_EC="ite_ec:boardmismatch=force,romsize=128K,autoload=disable"
           HAVE_EC="true"
           NEED_EC_RESET="true"
+          CAN_USE_FLASHROM="true"
 
           case $BOARD_MODEL in
             "V540TNx")
@@ -436,6 +442,7 @@ board_config() {
           DASHARO_REL_VER="1.1.1"
           DASHARO_REL_VER_DPP="1.1.3"
           CAN_INSTALL_BIOS="true"
+          CAN_USE_FLASHROM="true"
           HAVE_HEADS_FW="true"
           HEADS_REL_VER_DPP="0.9.0"
           HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
@@ -483,6 +490,7 @@ board_config() {
           #DASHARO_REL_VER=""
           DASHARO_REL_VER_DPP="0.9.1"
           CAN_INSTALL_BIOS="true"
+          CAN_USE_FLASHROM="true"
           HAVE_HEADS_FW="true"
           HEADS_REL_VER_DPP="0.9.0"
           HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
@@ -535,6 +543,7 @@ board_config() {
       DASHARO_REL_VER_DPP="0.1.0"
       BIOS_LINK_DPP="$FW_STORE_URL_DPP/v$DASHARO_REL_VER_DPP/${DASHARO_REL_NAME}_v$DASHARO_REL_VER_DPP.rom"
       CAN_INSTALL_BIOS="true"
+      CAN_USE_FLASHROM="true"
       NEED_SMBIOS_MIGRATION="true"
       NEED_BLOB_TRANSMISSION="true"
       SINIT_ACM_FILENAME="/tmp/630744_003.zip"
@@ -587,6 +596,7 @@ board_config() {
           DASHARO_REL_NAME="asus_kgpe-d16"
           DASHARO_REL_VER="0.4.0"
           CAN_INSTALL_BIOS="true"
+          CAN_USE_FLASHROM="true"
           case "$FLASH_CHIP_SIZE" in
           "2")
             BIOS_HASH_LINK_COMM="65e5370e9ea6b8ae7cd6cc878a031a4ff3a8f5d36830ef39656b8e5a6e37e889  $BIOS_UPDATE_FILE"
@@ -617,6 +627,7 @@ board_config() {
       # Common configuration for all PC Engines releases:
       DASHARO_REL_VER_DPP="0.9.0"
       CAN_INSTALL_BIOS="true"
+      CAN_USE_FLASHROM="true"
       DASHARO_REL_VER_DPP_SEABIOS="24.05.00.01"
       PROGRAMMER_BIOS="internal:boardmismatch=force"
       NEED_SMMSTORE_MIGRATION="true"
@@ -650,6 +661,7 @@ board_config() {
       ;;
     "HARDKERNEL")
       NEED_SMBIOS_MIGRATION="true"
+      CAN_USE_FLASHROM="true"
 
       case "$SYSTEM_MODEL" in
         "ODROID-H4")
@@ -1363,10 +1375,12 @@ show_main_menu() {
   echo -e "${BLUE}**${YELLOW}     ${HCL_REPORT_OPT})${BLUE} Dasharo HCL report${NORMAL}"
   if check_if_dasharo; then
     echo -e "${BLUE}**${YELLOW}     ${DASHARO_FIRM_OPT})${BLUE} Update Dasharo Firmware${NORMAL}"
-  else
+  elif [ "$CAN_USE_FLASHROM" == "true" ]; then
     echo -e "${BLUE}**${YELLOW}     ${DASHARO_FIRM_OPT})${BLUE} Install Dasharo Firmware${NORMAL}"
   fi
-  echo -e "${BLUE}**${YELLOW}     ${REST_FIRM_OPT})${BLUE} Restore firmware from Dasharo HCL report${NORMAL}"
+  if [ "$CAN_USE_FLASHROM" == "true" ]; then
+    echo -e "${BLUE}**${YELLOW}     ${REST_FIRM_OPT})${BLUE} Restore firmware from Dasharo HCL report${NORMAL}"
+  fi
   if [ -n "${DPP_IS_LOGGED}" ]; then
     echo -e "${BLUE}**${YELLOW}     ${DPP_KEYS_OPT})${BLUE} Edit your DPP keys${NORMAL}"
   else
@@ -1412,6 +1426,9 @@ main_menu_options(){
       ;;
     "${DASHARO_FIRM_OPT}")
       if ! check_if_dasharo; then
+        # Installation requires flashrom:
+        [ "$CAN_USE_FLASHROM" != "true" ] && return 0
+
         if wait_for_network_connection; then
           echo "Preparing ..."
           if [ -z "${LOGS_SENT}" ]; then
@@ -1430,10 +1447,11 @@ main_menu_options(){
           ${CMD_DASHARO_DEPLOY} install
         fi
       else
+        # TODO: This should be placed in dasharo-deploy.
         # For NovaCustom TGL laptops with Dasharo version lower than 1.3.0,
         # we shall run the ec_transition script instead. See:
         # https://docs.dasharo.com/variants/novacustom_nv4x_tgl/releases/#v130-2022-10-18
-        if [ "$SYSTEM_VENDOR" = "Notebook" ]; then
+        if [ "$SYSTEM_VENDOR" = "Notebook" ] && [ "$CAN_USE_FLASHROM" == "true" ]; then
             case "$SYSTEM_MODEL" in
               "NS50_70MU"|"NV4XMB,ME,MZ")
                 compare_versions $DASHARO_VERSION 1.3.0
@@ -1461,6 +1479,9 @@ main_menu_options(){
       return 0
       ;;
     "${REST_FIRM_OPT}")
+      # Restore requires flashrom:
+      [ "$CAN_USE_FLASHROM" != "true" ] && return 0
+
       if check_if_dasharo; then
         ${CMD_DASHARO_DEPLOY} restore
       fi
