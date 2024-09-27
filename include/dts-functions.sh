@@ -7,6 +7,7 @@
 # shellcheck disable=SC2034
 # shellcheck source=../include/dts-environment.sh
 source $DTS_ENV
+# shellcheck source=../include/dts-subscription.sh
 source $DTS_SUBS
 
 ### Color functions:
@@ -208,14 +209,25 @@ ask_for_model() {
   done
 }
 
-## Supported boards configuration
-
 board_config() {
+# This functions checks used platform and configure environment in case the
+# platform is supported. The supported platforms are sorted by variables
+# SYSTEM_VENDOR, SYSTEM_MODEL, and BOARD_MODEL in switch/case statements.
+#
+# Every platform uses some standard environment configuration variables
+# described in dts-environment.sh file, these could be specified for a specific
+# board or vendor or shared between some, some platforms may have their own env.
+# var. as well.
+#
+# All the standard variables are explicitly declared in dts-environment.sh
+# script and, if appropriate, set to default values. If a platform has its own
+# configuration variables - it must declare them here, even if they are not
+# set. This is made with a goal to limit global variables declaration to
+# dts-environment.sh and board_config function.
+
   # We download firmwares via network. At this point, the network connection
   # must be up already.
   wait_for_network_connection
-
-  CAN_INSTALL_BIOS="true"
 
   echo "Checking if board is Dasharo compatible."
   case "$SYSTEM_VENDOR" in
@@ -226,20 +238,14 @@ board_config() {
           DASHARO_REL_VER="1.5.2"
           BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
           EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
+          CAN_INSTALL_BIOS="true"
+          CAN_USE_FLASHROM="true"
           HAVE_EC="true"
           NEED_EC_RESET="true"
           COMPATIBLE_EC_FW_VERSION="2022-10-07_c662165"
-          EC_HASH_LINK_COMM="$EC_LINK_COMM.sha256"
-          BIOS_HASH_LINK_COMM="$BIOS_LINK_COMM.sha256"
-          EC_SIGN_LINK_COMM="$EC_LINK_COMM.sha256.sig"
-          BIOS_SIGN_LINK_COMM="$BIOS_LINK_COMM.sha256.sig"
           PLATFORM_SIGN_KEY="customer-keys/novacustom/novacustom-open-source-firmware-release-1.x-key.asc \
              customer-keys/novacustom/dasharo-release-0.9.x-for-novacustom-signing-key.asc"
-          NEED_SMBIOS_MIGRATION="false"
           NEED_SMMSTORE_MIGRATION="true"
-          NEED_BOOTSPLASH_MIGRATION="false"
-          NEED_BLOB_TRANSMISSION="false"
-          PROGRAMMER_BIOS="internal"
           PROGRAMMER_EC="ite_ec:boardmismatch=force,romsize=128K,autoload=disable"
           if check_if_dasharo; then
           # if v1.5.1 or older, flash the whole bios region
@@ -260,20 +266,14 @@ board_config() {
           DASHARO_REL_VER="1.5.2"
           BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
           EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
+          CAN_INSTALL_BIOS="true"
+          CAN_USE_FLASHROM="true"
           HAVE_EC="true"
           NEED_EC_RESET="true"
           COMPATIBLE_EC_FW_VERSION="2022-08-31_cbff21b"
-          EC_HASH_LINK_COMM="$EC_LINK_COMM.sha256"
-          BIOS_HASH_LINK_COMM="$BIOS_LINK_COMM.sha256"
-          EC_SIGN_LINK_COMM="$EC_LINK_COMM.sha256.sig"
-          BIOS_SIGN_LINK_COMM="$BIOS_LINK_COMM.sha256.sig"
           PLATFORM_SIGN_KEY="customer-keys/novacustom/novacustom-open-source-firmware-release-1.x-key.asc \
              customer-keys/novacustom/dasharo-release-0.9.x-for-novacustom-signing-key.asc"
-          NEED_SMBIOS_MIGRATION="false"
           NEED_SMMSTORE_MIGRATION="true"
-          NEED_BOOTSPLASH_MIGRATION="false"
-          NEED_BLOB_TRANSMISSION="false"
-          PROGRAMMER_BIOS="internal"
           PROGRAMMER_EC="ite_ec:boardmismatch=force,romsize=128K,autoload=disable"
           if check_if_dasharo; then
           # if v1.5.1 or older, flash the whole bios region
@@ -294,19 +294,14 @@ board_config() {
           DASHARO_REL_VER="1.7.2"
           BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
           EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
+          CAN_INSTALL_BIOS="true"
+          CAN_USE_FLASHROM="true"
           HAVE_EC="true"
           NEED_EC_RESET="true"
           COMPATIBLE_EC_FW_VERSION="2022-08-31_cbff21b"
-          EC_HASH_LINK_COMM="$EC_LINK_COMM.sha256"
-          BIOS_HASH_LINK_COMM="$BIOS_LINK_COMM.sha256"
-          EC_SIGN_LINK_COMM="$EC_LINK_COMM.sha256.sig"
-          BIOS_SIGN_LINK_COMM="$BIOS_LINK_COMM.sha256.sig"
           PLATFORM_SIGN_KEY="customer-keys/novacustom/novacustom-open-source-firmware-release-1.x-key.asc \
              customer-keys/novacustom/dasharo-release-0.9.x-for-novacustom-signing-key.asc"
-          NEED_SMBIOS_MIGRATION="false"
           NEED_SMMSTORE_MIGRATION="true"
-          NEED_BLOB_TRANSMISSION="false"
-          PROGRAMMER_BIOS="internal"
           PROGRAMMER_EC="ite_ec:boardmismatch=force,romsize=128K,autoload=disable"
           if check_if_dasharo; then
           # if v1.7.2 or older, flash the whole bios region
@@ -330,20 +325,14 @@ board_config() {
           HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
           BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
           EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
+          CAN_INSTALL_BIOS="true"
+          CAN_USE_FLASHROM="true"
           HAVE_EC="true"
           NEED_EC_RESET="true"
           COMPATIBLE_EC_FW_VERSION="2022-08-31_cbff21b"
-          EC_HASH_LINK_COMM="$EC_LINK_COMM.sha256"
-          BIOS_HASH_LINK_COMM="$BIOS_LINK_COMM.sha256"
-          EC_SIGN_LINK_COMM="$EC_LINK_COMM.sha256.sig"
-          BIOS_SIGN_LINK_COMM="$BIOS_LINK_COMM.sha256.sig"
           PLATFORM_SIGN_KEY="customer-keys/novacustom/novacustom-open-source-firmware-release-1.x-key.asc \
              customer-keys/novacustom/dasharo-release-0.9.x-for-novacustom-signing-key.asc"
-          NEED_SMBIOS_MIGRATION="false"
           NEED_SMMSTORE_MIGRATION="true"
-          NEED_BOOTSPLASH_MIGRATION="false"
-          NEED_BLOB_TRANSMISSION="false"
-          PROGRAMMER_BIOS="internal"
           PROGRAMMER_EC="ite_ec:boardmismatch=force,romsize=128K,autoload=disable"
           if check_if_dasharo; then
           # if v1.7.2 or older, flash the whole bios region
@@ -374,56 +363,34 @@ board_config() {
             BOARD_MODEL=$(dasharo_ectool info | grep "board:" |
               sed -r 's|.*novacustom/(.*)|\1|' | awk '{print toupper($1)}')
           fi
+
+          # Common configuration for all V54x_6x_TU:
+          DASHARO_REL_VER="0.9.0"
+          CAN_USE_FLASHROM="true"
+          HAVE_EC="true"
+          NEED_EC_RESET="true"
+          COMPATIBLE_EC_FW_VERSION="2024-07-17_4ae73b9"
+          PLATFORM_SIGN_KEY="customer-keys/novacustom/novacustom-open-source-firmware-release-1.x-key.asc \
+            customer-keys/novacustom/dasharo-release-0.9.x-for-novacustom-signing-key.asc"
+          NEED_SMMSTORE_MIGRATION="true"
+          NEED_BOOTSPLASH_MIGRATION="true"
+          PROGRAMMER_EC="ite_ec:boardmismatch=force,romsize=128K,autoload=disable"
+
           case $BOARD_MODEL in
             "V540TU")
               DASHARO_REL_NAME="novacustom_v54x_mtl"
-              DASHARO_REL_VER="0.9.0"
-              BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
-              EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
-              HAVE_EC="true"
-              NEED_EC_RESET="true"
-              COMPATIBLE_EC_FW_VERSION="2024-07-17_4ae73b9"
-              EC_HASH_LINK_COMM="$EC_LINK_COMM.sha256"
-              BIOS_HASH_LINK_COMM="$BIOS_LINK_COMM.sha256"
-              EC_SIGN_LINK_COMM="$EC_LINK_COMM.sha256.sig"
-              BIOS_SIGN_LINK_COMM="$BIOS_LINK_COMM.sha256.sig"
-              PLATFORM_SIGN_KEY="customer-keys/novacustom/novacustom-open-source-firmware-release-1.x-key.asc \
-                customer-keys/novacustom/dasharo-release-0.9.x-for-novacustom-signing-key.asc"
-              NEED_SMBIOS_MIGRATION="false"
-              NEED_SMMSTORE_MIGRATION="true"
-              NEED_BOOTSPLASH_MIGRATION="true"
-              NEED_BLOB_TRANSMISSION="false"
-              PROGRAMMER_BIOS="internal"
-              PROGRAMMER_EC="ite_ec:boardmismatch=force,romsize=128K,autoload=disable"
-              CAN_INSTALL_BIOS="false"
               ;;
             "V560TU")
               DASHARO_REL_NAME="novacustom_v56x_mtl"
-              DASHARO_REL_VER="0.9.0"
-              BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
-              EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
-              HAVE_EC="true"
-              NEED_EC_RESET="true"
-              COMPATIBLE_EC_FW_VERSION="2024-07-17_4ae73b9"
-              EC_HASH_LINK_COMM="$EC_LINK_COMM.sha256"
-              BIOS_HASH_LINK_COMM="$BIOS_LINK_COMM.sha256"
-              EC_SIGN_LINK_COMM="$EC_LINK_COMM.sha256.sig"
-              BIOS_SIGN_LINK_COMM="$BIOS_LINK_COMM.sha256.sig"
-              PLATFORM_SIGN_KEY="customer-keys/novacustom/novacustom-open-source-firmware-release-1.x-key.asc \
-                customer-keys/novacustom/dasharo-release-0.9.x-for-novacustom-signing-key.asc"
-              NEED_SMBIOS_MIGRATION="false"
-              NEED_SMMSTORE_MIGRATION="true"
-              NEED_BOOTSPLASH_MIGRATION="true"
-              NEED_BLOB_TRANSMISSION="false"
-              PROGRAMMER_BIOS="internal"
-              PROGRAMMER_EC="ite_ec:boardmismatch=force,romsize=128K,autoload=disable"
-              CAN_INSTALL_BIOS="false"
               ;;
             *)
               print_error "Board model $BOARD_MODEL is currently not supported"
               return 1
               ;;
           esac
+
+          BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
+          EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
           ;;
         "V5xTNC_TND_TNE")
           if check_if_dasharo; then
@@ -434,13 +401,9 @@ board_config() {
 
           PLATFORM_SIGN_KEY="customer-keys/novacustom/novacustom-open-source-firmware-release-1.x-key.asc \
                 customer-keys/novacustom/dasharo-release-0.9.x-for-novacustom-signing-key.asc"
-          NEED_SMBIOS_MIGRATION="false"
           NEED_SMMSTORE_MIGRATION="true"
           NEED_BOOTSPLASH_MIGRATION="true"
-          NEED_BLOB_TRANSMISSION="false"
-          PROGRAMMER_BIOS="internal"
           PROGRAMMER_EC="ite_ec:boardmismatch=force,romsize=128K,autoload=disable"
-          CAN_INSTALL_BIOS="false"
           HAVE_EC="true"
           NEED_EC_RESET="true"
 
@@ -463,10 +426,6 @@ board_config() {
 
           BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
           EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
-          BIOS_HASH_LINK_COMM="$BIOS_LINK_COMM.sha256"
-          BIOS_SIGN_LINK_COMM="$BIOS_LINK_COMM.sha256.sig"
-          EC_HASH_LINK_COMM="$EC_LINK_COMM.sha256"
-          EC_SIGN_LINK_COMM="$EC_LINK_COMM.sha256.sig"
           ;;
         *)
           print_error "Board model $SYSTEM_MODEL is currently not supported"
@@ -477,84 +436,46 @@ board_config() {
     "Micro-Star International Co., Ltd.")
       case "$SYSTEM_MODEL" in
         "MS-7D25")
+          # Common configuration for all MS-7D25:
+          DASHARO_REL_NAME="msi_ms7d25"
+          DASHARO_REL_VER="1.1.1"
+          DASHARO_REL_VER_DPP="1.1.3"
+          CAN_INSTALL_BIOS="true"
+          CAN_USE_FLASHROM="true"
+          HAVE_HEADS_FW="true"
+          HEADS_REL_VER_DPP="0.9.0"
+          HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
+          PLATFORM_SIGN_KEY="dasharo/msi_ms7d25/dasharo-release-1.x-compatible-with-msi-ms-7d25-signing-key.asc \
+             dasharo/msi_ms7d25/dasharo-release-0.x-compatible-with-msi-ms-7d25-signing-key.asc"
+          NEED_SMBIOS_MIGRATION="true"
+          NEED_SMMSTORE_MIGRATION="true"
+          unset PROGRAMMER_EC
+          NEED_ROMHOLE_MIGRATION="true"
+
+          if check_if_dasharo; then
+            # if v1.1.3 or older, flash the whole bios region
+            # TODO: Let DTS determine which parameters are suitable.
+            # FIXME: Can we ever get rid of that? We change so much in each release,
+            # that we almost always need to flash whole BIOS region
+            # because of non-backward compatible or breaking changes.
+            compare_versions $DASHARO_VERSION 1.1.3
+            if [ $? -eq 1 ]; then
+              # For Dasharo version lesser than 1.1.3
+              NEED_BOOTSPLASH_MIGRATION="true"
+              FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
+            fi
+          fi
+
           case "$BOARD_MODEL" in
             "PRO Z690-A WIFI DDR4(MS-7D25)" | "PRO Z690-A DDR4(MS-7D25)")
-              DASHARO_REL_NAME="msi_ms7d25"
-              DASHARO_REL_VER="1.1.1"
-              DASHARO_REL_VER_DPP="1.1.3"
               BIOS_LINK_COMM="${FW_STORE_URL}/${DASHARO_REL_NAME}/v${DASHARO_REL_VER}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_ddr4.rom"
               BIOS_LINK_DPP="${FW_STORE_URL_DPP}/MS-7D25/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}_ddr4.rom"
-              HAVE_HEADS_FW="true"
-              HEADS_REL_VER_DPP="0.9.0"
               HEADS_LINK_DPP="${FW_STORE_URL_DPP}/MS-7D25/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_ddr4_heads.rom"
-              HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
-              HAVE_EC="false"
-              NEED_EC_RESET="false"
-              BIOS_HASH_LINK_COMM="${BIOS_LINK_COMM}.sha256"
-              BIOS_HASH_LINK_DPP="${BIOS_LINK_DPP}.sha256"
-              BIOS_SIGN_LINK_COMM="${BIOS_LINK_COMM}.sha256.sig"
-              BIOS_SIGN_LINK_DPP="${BIOS_LINK_DPP}.sha256.sig"
-              PLATFORM_SIGN_KEY="dasharo/msi_ms7d25/dasharo-release-1.x-compatible-with-msi-ms-7d25-signing-key.asc \
-                 dasharo/msi_ms7d25/dasharo-release-0.x-compatible-with-msi-ms-7d25-signing-key.asc"
-              NEED_SMBIOS_MIGRATION="true"
-              NEED_SMMSTORE_MIGRATION="true"
-              NEED_BOOTSPLASH_MIGRATION="false"
-              NEED_BLOB_TRANSMISSION="false"
-              PROGRAMMER_BIOS="internal"
-              PROGRAMMER_EC=""
-              NEED_ROMHOLE_MIGRATION="true"
-              if check_if_dasharo; then
-                # if v1.1.3 or older, flash the whole bios region
-                # TODO: Let DTS determine which parameters are suitable.
-                # FIXME: Can we ever get rid of that? We change so much in each release,
-                # that we almost always need to flash whole BIOS region
-                # because of non-backward compatible or breaking changes.
-                compare_versions $DASHARO_VERSION 1.1.3
-                if [ $? -eq 1 ]; then
-                  # For Dasharo version lesser than 1.1.3
-                  NEED_BOOTSPLASH_MIGRATION="true"
-                  FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-                fi
-              fi
               ;;
             "PRO Z690-A WIFI (MS-7D25)" | "PRO Z690-A (MS-7D25)")
-              DASHARO_REL_NAME="msi_ms7d25"
-              DASHARO_REL_VER="1.1.1"
-              DASHARO_REL_VER_DPP="1.1.3"
               BIOS_LINK_COMM="${FW_STORE_URL}/${DASHARO_REL_NAME}/v${DASHARO_REL_VER}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_ddr5.rom"
               BIOS_LINK_DPP="${FW_STORE_URL_DPP}/MS-7D25/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}_ddr5.rom"
-              HAVE_HEADS_FW="true"
-              HEADS_REL_VER_DPP="0.9.0"
               HEADS_LINK_DPP="${FW_STORE_URL_DPP}/MS-7D25/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_ddr5_heads.rom"
-              HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
-              HAVE_EC="false"
-              NEED_EC_RESET="false"
-              BIOS_HASH_LINK_COMM="${BIOS_LINK_COMM}.sha256"
-              BIOS_HASH_LINK_DPP="${BIOS_LINK_DPP}.sha256"
-              BIOS_SIGN_LINK_COMM="${BIOS_LINK_COMM}.sha256.sig"
-              BIOS_SIGN_LINK_DPP="${BIOS_LINK_DPP}.sha256.sig"
-              PLATFORM_SIGN_KEY="dasharo/msi_ms7d25/dasharo-release-1.x-compatible-with-msi-ms-7d25-signing-key.asc \
-                 dasharo/msi_ms7d25/dasharo-release-0.x-compatible-with-msi-ms-7d25-signing-key.asc"
-              NEED_SMBIOS_MIGRATION="true"
-              NEED_SMMSTORE_MIGRATION="true"
-              NEED_BOOTSPLASH_MIGRATION="false"
-              NEED_BLOB_TRANSMISSION="false"
-              PROGRAMMER_BIOS="internal"
-              PROGRAMMER_EC=""
-              NEED_ROMHOLE_MIGRATION="true"
-              if check_if_dasharo; then
-                # if v1.1.3 or older, flash the whole bios region
-                # TODO: Let DTS determine which parameters are suitable.
-                # FIXME: Can we ever get rid of that? We change so much in each release,
-                # that we almost always need to flash whole BIOS region
-                # because of non-backward compatible or breaking changes.
-                compare_versions $DASHARO_VERSION 1.1.3
-                if [ $? -eq 1 ]; then
-                  # For Dasharo version lesser than 1.1.3
-                  NEED_BOOTSPLASH_MIGRATION="true"
-                  FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-                fi
-              fi
               ;;
             *)
               print_error "Board model $BOARD_MODEL is currently not supported"
@@ -563,82 +484,45 @@ board_config() {
           esac
           ;;
         "MS-7E06")
+          # Common configuration for all MS-7E06:
+          DASHARO_REL_NAME="msi_ms7e06"
+          #DASHARO_REL_VER=""
+          DASHARO_REL_VER_DPP="0.9.1"
+          CAN_INSTALL_BIOS="true"
+          CAN_USE_FLASHROM="true"
+          HAVE_HEADS_FW="true"
+          HEADS_REL_VER_DPP="0.9.0"
+          HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
+          PLATFORM_SIGN_KEY="dasharo/msi_ms7e06/dasharo-release-0.x-compatible-with-msi-ms-7e06-signing-key.asc"
+          NEED_SMMSTORE_MIGRATION="true"
+          unset PROGRAMMER_EC
+          NEED_ROMHOLE_MIGRATION="true"
+
+          if check_if_dasharo; then
+            # if v0.9.1 or older, flash the whole bios region
+            # TODO: Let DTS determine which parameters are suitable.
+            # FIXME: Can we ever get rid of that? We change so much in each release,
+            # that we almost always need to flash whole BIOS region
+            # because of non-backward compatible or breaking changes.
+            compare_versions $DASHARO_VERSION 0.9.1
+            if [ $? -eq 1 ]; then
+              # For Dasharo version lesser than 0.9.1
+              NEED_BOOTSPLASH_MIGRATION="true"
+              FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
+            fi
+          fi
+
           case "$BOARD_MODEL" in
             "PRO Z790-P WIFI DDR4(MS-7E06)" | "PRO Z790-P DDR4(MS-7E06)" | "PRO Z790-P WIFI DDR4 (MS-7E06)" | "PRO Z790-P DDR4 (MS-7E06)")
-              DASHARO_REL_NAME="msi_ms7e06"
-              #DASHARO_REL_VER=""
-              DASHARO_REL_VER_DPP="0.9.1"
               #BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_ddr4.rom"
               BIOS_LINK_DPP="${FW_STORE_URL_DPP}/MS-7E06/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}_ddr4.rom"
-              HAVE_HEADS_FW="true"
-              HEADS_REL_VER_DPP="0.9.0"
               HEADS_LINK_DPP="${FW_STORE_URL_DPP}/MS-7E06/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_ddr4_heads.rom"
-              HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
-              HAVE_EC="false"
-              NEED_EC_RESET="false"
-              #BIOS_HASH_LINK_COMM="${BIOS_LINK_COMM}.sha256"
-              BIOS_HASH_LINK_DPP="${BIOS_LINK_DPP}.sha256"
-              #BIOS_SIGN_LINK_COMM="${BIOS_LINK_COMM}.sha256.sig"
-              BIOS_SIGN_LINK_DPP="${BIOS_LINK_DPP}.sha256.sig"
-              PLATFORM_SIGN_KEY="dasharo/msi_ms7e06/dasharo-release-0.x-compatible-with-msi-ms-7e06-signing-key.asc"
-              NEED_SMBIOS_MIGRATION="false"
-              NEED_SMMSTORE_MIGRATION="true"
-              NEED_BOOTSPLASH_MIGRATION="false"
-              NEED_BLOB_TRANSMISSION="false"
               PROGRAMMER_BIOS="internal:boardmismatch=force"
-              PROGRAMMER_EC=""
-              NEED_ROMHOLE_MIGRATION="true"
-              if check_if_dasharo; then
-                # if v0.9.1 or older, flash the whole bios region
-                # TODO: Let DTS determine which parameters are suitable.
-                # FIXME: Can we ever get rid of that? We change so much in each release,
-                # that we almost always need to flash whole BIOS region
-                # because of non-backward compatible or breaking changes.
-                compare_versions $DASHARO_VERSION 0.9.1
-                if [ $? -eq 1 ]; then
-                  # For Dasharo version lesser than 0.9.1
-                  NEED_BOOTSPLASH_MIGRATION="true"
-                  FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-                fi
-              fi
               ;;
             "PRO Z790-P WIFI (MS-7E06)" | "PRO Z790-P (MS-7E06)")
-              DASHARO_REL_NAME="msi_ms7e06"
-              #DASHARO_REL_VER=""
-              DASHARO_REL_VER_DPP="0.9.1"
               #BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_ddr5.rom"
               BIOS_LINK_DPP="${FW_STORE_URL_DPP}/MS-7E06/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}_ddr5.rom"
-              HAVE_HEADS_FW="true"
-              HEADS_REL_VER_DPP="0.9.0"
               HEADS_LINK_DPP="${FW_STORE_URL_DPP}/MS-7E06/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_ddr5_heads.rom"
-              HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
-              HAVE_EC="false"
-              NEED_EC_RESET="false"
-              #BIOS_HASH_LINK_COMM="${BIOS_LINK_COMM}.sha256"
-              BIOS_HASH_LINK_DPP="${BIOS_LINK_DPP}.sha256"
-              #BIOS_SIGN_LINK_COMM="${BIOS_LINK_COMM}.sha256.sig"
-              BIOS_SIGN_LINK_DPP="${BIOS_LINK_DPP}.sha256.sig"
-              PLATFORM_SIGN_KEY="dasharo/msi_ms7e06/dasharo-release-0.x-compatible-with-msi-ms-7e06-signing-key.asc"
-              NEED_SMBIOS_MIGRATION="false"
-              NEED_SMMSTORE_MIGRATION="true"
-              NEED_BOOTSPLASH_MIGRATION="false"
-              NEED_BLOB_TRANSMISSION="false"
-              PROGRAMMER_BIOS="internal"
-              PROGRAMMER_EC=""
-              NEED_ROMHOLE_MIGRATION="true"
-              if check_if_dasharo; then
-                # if v0.9.1 or older, flash the whole bios region
-                # TODO: Let DTS determine which parameters are suitable.
-                # FIXME: Can we ever get rid of that? We change so much in each release,
-                # that we almost always need to flash whole BIOS region
-                # because of non-backward compatible or breaking changes.
-                compare_versions $DASHARO_VERSION 0.9.1
-                if [ $? -eq 1 ]; then
-                  # For Dasharo version lesser than 0.9.1
-                  NEED_BOOTSPLASH_MIGRATION="true"
-                  FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-                fi
-              fi
               ;;
             *)
               print_error "Board model $BOARD_MODEL is currently not supported"
@@ -653,22 +537,21 @@ board_config() {
       esac
       ;;
     "Dell Inc.")
+      # Common configuration for all Dell releases:
       DASHARO_REL_NAME="dell_optiplex_7010_9010"
       DASHARO_REL_VER_DPP="0.1.0"
       BIOS_LINK_DPP="$FW_STORE_URL_DPP/$DASHARO_REL_NAME/v$DASHARO_REL_VER_DPP/${DASHARO_REL_NAME}_v$DASHARO_REL_VER_DPP.rom"
-      HAVE_EC="false"
-      NEED_EC_RESET="false"
-      BIOS_HASH_LINK_DPP="${BIOS_LINK_DPP}.sha256"
-      BIOS_SIGN_LINK_DPP="${BIOS_LINK_DPP}.sha256.sig"
+      CAN_INSTALL_BIOS="true"
+      CAN_USE_FLASHROM="true"
       NEED_SMBIOS_MIGRATION="true"
       NEED_BLOB_TRANSMISSION="true"
-      PROGRAMMER_BIOS="internal"
       SINIT_ACM_FILENAME="/tmp/630744_003.zip"
       SINIT_ACM_URL="https://cdrdv2.intel.com/v1/dl/getContent/630744"
       SINIT_ACM_HASH="0b412c1832bd504d4b8f5fa01b32449c344fe0019e5e4da6bb5d80d393df5e8b $SINIT_ACM_FILENAME"
       SINIT_ACM="/tmp/630744_003/SNB_IVB_SINIT_20190708_PW.bin"
       FLASHROM_ADD_OPT_DEPLOY="--ifd -i bios"
       FLASHROM_ADD_OPT_UPDATE="--fmap -i RW_SECTION_A"
+
       case "$SYSTEM_MODEL" in
         "OptiPlex 7010")
           DBT_BIOS_UPDATE_FILENAME="/tmp/O7010A29.exe"
@@ -711,8 +594,8 @@ board_config() {
         "KGPE-D16")
           DASHARO_REL_NAME="asus_kgpe-d16"
           DASHARO_REL_VER="0.4.0"
-          HAVE_EC="false"
-          NEED_EC_RESET="false"
+          CAN_INSTALL_BIOS="true"
+          CAN_USE_FLASHROM="true"
           case "$FLASH_CHIP_SIZE" in
           "2")
             BIOS_HASH_LINK_COMM="65e5370e9ea6b8ae7cd6cc878a031a4ff3a8f5d36830ef39656b8e5a6e37e889  $BIOS_UPDATE_FILE"
@@ -732,8 +615,6 @@ board_config() {
             ;;
           esac
           NEED_SMBIOS_MIGRATION="true"
-          NEED_BLOB_TRANSMISSION="false"
-          PROGRAMMER_BIOS="internal"
           ;;
         *)
           print_error "Board model $SYSTEM_MODEL is currently not supported"
@@ -742,86 +623,43 @@ board_config() {
       esac
       ;;
     "PC Engines")
+      # Common configuration for all PC Engines releases:
+      DASHARO_REL_VER_DPP="0.9.0"
+      CAN_INSTALL_BIOS="true"
+      CAN_USE_FLASHROM="true"
+      DASHARO_REL_VER_DPP_SEABIOS="24.05.00.01"
+      PROGRAMMER_BIOS="internal:boardmismatch=force"
+      NEED_SMMSTORE_MIGRATION="true"
+      NEED_BOOTSPLASH_MIGRATION="true"
       FLASH_CHIP_LIST="W25Q64JV-.Q"
+
       shopt -s nocasematch
       case "$SYSTEM_MODEL" in
         "APU2")
           DASHARO_REL_NAME="pcengines_apu2"
-          DASHARO_REL_VER_DPP="0.9.0"
-          HAVE_EC="false"
-          NEED_EC_RESET="false"
-          BIOS_LINK_DPP="${FW_STORE_URL_DPP}/pcengines_apu2/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}.rom"
-          BIOS_HASH_LINK_DPP="${BIOS_LINK_DPP}.sha256"
-          BIOS_SIGN_LINK_DPP="${BIOS_LINK_DPP}.sha256.sig"
-          DASHARO_REL_VER_DPP_SEABIOS="24.05.00.01"
-          BIOS_LINK_DPP_SEABIOS="${FW_STORE_URL_DPP}/pcengines_apu2/v${DASHARO_REL_VER_DPP_SEABIOS}/${DASHARO_REL_NAME}_seabios_v${DASHARO_REL_VER_DPP_SEABIOS}.rom"
-          BIOS_HASH_LINK_DPP_SEABIOS="${BIOS_LINK_DPP_SEABIOS}.sha256"
-          BIOS_SIGN_LINK_DPP_SEABIOS="${BIOS_LINK_DPP_SEABIOS}.sha256.sig"
-          PROGRAMMER_BIOS="internal:boardmismatch=force"
-          NEED_SMMSTORE_MIGRATION="true"
-          NEED_BOOTSPLASH_MIGRATION="true"
           ;;
         "APU3")
           DASHARO_REL_NAME="pcengines_apu3"
-          DASHARO_REL_VER_DPP="0.9.0"
-          HAVE_EC="false"
-          NEED_EC_RESET="false"
-          BIOS_LINK_DPP="${FW_STORE_URL_DPP}/pcengines_apu2/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}.rom"
-          BIOS_HASH_LINK_DPP="${BIOS_LINK_DPP}.sha256"
-          BIOS_SIGN_LINK_DPP="${BIOS_LINK_DPP}.sha256.sig"
-          DASHARO_REL_VER_DPP_SEABIOS="24.05.00.01"
-          BIOS_LINK_DPP_SEABIOS="${FW_STORE_URL_DPP}/pcengines_apu2/v${DASHARO_REL_VER_DPP_SEABIOS}/${DASHARO_REL_NAME}_seabios_v${DASHARO_REL_VER_DPP_SEABIOS}.rom"
-          BIOS_HASH_LINK_DPP_SEABIOS="${BIOS_LINK_DPP_SEABIOS}.sha256"
-          BIOS_SIGN_LINK_DPP_SEABIOS="${BIOS_LINK_DPP_SEABIOS}.sha256.sig"
-          PROGRAMMER_BIOS="internal:boardmismatch=force"
-          NEED_SMMSTORE_MIGRATION="true"
-          NEED_BOOTSPLASH_MIGRATION="true"
           ;;
         "APU4")
           DASHARO_REL_NAME="pcengines_apu4"
-          DASHARO_REL_VER_DPP="0.9.0"
-          HAVE_EC="false"
-          NEED_EC_RESET="false"
-          BIOS_LINK_DPP="${FW_STORE_URL_DPP}/pcengines_apu2/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}.rom"
-          BIOS_HASH_LINK_DPP="${BIOS_LINK_DPP}.sha256"
-          BIOS_SIGN_LINK_DPP="${BIOS_LINK_DPP}.sha256.sig"
-          DASHARO_REL_VER_DPP_SEABIOS="24.05.00.01"
-          BIOS_LINK_DPP_SEABIOS="${FW_STORE_URL_DPP}/pcengines_apu2/v${DASHARO_REL_VER_DPP_SEABIOS}/${DASHARO_REL_NAME}_seabios_v${DASHARO_REL_VER_DPP_SEABIOS}.rom"
-          BIOS_HASH_LINK_DPP_SEABIOS="${BIOS_LINK_DPP_SEABIOS}.sha256"
-          BIOS_SIGN_LINK_DPP_SEABIOS="${BIOS_LINK_DPP_SEABIOS}.sha256.sig"
-          PROGRAMMER_BIOS="internal:boardmismatch=force"
-          NEED_SMMSTORE_MIGRATION="true"
-          NEED_BOOTSPLASH_MIGRATION="true"
           ;;
         "APU6")
           DASHARO_REL_NAME="pcengines_apu6"
-          DASHARO_REL_VER_DPP="0.9.0"
-          HAVE_EC="false"
-          NEED_EC_RESET="false"
-          BIOS_LINK_DPP="${FW_STORE_URL_DPP}/pcengines_apu2/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}.rom"
-          BIOS_HASH_LINK_DPP="${BIOS_LINK_DPP}.sha256"
-          BIOS_SIGN_LINK_DPP="${BIOS_LINK_DPP}.sha256.sig"
-          DASHARO_REL_VER_DPP_SEABIOS="24.05.00.01"
-          BIOS_LINK_DPP_SEABIOS="${FW_STORE_URL_DPP}/pcengines_apu2/v${DASHARO_REL_VER_DPP_SEABIOS}/${DASHARO_REL_NAME}_seabios_v${DASHARO_REL_VER_DPP_SEABIOS}.rom"
-          BIOS_HASH_LINK_DPP_SEABIOS="${BIOS_LINK_DPP_SEABIOS}.sha256"
-          BIOS_SIGN_LINK_DPP_SEABIOS="${BIOS_LINK_DPP_SEABIOS}.sha256.sig"
-          PROGRAMMER_BIOS="internal:boardmismatch=force"
-          NEED_SMMSTORE_MIGRATION="true"
-          NEED_BOOTSPLASH_MIGRATION="true"
           ;;
         *)
           print_error "Board model $SYSTEM_MODEL is currently not supported"
           return 1
           ;;
       esac
+
+      BIOS_LINK_DPP="${FW_STORE_URL_DPP}/pcengines_apu2/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}.rom"
+      BIOS_LINK_DPP_SEABIOS="${FW_STORE_URL_DPP}/pcengines_apu2/v${DASHARO_REL_VER_DPP_SEABIOS}/${DASHARO_REL_NAME}_seabios_v${DASHARO_REL_VER_DPP_SEABIOS}.rom"
+
       shopt -u nocasematch
       ;;
     "HARDKERNEL")
-      HAVE_EC="false"
-      NEED_EC_RESET="false"
       NEED_SMBIOS_MIGRATION="true"
-      NEED_BLOB_TRANSMISSION="false"
-      PROGRAMMER_BIOS="internal"
 
       case "$SYSTEM_MODEL" in
         "ODROID-H4")
@@ -836,14 +674,47 @@ board_config() {
       esac
 
       BIOS_LINK_DPP="$FW_STORE_URL_DPP/$DASHARO_REL_NAME/v$DASHARO_REL_VER_DPP/${DASHARO_REL_NAME}_v$DASHARO_REL_VER_DPP.rom"
-      BIOS_HASH_LINK_DPP="${BIOS_LINK_DPP}.sha256"
-      BIOS_SIGN_LINK_DPP="${BIOS_LINK_DPP}.sha256.sig"
+      ;;
+    "QEMU"|"Emulation")
+      case "$SYSTEM_MODEL" in
+        *Q35*ICH9*|*q35*ich9*)
+           # Update type:
+           CAN_INSTALL_BIOS="true"
+           # Download and versioning variables:
+           DASHARO_REL_NAME_CAP="qemu_q35"
+           DASHARO_REL_VER_CAP="0.2.0"
+           # TODO: wait till the binaries will be uploaded to the server.
+           BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${DASHARO_REL_NAME}/v${DASHARO_REL_VER}/"
+	  ;;
+        *)
+          print_error "Board model $SYSTEM_MODEL is currently not supported"
+	  return 1
+	  ;;
+      esac
       ;;
     *)
       print_error "Board vendor: $SYSTEM_VENDOR is currently not supported"
       return 1
       ;;
   esac
+
+  # Set some default values at the end:
+  [ -z "$BIOS_HASH_LINK_COMM" ] && BIOS_HASH_LINK_COMM="${BIOS_LINK_COMM}.sha256"
+  [ -z "$BIOS_SIGN_LINK_COMM" ] && BIOS_SIGN_LINK_COMM="${BIOS_SIGN_LINK_COMM}.sig"
+  [ -z "$BIOS_HASH_LINK_DPP" ] && BIOS_HASH_LINK_DPP="${BIOS_LINK_DPP}.sha256"
+  [ -z "$BIOS_SIGN_LINK_DPP" ] && BIOS_SIGN_LINK_DPP="${BIOS_HASH_LINK_DPP}.sig"
+  [ -z "$BIOS_HASH_LINK_DPP_SEABIOS" ] && BIOS_HASH_LINK_DPP_SEABIOS="${BIOS_LINK_DPP_SEABIOS}.sha256"
+  [ -z "$BIOS_SIGN_LINK_DPP_SEABIOS" ] && BIOS_SIGN_LINK_DPP_SEABIOS="${BIOS_HASH_LINK_DPP_SEABIOS}.sig"
+  [ -z "$EC_HASH_LINK_COMM" ] && EC_HASH_LINK_COMM="${EC_LINK_COMM}.sha256"
+  [ -z "$EC_SIGN_LINK_COMM" ] && EC_SIGN_LINK_COMM="${EC_HASH_LINK_COMM}.sig"
+
+  # And for capsules as well:
+  [ -z "$BIOS_HASH_LINK_COMM_CAP" ] && BIOS_HASH_LINK_COMM_CAP="${BIOS_LINK_COMM_CAP}.sha256"
+  [ -z "$BIOS_SIGN_LINK_COMM_CAP" ] && BIOS_SIGN_LINK_COMM_CAP="${BIOS_HASH_LINK_COMM_CAP}.sig"
+  [ -z "$BIOS_HASH_LINK_DPP_CAP" ] && BIOS_HASH_LINK_DPP_CAP="${BIOS_LINK_DPP_CAP}.sha256"
+  [ -z "$BIOS_SIGN_LINK_DPP_CAP" ] && BIOS_SIGN_LINK_DPP_CAP="${BIOS_HASH_LINK_DPP_CAP}.sig"
+  [ -z "$EC_HASH_LINK_COMM_CAP" ] && EC_HASH_LINK_COMM_CAP="${EC_LINK_COMM_CAP}.sha256"
+  [ -z "$EC_SIGN_LINK_COMM_CAP" ] && EC_SIGN_LINK_COMM_CAP="${EC_HASH_LINK_COMM_CAP}.sig"
 }
 
 check_flash_lock() {
@@ -911,7 +782,7 @@ compare_versions() {
 }
 
 download_bios() {
-  if [ -v BIOS_LINK_COMM ] && [ ${BIOS_LINK} == ${BIOS_LINK_COMM} ]; then
+  if [ -n "$BIOS_LINK_COMM" ] && [ ${BIOS_LINK} == ${BIOS_LINK_COMM} ]; then
     curl -s -L -f "$BIOS_LINK" -o $BIOS_UPDATE_FILE
     error_check "Cannot access $FW_STORE_URL while downloading binary. Please
    check your internet connection"
@@ -936,7 +807,7 @@ download_bios() {
 }
 
 download_ec() {
-  if [ -v BIOS_LINK_COMM ] && [ ${BIOS_LINK} == ${BIOS_LINK_COMM} ]; then
+  if [ -n "$BIOS_LINK_COMM" ] && [ ${BIOS_LINK} == ${BIOS_LINK_COMM} ]; then
     if [ "$HAVE_EC" == "true" ]; then
       curl -s -L -f "$EC_LINK" -o "$EC_UPDATE_FILE"
       error_check "Cannot access $FW_STORE_URL while downloading binary. Please
@@ -950,7 +821,7 @@ download_ec() {
     fi
   else
     if [ "$HAVE_EC" == "true" ]; then
-      if [ -v EC_LINK_COMM ] && [ ${EC_LINK} == ${EC_LINK_COMM} ]; then
+      if [ -n "$EC_LINK_COMM" ] && [ ${EC_LINK} == ${EC_LINK_COMM} ]; then
         curl -s -L -f "$EC_LINK" -o "$EC_UPDATE_FILE"
         error_check "Cannot access $FW_STORE_URL while downloading binary. Please
           check your internet connection"
@@ -1002,6 +873,13 @@ get_signing_keys() {
 }
 
 verify_artifacts() {
+# This function checks downloaded files, the files that are being downloaded
+# should have hashes provided on the server too. The hashes will ben downloaded
+# and the binaries will be verified upon them.
+#
+# In case of .rom files it will be enough but capsules have additional
+# protection layer built in, the binaries they provide will be verified by
+# drivers, so no need to implement it here.
   local _type="$1"
   local _update_file=""
   local _hash_file=""
@@ -1009,33 +887,41 @@ verify_artifacts() {
   local _name=""
   local _sig_result=""
 
-  case ${_type} in
-    ec)
-    _update_file=$EC_UPDATE_FILE
-    _hash_file=$EC_HASH_FILE
-    _sign_file=$EC_SIGN_FILE
-    _name="Dasharo EC"
-    ;;
-    bios)
-    _update_file=$BIOS_UPDATE_FILE
-    _hash_file=$BIOS_HASH_FILE
-    _sign_file=$BIOS_SIGN_FILE
-    _name="Dasharo"
-    ;;
-    *)
-    ;;
-  esac
-  echo -n "Checking $_name firmware checksum... "
-  sha256sum --check <(echo "$(cat $_hash_file | cut -d ' ' -f 1)" $_update_file) >> $ERR_LOG_FILE 2>&1
-  error_check "Failed to verify $_name firmware checksum"
-  print_ok "Verified."
-  if [ -v PLATFORM_SIGN_KEY ]; then
-    echo -n "Checking $_name firmware signature... "
-    _sig_result="$(cat $_hash_file | gpg --verify $_sign_file - >> $ERR_LOG_FILE 2>&1)"
-    error_check "Failed to verify $_name firmware signature.$'\n'$_sig_result"
+  while [[ $# -gt 0 ]]; do
+    case ${_type} in
+      ec)
+        _update_file=$EC_UPDATE_FILE
+        _hash_file=$EC_HASH_FILE
+        _sign_file=$EC_SIGN_FILE
+        _name="Dasharo EC"
+	shift
+        ;;
+      bios)
+        _update_file=$BIOS_UPDATE_FILE
+        _hash_file=$BIOS_HASH_FILE
+        _sign_file=$BIOS_SIGN_FILE
+        _name="Dasharo"
+	shift
+        ;;
+      *)
+        ;;
+    esac
+
+    echo -n "Checking $_name firmware checksum... "
+    sha256sum --check <(echo "$(cat $_hash_file | cut -d ' ' -f 1)" $_update_file) >> $ERR_LOG_FILE 2>&1
+    error_check "Failed to verify $_name firmware checksum"
     print_ok "Verified."
-  fi
-  echo "$_sig_result"
+
+    if [ -n "$PLATFORM_SIGN_KEY" ]; then
+      echo -n "Checking $_name firmware signature... "
+      _sig_result="$(cat $_hash_file | gpg --verify $_sign_file - >> $ERR_LOG_FILE 2>&1)"
+      error_check "Failed to verify $_name firmware signature.$'\n'$_sig_result"
+      print_ok "Verified."
+    fi
+    echo "$_sig_result"
+  done
+
+  return 0
 }
 
 check_intel_regions() {
@@ -1279,7 +1165,7 @@ handle_fw_switching() {
           ;;
       esac
     done
-  elif [ -v DPP_IS_LOGGED ] && [ -v HEADS_LINK_DPP ]; then
+  elif [ -n "$DPP_IS_LOGGED" ] && [ -n "$HEADS_LINK_DPP" ]; then
     local _heads_dpp=1
     curl -sfI -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$HEADS_LINK_DPP" -o /dev/null
     _heads_dpp=$?
@@ -1488,10 +1374,12 @@ show_main_menu() {
   echo -e "${BLUE}**${YELLOW}     ${HCL_REPORT_OPT})${BLUE} Dasharo HCL report${NORMAL}"
   if check_if_dasharo; then
     echo -e "${BLUE}**${YELLOW}     ${DASHARO_FIRM_OPT})${BLUE} Update Dasharo Firmware${NORMAL}"
-  else
+  elif [ "$CAN_USE_FLASHROM" == "true" ]; then
     echo -e "${BLUE}**${YELLOW}     ${DASHARO_FIRM_OPT})${BLUE} Install Dasharo Firmware${NORMAL}"
   fi
-  echo -e "${BLUE}**${YELLOW}     ${REST_FIRM_OPT})${BLUE} Restore firmware from Dasharo HCL report${NORMAL}"
+  if [ "$CAN_USE_FLASHROM" == "true" ]; then
+    echo -e "${BLUE}**${YELLOW}     ${REST_FIRM_OPT})${BLUE} Restore firmware from Dasharo HCL report${NORMAL}"
+  fi
   if [ -n "${DPP_IS_LOGGED}" ]; then
     echo -e "${BLUE}**${YELLOW}     ${DPP_KEYS_OPT})${BLUE} Edit your DPP keys${NORMAL}"
   else
@@ -1537,6 +1425,9 @@ main_menu_options(){
       ;;
     "${DASHARO_FIRM_OPT}")
       if ! check_if_dasharo; then
+        # Installation requires flashrom:
+        [ "$CAN_USE_FLASHROM" != "true" ] && return 0
+
         if wait_for_network_connection; then
           echo "Preparing ..."
           if [ -z "${LOGS_SENT}" ]; then
@@ -1555,10 +1446,11 @@ main_menu_options(){
           ${CMD_DASHARO_DEPLOY} install
         fi
       else
+        # TODO: This should be placed in dasharo-deploy.
         # For NovaCustom TGL laptops with Dasharo version lower than 1.3.0,
         # we shall run the ec_transition script instead. See:
         # https://docs.dasharo.com/variants/novacustom_nv4x_tgl/releases/#v130-2022-10-18
-        if [ "$SYSTEM_VENDOR" = "Notebook" ]; then
+        if [ "$SYSTEM_VENDOR" = "Notebook" ] && [ "$CAN_USE_FLASHROM" == "true" ]; then
             case "$SYSTEM_MODEL" in
               "NS50_70MU"|"NV4XMB,ME,MZ")
                 compare_versions $DASHARO_VERSION 1.3.0
@@ -1586,6 +1478,9 @@ main_menu_options(){
       return 0
       ;;
     "${REST_FIRM_OPT}")
+      # Restore requires flashrom:
+      [ "$CAN_USE_FLASHROM" != "true" ] && return 0
+
       if check_if_dasharo; then
         ${CMD_DASHARO_DEPLOY} restore
       fi
@@ -1609,7 +1504,7 @@ main_menu_options(){
       check_avail_dpp_packages || return 0
 
       # Download and install available packages, start loop over if there is
-      # no packages tto install:
+      # no packages to install:
       install_all_dpp_packages || return 0
 
       # Parse installed packages for premium submenus:
@@ -1639,9 +1534,9 @@ show_footer(){
     echo -ne "${RED}${SSH_OPT_UP}${NORMAL} to launch SSH server  ${NORMAL}"
   fi
   if [ "${SEND_LOGS_ACTIVE}" == "true" ]; then
-    echo -ne "${RED}${SEND_LOGS_OPT}${NORMAL} to disable sending DTS logs ${NORMAL}"
+    echo -e "${RED}${SEND_LOGS_OPT}${NORMAL} to disable sending DTS logs ${NORMAL}"
   else
-    echo -ne "${RED}${SEND_LOGS_OPT}${NORMAL} to enable sending DTS logs ${NORMAL}"
+    echo -e "${RED}${SEND_LOGS_OPT}${NORMAL} to enable sending DTS logs ${NORMAL}"
   fi
   if [ "${VERBOSE_ACTIVE}" == "true" ]; then
     echo -ne "${RED}${VERBOSE_OPT}${NORMAL} to disable verbose mode ${NORMAL}"
@@ -1673,6 +1568,7 @@ footer_options(){
       return 0
       ;;
     "${SHELL_OPT_UP}" | "${SHELL_OPT_LOW}")
+      clear
       echo "Entering shell, to leave type exit and press Enter or press LCtrl+D"
       echo ""
       send_dts_logs
