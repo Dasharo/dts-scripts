@@ -784,7 +784,7 @@ compare_versions() {
 }
 
 download_bios() {
-  if [ -n "$BIOS_LINK_COMM" ] && [ ${BIOS_LINK} == ${BIOS_LINK_COMM} ]; then
+  if [ "${BIOS_LINK}" == "${BIOS_LINK_COMM}" ] || [ "${BIOS_LINK}" == "${BIOS_LINK_COMM_CAP}" ]; then
     curl -s -L -f "$BIOS_LINK" -o $BIOS_UPDATE_FILE
     error_check "Cannot access $FW_STORE_URL while downloading binary. Please
    check your internet connection"
