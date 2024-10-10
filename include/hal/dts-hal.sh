@@ -30,8 +30,7 @@
 # shellcheck source=./dts-hal-common.sh
 source $DTS_ENV
 # shellcheck source=./dts-hal-common.sh
-source $DTS_HAL_COMMON
-source $DTS_HAL_PLAT
+source $DTS_MOCK_COMMON
 
 # Set tools wrappers:
 DASHARO_ECTOOL="tool_wrapper dasharo_ectool"

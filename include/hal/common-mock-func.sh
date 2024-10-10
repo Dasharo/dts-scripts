@@ -59,7 +59,7 @@ dasharo_ectool_update_ec_firmware_mock(){
   # TODO
 }
 
-dasharo_ectool_novacustom_check_sys_model_mock(){
+novacustom_check_sys_model_mock(){
   # TODO
 }
 

@@ -8,6 +8,8 @@
 source $DTS_ENV
 # shellcheck source=../include/dts-functions.sh
 source $DTS_FUNCS
+# shellcheck source=../include/hal/dts-hal.sh
+source $DTS_HAL
 
 update_result() {
   TOOL=$1
@@ -15,7 +17,7 @@ update_result() {
   LOGFILE=`printf $2 | sed 's/[.].*$//' && echo ".log"`
 
   # check if status was set as a unknown
-  if [ ! -v $3 ]; then
+  if [ -z "$3" ]; then
    echo -e [$YELLOW"UNKNOWN"$NORMAL]"\t"$TOOL >> result
    return
   fi
@@ -76,50 +78,50 @@ update_result "USB devices and topology" logs/lsusb.err.log
 printf '####                                                               |\r'
 
 # echo "Dumping Super I/O configuration..."
-superiotool -deV > logs/superiotool.log 2> logs/superiotool.err.log
+$SUPERIOTOOL -deV > logs/superiotool.log 2> logs/superiotool.err.log
 update_result "Super I/O configuration" logs/superiotool.err.log
 printf '######                                                             |\r'
 
 # echo "Dumping Embedded Controller configuration (this may take a while if EC is not present)..."
-ectool -ip > logs/ectool.log 2> logs/ectool.err.log
+$ECTOOL -ip > logs/ectool.log 2> logs/ectool.err.log
 update_result "EC configuration" logs/ectool.err.log
 printf '########                                                           |\r'
 
 # echo "Dumping MSRs..."
-msrtool > logs/msrtool.log 2> logs/msrtool.err.log
+$MSRTOOL > logs/msrtool.log 2> logs/msrtool.err.log
 update_result "MSRs" logs/msrtool.err.log
 printf '##########                                                         |\r'
 
 # echo "Dumping SMBIOS tables..."
-dmidecode > logs/dmidecode.log 2> logs/dmidecode.err.log
+$DMIDECODE > logs/dmidecode.log 2> logs/dmidecode.err.log
 update_result "SMBIOS tables" logs/dmidecode.err.log
 printf '############                                                       |\r'
 
 # echo "Decoding BIOS information..."
-biosdecode > logs/biosdecode.log 2> logs/biosdecode.err.log
+$BIOSDECODE > logs/biosdecode.log 2> logs/biosdecode.err.log
 update_result "BIOS information" logs/biosdecode.err.log
 printf '##############                                                     |\r'
 
 # echo "Extracting CMOS NVRAM..."
-nvramtool -x > logs/nvramtool.log 2> logs/nvramtool.err.log
+$NVRAMTOOL -x > logs/nvramtool.log 2> logs/nvramtool.err.log
 update_result "CMOS NVRAM" logs/nvramtool.err.log
 printf '################                                                   |\r'
 
 # echo "Dumping Intel configuration registers..."
-inteltool -a > logs/inteltool.log 2> logs/inteltool.err.log
+$INTELTOOL -a > logs/inteltool.log 2> logs/inteltool.err.log
 update_result "Intel configuration registers" logs/inteltool.err.log
 printf '##################                                                 |\r'
 
 # echo "Generating GPIO configuration C header files for coreboot..."
-intelp2m -file logs/inteltool.log -fld cb -i -p snr -o logs/gpio_snr.h > logs/intelp2m.log 2> logs/intelp2m.err.log
-intelp2m -file logs/inteltool.log -fld cb -i -p cnl -o logs/gpio_cnl.h >> logs/intelp2m.log 2>> logs/intelp2m.err.log
-intelp2m -file logs/inteltool.log -fld cb -i -p apl -o logs/gpio_apl.h >> logs/intelp2m.log 2>> logs/intelp2m.err.log
-intelp2m -file logs/inteltool.log -fld cb -i -p lbg -o logs/gpio_lbg.h >> logs/intelp2m.log 2>> logs/intelp2m.err.log
+$INTELP2M -file logs/inteltool.log -fld cb -i -p snr -o logs/gpio_snr.h > logs/intelp2m.log 2> logs/intelp2m.err.log
+$INTELP2M -file logs/inteltool.log -fld cb -i -p cnl -o logs/gpio_cnl.h >> logs/intelp2m.log 2>> logs/intelp2m.err.log
+$INTELP2M -file logs/inteltool.log -fld cb -i -p apl -o logs/gpio_apl.h >> logs/intelp2m.log 2>> logs/intelp2m.err.log
+$INTELP2M -file logs/inteltool.log -fld cb -i -p lbg -o logs/gpio_lbg.h >> logs/intelp2m.log 2>> logs/intelp2m.err.log
 update_result "GPIO configuration C header files" logs/intelp2m.err.log
 printf '####################                                               |\r'
 
 # echo "Dumping kernel dmesg..."
-dmesg > logs/dmesg.log 2> logs/dmesg.err.log
+$DMESG > logs/dmesg.log 2> logs/dmesg.err.log
 update_result "kernel dmesg" logs/dmesg.err.log
 printf '######################                                             |\r'
 
@@ -196,7 +198,7 @@ if [ "$CAN_USE_FLASHROM" == "true" ]; then
     FLASHROM_ADD_OPT_READ=""
   fi
 
-  $FLASHROM -V -p internal:laptop=force_I_want_a_brick ${FLASH_CHIP_SELECT} -r logs/rom.bin ${FLASHROM_ADD_OPT_READ} > logs/flashrom_read.log 2> logs/flashrom_read.err.log
+  $FLASHROM read_firm_mock -V -p internal:laptop=force_I_want_a_brick ${FLASH_CHIP_SELECT} -r logs/rom.bin ${FLASHROM_ADD_OPT_READ} > logs/flashrom_read.log 2> logs/flashrom_read.err.log
   if [ $? -ne 0 ]; then
     echo "CRITICAL ERROR: cannot dump firmware"
   fi
@@ -230,12 +232,12 @@ update_result "Touchpad information" logs/touchpad.err.log
 printf '########################################                           |\r'
 
 # echo "Getting DIMMs information..."
-decode-dimms > logs/decode-dimms.log 2> logs/decode-dimms.err.log
+$DECODE_DIMMS > logs/decode-dimms.log 2> logs/decode-dimms.err.log
 update_result "DIMMs information" logs/decode-dimms.err.log
 printf '##########################################                         |\r'
 
 # echo "Getting CBMEM table..."
-cbmem > logs/cbmem.log 2> logs/cbmem.err.log
+$CBMEM > logs/cbmem.log 2> logs/cbmem.err.log
 update_result "CBMEM table information" logs/cbmem.err.log
 printf '############################################                       |\r'
 
@@ -245,12 +247,12 @@ update_result "TPM information" logs/tpm_version.err.log
 printf '#############################################                      |\r'
 
 # echo "Checking AMT..."
-mei-amt-check > logs/amt-check.log 2> logs/amt-check.err.log
+$MEI_AMT_CHECK > logs/amt-check.log 2> logs/amt-check.err.log
 update_result "AMT information" logs/amt-check.err.log
 printf '###############################################                    |\r'
 
 # echo "Checking ME..."
-intelmetool -m > logs/intelmetool.log 2> logs/intelmetool.err.log
+$INTELMETOOL -m > logs/intelmetool.log 2> logs/intelmetool.err.log
 update_result "ME information" logs/intelmetool.err.log
 printf '################################################                   |\r'
 
@@ -280,9 +282,9 @@ if [ $DEPLOY_REPORT = "false" ]; then
 fi
 
 # Create name for generated report
-filename="$(dmidecode -s system-manufacturer)"
-filename+=" $(dmidecode -s system-product-name)"
-filename+=" $(dmidecode -s bios-version)"
+filename="$($DMIDECODE -s system-manufacturer)"
+filename+=" $($DMIDECODE -s system-product-name)"
+filename+=" $($DMIDECODE -s bios-version)"
 
 # MAC address of device that is used to connect the internet
 # it could return none only when there is no internet connection but
@@ -292,8 +294,8 @@ filename+=" $(dmidecode -s bios-version)"
 # shellcheck disable=SC2046
 uuid_string="$(cat /sys/class/net/$(ip route show default | head -1 | awk '/default/ {print $5}')/address)"
 # next two values are hardware related so they will be always the same
-uuid_string+="_$(dmidecode -s system-product-name)"
-uuid_string+="_$(dmidecode -s system-manufacturer)"
+uuid_string+="_$($DMIDECODE -s system-product-name)"
+uuid_string+="_$($DMIDECODE -s system-manufacturer)"
 
 # using values from above should generate the same uuid all the time if only
 # the MAC address will not change.
@@ -364,7 +366,7 @@ order to participate)\r
 read -p "[N/y] "
 case ${REPLY} in
     yes|y|Y|Yes|YES)
-    /usr/bin/hw-probe -all -upload
+    $HW_PROBE -all -upload
     if [ $? -eq 0 ]; then
         echo "Thank you for contributing to the \"Hardware for Linux\" project!"
     else

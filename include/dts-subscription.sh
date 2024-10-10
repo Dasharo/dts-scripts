@@ -33,7 +33,7 @@ check_for_dasharo_firmware() {
   TEST_LOGS_URL="https://cloud.3mdeb.com/index.php/s/${CLOUDSEND_LOGS_URL}/authenticate/showShare"
 
   # If board_config function has not set firmware links - exit with warning:
-  if [ ! -v BIOS_LINK_DPP ] && [ ! -v HEADS_LINK_DPP ] && [ ! -v BIOS_LINK_DPP_SEABIOS ]; then
+  if [ -z "$BIOS_LINK_DPP" ] && [ -z "$HEADS_LINK_DPP" ] && [ -z "$BIOS_LINK_DPP_SEABIOS" ] && [ -z "$BIOS_LINK_DPP_CAP" ]; then
     print_warning "There is no Dasharo Firmware available for your platform."
     return 1
   fi
