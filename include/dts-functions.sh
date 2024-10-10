@@ -856,7 +856,6 @@ verify_artifacts() {
 # In case of .rom files it will be enough but capsules have additional
 # protection layer built in, the binaries they provide will be verified by
 # drivers, so no need to implement it here.
-  local _type="$1"
   local _update_file=""
   local _hash_file=""
   local _sign_file=""
@@ -864,7 +863,7 @@ verify_artifacts() {
   local _sig_result=""
 
   while [[ $# -gt 0 ]]; do
-    case ${_type} in
+    case $1 in
       ec)
         _update_file=$EC_UPDATE_FILE
         _hash_file=$EC_HASH_FILE
@@ -1042,7 +1041,7 @@ set_flashrom_update_params() {
   # We need to read whole binary (or BIOS region), otherwise cbfstool will
   # return different attributes for CBFS regions
   echo "Checking flash layout."
-  $FLASHROM check_flash_layout_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE} -r /tmp/bios.bin > /dev/null 2>&1
+  $FLASHROM read_flash_layout_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE} -r /tmp/bios.bin > /dev/null 2>&1
   if [ $? -eq 0 ] && [ -f "/tmp/bios.bin" ]; then
     BOARD_FMAP_LAYOUT=$($CBFSTOOL layout_mock /tmp/bios.bin layout -w 2> /dev/null)
     BINARY_FMAP_LAYOUT=$($CBFSTOOL layout_mock $1 layout -w 2> /dev/null)

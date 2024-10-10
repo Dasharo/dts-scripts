@@ -74,7 +74,7 @@ install() {
   error_check "Failed to verify Dasharo firmware"
 
   if [ "$HAVE_EC" == "true" ]; then
-    _ec_fw_version=$($FLASHROM -p ${PROGRAMMER_EC} | grep "Mainboard EC Version" | tr -d ' ' | cut -d ':' -f 2)
+    _ec_fw_version=$($FLASHROM get_ec_firm_version_mock -p ${PROGRAMMER_EC} | grep "Mainboard EC Version" | tr -d ' ' | cut -d ':' -f 2)
 
     if [ "$_ec_fw_version" != "$COMPATIBLE_EC_FW_VERSION" ]; then
       echo "EC version: $_ec_fw_version is not supported, update required"

@@ -1,47 +1,134 @@
+# shellcheck source=../include/dts-environment.sh
+source $DTS_ENV
+
+parse_for_arg_return_next(){ # TODO place in dts-functions.sh
+# This function parses a list of arguments (given as a second argument), looks
+# for a specified argument (given as a first argument). In case the specified
+# argument has been found in the list - this function returns (to stdout) the
+# argument, wich is on the list after specified one, and a return value 0,
+# otherwise nothing is being printed to stdout and the return value is 1.
+# Arguments:
+# 1. The argument you are searching for like -r for flashrom;
+# 2. Space-separated list of arguments to search in.
+  local _arg="$1"
+  shift
+
+  while [[ $# -gt 0 ]]; do
+    if [ "$1" = "$_arg" ]; then
+      [ -n "$2" ] && echo "$2" 1>&1
+
+      return 0
+    else
+      shift
+    fi
+  done
+
+  return 1
+}
+
 ################################################################################
 # flashrom
 ################################################################################
+TEST_FLASH_LOCK="${TEST_FLASH_LOCK:-true}"
+TEST_AUTO_FLASH_CHIP_DETECT="${TEST_AUTO_FLASH_CHIP_DETECT:-true}"
+TEST_BOARD_HAS_FD_REGION="${TEST_BOARD_HAS_FD_REGION:-true}"
+TEST_BOARD_FD_REGION_RW="${TEST_BOARD_FD_REGION_RW:-true}"
+TEST_BOARD_HAS_ME_REGION="${TEST_BOARD_HAS_ME_REGION:-true}"
+TEST_BOARD_ME_REGION_RW="${TEST_BOARD_ME_REGION_RW:-true}"
+TEST_BOARD_ME_REGION_LOCKED="${TEST_BOARD_ME_REGION_LOCKED:-}"
+TEST_BOARD_HAS_GBE_REGION="${TEST_BOARD_HAS_GBE_REGION:-true}"
+TEST_BOARD_GBE_REGION_RW="${TEST_BOARD_GBE_REGION_RW:-true}"
+TEST_BOARD_GBE_REGION_LOCKED="${TEST_BOARD_GBE_REGION_LOCKED:-}"
+TEST_COMPATIBLE_EC_VERSINO="${TEST_COMPATIBLE_EC_VERSINO:-}"
+
 flashrom_common_mock(){
-  # TODO:
+  echo "${FUNCNAME[0]}: Using flashrom..."
+
+  return 0
 }
 
 flashrom_check_flash_lock_mock(){
-  # TODO
+# For flash lock testing:
+  if [ -n "$TEST_FLASH_LOCK" ]; then
+    echo "PR0: Warning:.TEST is read-only\|SMM protection is enabled" > /tmp/check_flash_lock.err
+    return 1
+  fi
+
+  return 0
 }
 
 flashrom_flash_chip_name_mock(){
-  # TODO
+  if [ -n "$TEST_AUTO_FLASH_CHIP_DETECT" ]; then
+    echo "Test Flash Chip" 1>&1
+
+    return 0
+  else
+    # TODO
+    return 1
+  fi
+
 }
 
 flashrom_flash_chip_size_mock(){
-  # TODO
+  echo "Test Size of The Flash Chip " 1>&1
+
+  return 0
 }
 
 flashrom_check_intel_regions_mock(){
-  # TODO
+  [ -n "$TEST_BOARD_HAS_FD_REGION" ] && echo "Flash Descriptor region" 1>&1
+  [ -n "$TEST_BOARD_FD_REGION_RW" ] && echo "Flash Descriptor region.testread-write" 1>&1
+
+  [ -n "$TEST_BOARD_HAS_ME_REGION" ] && echo "Management Engine region" 1>&1
+  [ -n "$TEST_BOARD_ME_REGION_RW"] && echo "Management Engine region.testread-write" 1>&1 
+  [ -n "$TEST_BOARD_ME_REGION_LOCKED" ] && echo "Management Engine region.testlocked" 1>&1
+
+  [ -n "$TEST_BOARD_HAS_GBE_REGION" ] && echo "Gigabit Ethernet region" 1>&1
+  [ -n "$TEST_BOARD_GBE_REGION_RW" ] && echo "Gigabit Ethernet region.testread-write" 1>&1
+  [ -n "$TEST_BOARD_GBE_REGION_LOCKED" ] && echo "Gigabit Ethernet region.testlocked" 1>&1
+
+  return 0
 }
 
-flashrom_check_flash_layout_mock(){
-  # TODO
+flashrom_read_flash_layout_mock(){
+  # For -r check flashrom man page:
+  local _file_to_write_into=$(parse_for_arg_return_next "-r" $*)
+  echo "Testing..." > "$_file_to_write_into"
+  
+  return 0
 }
 
 flashrom_read_firm_mock(){
-  # TODO
+  # For -r check flashrom man page:
+  local _file_to_write_into=$(parse_for_arg_return_next "-r" $*)
+
+  echo "Test flashrom read." > "$_file_to_write_into"
+
+  return 0
 }
 
-flashrom_get_firm_version_mock(){
-  # TODO
+flashrom_get_ec_firm_version_mock(){
+  if [ -n "$TEST_COMPATIBLE_EC_VERSION" ]; then
+    echo "Mainboard EC Version: $COMPATIBLE_EC_FW_VERSION" 1>&1
+  else
+    echo "Mainboard EC Version: 0000-00-00-0000000"
+  fi
+
+  return 0
 }
 
 flashrom_write_firm_mock(){
-  # TODO
+  echo "${FUNCNAME[0]}: Writing firmware..."
+  return 0
 }
 
 ################################################################################
 # ectool
 ################################################################################
 ectool_common_mock(){
-  # TODO
+  echo "${FUNCNAME[0]}: Usinng ectool..."
+
+  return 0
 }
 
 ################################################################################

@@ -667,7 +667,7 @@ deploy_ec_firmware() {
     if check_for_opensource_firmware; then
       echo "Device has already Open Source Embedded Controller firmware, do not flash EC..."
     else
-      _ec_fw_version=$($FLASHROM get_firm_version_mock check -p "$PROGRAMMER_EC" ${FLASH_CHIP_SELECT} | grep "Mainboard EC Version" | tr -d ' ' | cut -d ':' -f 2)
+      _ec_fw_version=$($FLASHROM get_ec_firm_version_mock check -p "$PROGRAMMER_EC" ${FLASH_CHIP_SELECT} | grep "Mainboard EC Version" | tr -d ' ' | cut -d ':' -f 2)
 
       if [ "$_ec_fw_version" != "$COMPATIBLE_EC_FW_VERSION" ]; then
         echo "Installing EC..."
@@ -792,15 +792,15 @@ deploy_firmware(){
       # using the `check_blobs_in_binary` function.
       set_intel_regions_update_params "$FLASHROM_ADD_OPT_UPDATE_OVERRIDE"
       FLASHROM_ADD_OPT_UPDATE_OVERRIDE="$FLASHROM_ADD_OPT_REGIONS"
-      $FLASHROM write_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE_OVERRIDE} -w "$BIOS_UPDATE_FILE"  >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE # TODO: mock func
+      $FLASHROM write_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE_OVERRIDE} -w "$BIOS_UPDATE_FILE"  >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE
       error_check "Failed to update Dasharo firmware"
     else
-      $FLASHROM write_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE} -w "$BIOS_UPDATE_FILE"  >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE # TODO: mock func
+      $FLASHROM write_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE} -w "$BIOS_UPDATE_FILE"  >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE
       error_check "Failed to update Dasharo firmware"
 
       if [ $BINARY_HAS_RW_B -eq 0 ]; then
         echo "Updating second firmware partition..."
-        $FLASHROM write_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} --fmap -N -i RW_SECTION_B -w "$BIOS_UPDATE_FILE"  >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE # TODO: mock func
+        $FLASHROM write_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} --fmap -N -i RW_SECTION_B -w "$BIOS_UPDATE_FILE"  >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE
         error_check "Failed to update second firmware partition"
       fi
     fi
@@ -826,7 +826,7 @@ deploy_firmware(){
         UPDATE_STRING+="Management Engine"
       fi
       echo "Updating $UPDATE_STRING"
-      $FLASHROM write_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "$BIOS_UPDATE_FILE" >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE # TODO: mock func
+      $FLASHROM write_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "$BIOS_UPDATE_FILE" >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE
       error_check "Failed to update $UPDATE_STRING"
     fi
 
@@ -839,7 +839,7 @@ deploy_firmware(){
     if [ "${BIOS_LINK}" = "${BIOS_LINK_DPP_SEABIOS}" ]; then
       _flashrom_extra_args="--fmap -i COREBOOT"
     fi
-    $FLASHROM write_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "$BIOS_UPDATE_FILE" ${_flashrom_extra_args} >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE # TODO: mock func
+    $FLASHROM write_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "$BIOS_UPDATE_FILE" ${_flashrom_extra_args} >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE
     error_check "Failed to install Dasharo firmware"
     print_ok "Successfully installed Dasharo firmware"
 
@@ -1086,7 +1086,7 @@ restore() {
                   check_blobs_in_binary /tmp/logs/rom.bin
                   check_if_me_disabled
                   set_intel_regions_update_params "-N --ifd -i bios"
-                  $FLASHROM write_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "/tmp/logs/rom.bin" >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE # TODO: mock func
+                  $FLASHROM write_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "/tmp/logs/rom.bin" >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE
                   error_check "Failed to restore BIOS firmware! You can try one more time."
                   print_ok "Successfully restored firmware"
                   echo "Returning to main menu..."
@@ -1126,7 +1126,7 @@ restore() {
           check_blobs_in_binary /tmp/logs/rom.bin
           check_if_me_disabled
           set_intel_regions_update_params "-N --ifd -i bios"
-          $FLASHROM write_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "/tmp/logs/rom.bin" >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE # TODO: mock func
+          $FLASHROM write_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "/tmp/logs/rom.bin" >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE
           error_check "Failed to restore BIOS firmware! You can try one more time."
           print_ok "Successfully restored firmware"
         else
