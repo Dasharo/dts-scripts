@@ -8,14 +8,22 @@ SBIN_DIR="/usr/sbin"
 BIN_DIR="/usr/bin"
 FUM_EFIVAR="/sys/firmware/efi/vars/FirmwareUpdateMode-d15b327e-ff2d-4fc1-abf6-c12bd08c1359"
 
+export DTS_FUNCS="$SBIN_DIR/dts-functions.sh"
+export DTS_ENV="$SBIN_DIR/dts-environment.sh"
+export DTS_SUBS="$SBIN_DIR/dts-subscription.sh"
+export DTS_HAL="$SBIN_DIR/dts-hal.sh"
+export DTS_MOCK_COMMON="$SBIN_DIR/common-mock-func.sh"
 
-log_filename="dts_$(dmidecode -s system-manufacturer)"
-log_filename+=" $(dmidecode -s system-product-name)"
-log_filename+=" $(dmidecode -s bios-version)"
+# shellcheck source=../include/hal/dts-hal.sh
+source $DTS_HAL
 
-uuid_string="$(cat /sys/class/net/$(ip route show default | head -1 | awk '/default/ {print $5}')/address)"
-uuid_string+="_$(dmidecode -s system-product-name)"
-uuid_string+="_$(dmidecode -s system-manufacturer)"
+log_filename="dts_$($DMIDECODE dump_var_mock -s system-manufacturer)"
+log_filename+=" $($DMIDECODE dump_var_mock -s system-product-name)"
+log_filename+=" $($DMIDECODE dump_var_mock -s bios-version)"
+
+uuid_string="$($READFS_TOOL cat /sys/class/net/$(ip route show default | head -1 | awk '/default/ {print $5}')/address)"
+uuid_string+="_$($DMIDECODE dump_var_mock -s system-product-name)"
+uuid_string+="_$($DMIDECODE dump_var_mock -s system-manufacturer)"
 
 uuid=`uuidgen -n @x500 -N $uuid_string -s`
 
@@ -24,9 +32,6 @@ log_filename+="_$(date +'%Y_%m_%d_%H_%M_%S_%N')"
 log_filename="${log_filename// /_}"
 log_filename="${log_filename//\//_}"
 
-export DTS_FUNCS="$SBIN_DIR/dts-functions.sh"
-export DTS_ENV="$SBIN_DIR/dts-environment.sh"
-export DTS_SUBS="$SBIN_DIR/dts-subscription.sh"
 export DTS_LOG_FILE="/tmp/${log_filename}"
 
 if [ -d $FUM_EFIVAR ]; then
