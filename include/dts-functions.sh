@@ -834,15 +834,17 @@ board_config() {
           return 1
           ;;
       esac
-    "Intel")
+      ;;
+    "Silicom")
       shopt -s nocasematch
-      case "$SYSTEM_MODEL" in
-        "Minnow Max")
-          DASHARO_REL_NAME="minnowboard_turbot"
-          DASHARO_REL_VER_DES="TBD"
+      case "$BOARD_MODEL" in
+        "MinnowBoard Turbot")
+          DASHARO_REL_NAME="intel_minnowmax"
+          DASHARO_REL_VER_DPP="v0.9.0-rc3"
+          VER_DPP_NAME=$(echo "$DASHARO_REL_VER_DPP" | sed 's/-/_/g')
           HAVE_EC="false"
           NEED_EC_RESET="false"
-          BIOS_LINK_DES="${FW_STORE_URL_DES}/minnowboard/v${DASHARO_REL_VER_DES}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DES}.rom"
+          BIOS_LINK_DPP="${FW_STORE_URL_DPP}/intel_minnowmax/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_no_sb_v${DASHARO_REL_VER_DPP}.rom"
           FLASH_CHIP_LIST="W25Q64JV-.Q"
           PROGRAMMER_BIOS="internal"
           DISABLE_WP="true"
@@ -853,6 +855,7 @@ board_config() {
           ;;
       esac
       shopt -u nocasematch
+      ;;
     *)
       print_error "Board vendor: $SYSTEM_VENDOR is currently not supported"
       return 1
