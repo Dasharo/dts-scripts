@@ -10,72 +10,72 @@ source $DTS_ENV
 
 ### Color functions:
 function echo_green() {
-  echo -e "$GREEN""$1""$NORMAL"
+    echo -e "$GREEN""$1""$NORMAL"
 }
 
 function echo_red() {
-  echo -e "$RED""$1""$NORMAL"
+    echo -e "$RED""$1""$NORMAL"
 }
 
 function echo_yellow() {
-  echo -e "$YELLOW""$1""$NORMAL"
+    echo -e "$YELLOW""$1""$NORMAL"
 }
 
 print_warning() {
-  echo_yellow "$1"
+    echo_yellow "$1"
 }
 
 print_error() {
-  echo_red "$1"
+    echo_red "$1"
 }
 
 print_ok() {
-  echo_green "$1"
+    echo_green "$1"
 }
 
 check_if_dasharo() {
-  if [[ $BIOS_VENDOR == *$DASHARO_VENDOR* && $BIOS_VERSION == *$DASHARO_NAME* ]]; then
-    return 0
-  else
-    return 1
-  fi
+    if [[ $BIOS_VENDOR == *$DASHARO_VENDOR* && $BIOS_VERSION == *$DASHARO_NAME* ]]; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 check_if_ac() {
-  local _ac_file="/sys/class/power_supply/AC/online"
+    local _ac_file="/sys/class/power_supply/AC/online"
 
-  if [ ! -e "${_ac_file}" ]; then
-    # We want to silently skip if AC file is not there. Most likely this is
-    # not battery-powered device then.
-    return 0
-  fi
-
-  while true; do
-    ac_status=$(cat ${_ac_file})
-
-    if [ "$ac_status" -eq 1 ]; then
-      echo "AC adapter is connected. Continuing with firmware update."
-      return
-    else
-      print_warning "Warning: AC adapter must be connected before performing firmware update."
-      print_warning "Please connect the AC adapter and press 'C' to continue, or 'Q' to quit."
-
-      read -n 1 -r input
-      case $input in
-       [Cc])
-          echo "Checking AC status again..."
-          ;;
-        [Qq])
-          echo "Quitting firmware update."
-          return 1
-          ;;
-        *)
-          echo "Invalid input. Press 'C' to continue, or 'Q' to quit."
-          continue
-          ;;
-      esac
+    if [ ! -e "${_ac_file}" ]; then
+        # We want to silently skip if AC file is not there. Most likely this is
+        # not battery-powered device then.
+        return 0
     fi
-  done
+
+    while true; do
+        ac_status=$(cat ${_ac_file})
+
+        if [ "$ac_status" -eq 1 ]; then
+            echo "AC adapter is connected. Continuing with firmware update."
+            return
+        else
+            print_warning "Warning: AC adapter must be connected before performing firmware update."
+            print_warning "Please connect the AC adapter and press 'C' to continue, or 'Q' to quit."
+
+            read -n 1 -r input
+            case $input in
+            [Cc])
+                echo "Checking AC status again..."
+                ;;
+            [Qq])
+                echo "Quitting firmware update."
+                return 1
+                ;;
+            *)
+                echo "Invalid input. Press 'C' to continue, or 'Q' to quit."
+                continue
+                ;;
+            esac
+        fi
+    done
 }
 
 ### Error checks
@@ -84,585 +84,585 @@ check_if_ac() {
 # in cases where there would be some problem with updating the platform
 fum_exit() {
     if [ "$FUM" == "fum" ]; then
-      print_error "Update cannot be performed"
-      print_warning "Starting bash session - please make sure you get logs from\r
+        print_error "Update cannot be performed"
+        print_warning "Starting bash session - please make sure you get logs from\r
       \r$ERR_LOG_FILE and $FLASHROM_LOG_FILE; then you can poweroff the platform"
-      /bin/bash
+        /bin/bash
     fi
 }
 
 error_exit() {
-  _error_msg="$1"
-  if [ -n "$_error_msg" ]; then
-    # Avoid printing empty line if no message was passed
-    print_error "$_error_msg"
-  fi
-  fum_exit
-  exit 1
+    _error_msg="$1"
+    if [ -n "$_error_msg" ]; then
+        # Avoid printing empty line if no message was passed
+        print_error "$_error_msg"
+    fi
+    fum_exit
+    exit 1
 }
 
 error_check() {
-  _error_code=$?
-  _error_msg="$1"
-  [ "$_error_code" -ne 0 ] && error_exit "$_error_msg : ($_error_code)"
+    _error_code=$?
+    _error_msg="$1"
+    [ "$_error_code" -ne 0 ] && error_exit "$_error_msg : ($_error_code)"
 }
 
 function error_file_check {
-  if [ ! -f "$1" ]; then
-    print_error "$2"
-  fi
+    if [ ! -f "$1" ]; then
+        print_error "$2"
+    fi
 }
 
 ### Clevo-specific functions
 # Method to access IT5570 IO Depth 2 registers
 it5570_i2ec() {
-  # TODO: Use /dev/port instead of iotools
+    # TODO: Use /dev/port instead of iotools
 
-  # Address high byte
-  iotools io_write8 0x2e 0x2e
-  iotools io_write8 0x2f 0x11
-  iotools io_write8 0x2e 0x2f
-  iotools io_write8 0x2f $(($2>>8 & 0xff))
+    # Address high byte
+    iotools io_write8 0x2e 0x2e
+    iotools io_write8 0x2f 0x11
+    iotools io_write8 0x2e 0x2f
+    iotools io_write8 0x2f $(($2 >> 8 & 0xff))
 
-  # Address low byte
-  iotools io_write8 0x2e 0x2e
-  iotools io_write8 0x2f 0x10
-  iotools io_write8 0x2e 0x2f
-  iotools io_write8 0x2f $(($2 & 0xff))
+    # Address low byte
+    iotools io_write8 0x2e 0x2e
+    iotools io_write8 0x2f 0x10
+    iotools io_write8 0x2e 0x2f
+    iotools io_write8 0x2f $(($2 & 0xff))
 
-  # Data
-  iotools io_write8 0x2e 0x2e
-  iotools io_write8 0x2f 0x12
-  iotools io_write8 0x2e 0x2f
+    # Data
+    iotools io_write8 0x2e 0x2e
+    iotools io_write8 0x2f 0x12
+    iotools io_write8 0x2e 0x2f
 
-  case $1 in
+    case $1 in
     "r")
-      iotools io_read8 0x2f
-      ;;
+        iotools io_read8 0x2f
+        ;;
     "w")
-      iotools io_write8 0x2f "$3"
-      ;;
-  esac
+        iotools io_write8 0x2f "$3"
+        ;;
+    esac
 }
 
 it5570_shutdown() {
-  # shut down using EC external watchdog reset
-  it5570_i2ec w 0x1f01 0x20
-  it5570_i2ec w 0x1f07 0x01
+    # shut down using EC external watchdog reset
+    it5570_i2ec w 0x1f01 0x20
+    it5570_i2ec w 0x1f07 0x01
 }
 
 check_network_connection() {
-  echo 'Waiting for network connection ...'
-  n="10"
-  while : ; do
-    if wget --spider cloud.3mdeb.com > /dev/null 2>&1; then
-      echo 'Network connection established.'
-      return 0
-    fi
-    n=$((n-1))
-    if [ "${n}" == "0" ]; then
-      echo 'No network connection to 3mdeb cloud, please recheck Ethernet connection'
-      return 1
-    fi
-    sleep 1
-  done
+    echo 'Waiting for network connection ...'
+    n="10"
+    while :; do
+        if wget --spider cloud.3mdeb.com >/dev/null 2>&1; then
+            echo 'Network connection established.'
+            return 0
+        fi
+        n=$((n - 1))
+        if [ "${n}" == "0" ]; then
+            echo 'No network connection to 3mdeb cloud, please recheck Ethernet connection'
+            return 1
+        fi
+        sleep 1
+    done
 }
 
 ## Supported boards configuration
 
 board_config() {
-  # We download firmwares via network. At this point, the network connection
-  # must be up already.
-  check_network_connection
+    # We download firmwares via network. At this point, the network connection
+    # must be up already.
+    check_network_connection
 
-  echo "Checking if board is Dasharo compatible."
-  case "$SYSTEM_VENDOR" in
+    echo "Checking if board is Dasharo compatible."
+    case "$SYSTEM_VENDOR" in
     "Notebook")
-      case "$SYSTEM_MODEL" in
+        case "$SYSTEM_MODEL" in
         "NV4XMB,ME,MZ")
-          DASHARO_REL_NAME="novacustom_nv4x_tgl"
-          DASHARO_REL_VER="1.5.2"
-          BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
-          EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
-          HAVE_EC="true"
-          NEED_EC_RESET="true"
-          COMPATIBLE_EC_FW_VERSION="2022-10-07_c662165"
-          EC_HASH_LINK_COMM="$EC_LINK_COMM.sha256"
-          BIOS_HASH_LINK_COMM="$BIOS_LINK_COMM.sha256"
-          EC_SIGN_LINK_COMM="$EC_LINK_COMM.sha256.sig"
-          BIOS_SIGN_LINK_COMM="$BIOS_LINK_COMM.sha256.sig"
-          PLATFORM_SIGN_KEY="customer-keys/novacustom/novacustom-open-source-firmware-release-1.x-key.asc \
+            DASHARO_REL_NAME="novacustom_nv4x_tgl"
+            DASHARO_REL_VER="1.5.2"
+            BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
+            EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
+            HAVE_EC="true"
+            NEED_EC_RESET="true"
+            COMPATIBLE_EC_FW_VERSION="2022-10-07_c662165"
+            EC_HASH_LINK_COMM="$EC_LINK_COMM.sha256"
+            BIOS_HASH_LINK_COMM="$BIOS_LINK_COMM.sha256"
+            EC_SIGN_LINK_COMM="$EC_LINK_COMM.sha256.sig"
+            BIOS_SIGN_LINK_COMM="$BIOS_LINK_COMM.sha256.sig"
+            PLATFORM_SIGN_KEY="customer-keys/novacustom/novacustom-open-source-firmware-release-1.x-key.asc \
              customer-keys/novacustom/dasharo-release-0.9.x-for-novacustom-signing-key.asc"
-          NEED_SMBIOS_MIGRATION="false"
-          NEED_SMMSTORE_MIGRATION="true"
-          NEED_BOOTSPLASH_MIGRATION="false"
-          NEED_BLOB_TRANSMISSION="false"
-          PROGRAMMER_BIOS="internal"
-          PROGRAMMER_EC="ite_ec:boardmismatch=force,romsize=128K,autoload=disable"
-          if check_if_dasharo; then
-          # if v1.5.1 or older, flash the whole bios region
-          # TODO: Let DTS determine which parameters are suitable.
-          # FIXME: Can we ever get rid of that? We change so much in each release,
-          # that we almost always need to flash whole BIOS regions
-          # because of non-backward compatible or breaking changes.
-            compare_versions $DASHARO_VERSION 1.5.2
-            if [ $? -eq 1 ]; then
-              # For Dasharo version lesser than 1.5.2
-              NEED_BOOTSPLASH_MIGRATION="true"
-              FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
+            NEED_SMBIOS_MIGRATION="false"
+            NEED_SMMSTORE_MIGRATION="true"
+            NEED_BOOTSPLASH_MIGRATION="false"
+            NEED_BLOB_TRANSMISSION="false"
+            PROGRAMMER_BIOS="internal"
+            PROGRAMMER_EC="ite_ec:boardmismatch=force,romsize=128K,autoload=disable"
+            if check_if_dasharo; then
+                # if v1.5.1 or older, flash the whole bios region
+                # TODO: Let DTS determine which parameters are suitable.
+                # FIXME: Can we ever get rid of that? We change so much in each release,
+                # that we almost always need to flash whole BIOS regions
+                # because of non-backward compatible or breaking changes.
+                compare_versions $DASHARO_VERSION 1.5.2
+                if [ $? -eq 1 ]; then
+                    # For Dasharo version lesser than 1.5.2
+                    NEED_BOOTSPLASH_MIGRATION="true"
+                    FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
+                fi
             fi
-          fi
-          ;;
+            ;;
         "NS50_70MU")
-          DASHARO_REL_NAME="novacustom_ns5x_tgl"
-          DASHARO_REL_VER="1.5.2"
-          BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
-          EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
-          HAVE_EC="true"
-          NEED_EC_RESET="true"
-          COMPATIBLE_EC_FW_VERSION="2022-08-31_cbff21b"
-          EC_HASH_LINK_COMM="$EC_LINK_COMM.sha256"
-          BIOS_HASH_LINK_COMM="$BIOS_LINK_COMM.sha256"
-          EC_SIGN_LINK_COMM="$EC_LINK_COMM.sha256.sig"
-          BIOS_SIGN_LINK_COMM="$BIOS_LINK_COMM.sha256.sig"
-          PLATFORM_SIGN_KEY="customer-keys/novacustom/novacustom-open-source-firmware-release-1.x-key.asc \
+            DASHARO_REL_NAME="novacustom_ns5x_tgl"
+            DASHARO_REL_VER="1.5.2"
+            BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
+            EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
+            HAVE_EC="true"
+            NEED_EC_RESET="true"
+            COMPATIBLE_EC_FW_VERSION="2022-08-31_cbff21b"
+            EC_HASH_LINK_COMM="$EC_LINK_COMM.sha256"
+            BIOS_HASH_LINK_COMM="$BIOS_LINK_COMM.sha256"
+            EC_SIGN_LINK_COMM="$EC_LINK_COMM.sha256.sig"
+            BIOS_SIGN_LINK_COMM="$BIOS_LINK_COMM.sha256.sig"
+            PLATFORM_SIGN_KEY="customer-keys/novacustom/novacustom-open-source-firmware-release-1.x-key.asc \
              customer-keys/novacustom/dasharo-release-0.9.x-for-novacustom-signing-key.asc"
-          NEED_SMBIOS_MIGRATION="false"
-          NEED_SMMSTORE_MIGRATION="true"
-          NEED_BOOTSPLASH_MIGRATION="false"
-          NEED_BLOB_TRANSMISSION="false"
-          PROGRAMMER_BIOS="internal"
-          PROGRAMMER_EC="ite_ec:boardmismatch=force,romsize=128K,autoload=disable"
-          if check_if_dasharo; then
-          # if v1.5.1 or older, flash the whole bios region
-          # TODO: Let DTS determine which parameters are suitable.
-          # FIXME: Can we ever get rid of that? We change so much in each release,
-          # that we almost always need to flash whole BIOS regions
-          # because of non-backward compatible or breaking changes.
-            compare_versions $DASHARO_VERSION 1.5.2
-            if [ $? -eq 1 ]; then
-              # For Dasharo version lesser than 1.5.2
-              NEED_BOOTSPLASH_MIGRATION="true"
-              FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
+            NEED_SMBIOS_MIGRATION="false"
+            NEED_SMMSTORE_MIGRATION="true"
+            NEED_BOOTSPLASH_MIGRATION="false"
+            NEED_BLOB_TRANSMISSION="false"
+            PROGRAMMER_BIOS="internal"
+            PROGRAMMER_EC="ite_ec:boardmismatch=force,romsize=128K,autoload=disable"
+            if check_if_dasharo; then
+                # if v1.5.1 or older, flash the whole bios region
+                # TODO: Let DTS determine which parameters are suitable.
+                # FIXME: Can we ever get rid of that? We change so much in each release,
+                # that we almost always need to flash whole BIOS regions
+                # because of non-backward compatible or breaking changes.
+                compare_versions $DASHARO_VERSION 1.5.2
+                if [ $? -eq 1 ]; then
+                    # For Dasharo version lesser than 1.5.2
+                    NEED_BOOTSPLASH_MIGRATION="true"
+                    FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
+                fi
             fi
-          fi
-          ;;
+            ;;
         "NS5x_NS7xPU")
-          DASHARO_REL_NAME="novacustom_ns5x_adl"
-          DASHARO_REL_VER="1.7.2"
-          BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
-          EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
-          HAVE_EC="true"
-          NEED_EC_RESET="true"
-          COMPATIBLE_EC_FW_VERSION="2022-08-31_cbff21b"
-          EC_HASH_LINK_COMM="$EC_LINK_COMM.sha256"
-          BIOS_HASH_LINK_COMM="$BIOS_LINK_COMM.sha256"
-          EC_SIGN_LINK_COMM="$EC_LINK_COMM.sha256.sig"
-          BIOS_SIGN_LINK_COMM="$BIOS_LINK_COMM.sha256.sig"
-          PLATFORM_SIGN_KEY="customer-keys/novacustom/novacustom-open-source-firmware-release-1.x-key.asc \
+            DASHARO_REL_NAME="novacustom_ns5x_adl"
+            DASHARO_REL_VER="1.7.2"
+            BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
+            EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
+            HAVE_EC="true"
+            NEED_EC_RESET="true"
+            COMPATIBLE_EC_FW_VERSION="2022-08-31_cbff21b"
+            EC_HASH_LINK_COMM="$EC_LINK_COMM.sha256"
+            BIOS_HASH_LINK_COMM="$BIOS_LINK_COMM.sha256"
+            EC_SIGN_LINK_COMM="$EC_LINK_COMM.sha256.sig"
+            BIOS_SIGN_LINK_COMM="$BIOS_LINK_COMM.sha256.sig"
+            PLATFORM_SIGN_KEY="customer-keys/novacustom/novacustom-open-source-firmware-release-1.x-key.asc \
              customer-keys/novacustom/dasharo-release-0.9.x-for-novacustom-signing-key.asc"
-          NEED_SMBIOS_MIGRATION="false"
-          NEED_SMMSTORE_MIGRATION="true"
-          NEED_BLOB_TRANSMISSION="false"
-          PROGRAMMER_BIOS="internal"
-          PROGRAMMER_EC="ite_ec:boardmismatch=force,romsize=128K,autoload=disable"
-          if check_if_dasharo; then
-          # if v1.7.2 or older, flash the whole bios region
-          # TODO: Let DTS determine which parameters are suitable.
-          # FIXME: Can we ever get rid of that? We change so much in each release,
-          # that we almost always need to flash whole BIOS regions
-          # because of non-backward compatible or breaking changes.
-            compare_versions $DASHARO_VERSION 1.7.2
-            if [ $? -eq 1 ]; then
-              # For Dasharo version lesser than 1.7.2
-              NEED_BOOTSPLASH_MIGRATION="true"
-              FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
+            NEED_SMBIOS_MIGRATION="false"
+            NEED_SMMSTORE_MIGRATION="true"
+            NEED_BLOB_TRANSMISSION="false"
+            PROGRAMMER_BIOS="internal"
+            PROGRAMMER_EC="ite_ec:boardmismatch=force,romsize=128K,autoload=disable"
+            if check_if_dasharo; then
+                # if v1.7.2 or older, flash the whole bios region
+                # TODO: Let DTS determine which parameters are suitable.
+                # FIXME: Can we ever get rid of that? We change so much in each release,
+                # that we almost always need to flash whole BIOS regions
+                # because of non-backward compatible or breaking changes.
+                compare_versions $DASHARO_VERSION 1.7.2
+                if [ $? -eq 1 ]; then
+                    # For Dasharo version lesser than 1.7.2
+                    NEED_BOOTSPLASH_MIGRATION="true"
+                    FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
+                fi
             fi
-          fi
-          ;;
+            ;;
         "NV4xPZ")
-          DASHARO_REL_NAME="novacustom_nv4x_adl"
-          DASHARO_REL_VER="1.7.2"
-          HEADS_REL_VER_DES="0.9.0"
-          HEADS_LINK_DES="${FW_STORE_URL_DES}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DES}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DES}_heads.rom"
-          HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
-          BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
-          EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
-          HAVE_EC="true"
-          NEED_EC_RESET="true"
-          COMPATIBLE_EC_FW_VERSION="2022-08-31_cbff21b"
-          EC_HASH_LINK_COMM="$EC_LINK_COMM.sha256"
-          BIOS_HASH_LINK_COMM="$BIOS_LINK_COMM.sha256"
-          EC_SIGN_LINK_COMM="$EC_LINK_COMM.sha256.sig"
-          BIOS_SIGN_LINK_COMM="$BIOS_LINK_COMM.sha256.sig"
-          PLATFORM_SIGN_KEY="customer-keys/novacustom/novacustom-open-source-firmware-release-1.x-key.asc \
+            DASHARO_REL_NAME="novacustom_nv4x_adl"
+            DASHARO_REL_VER="1.7.2"
+            HEADS_REL_VER_DES="0.9.0"
+            HEADS_LINK_DES="${FW_STORE_URL_DES}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DES}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DES}_heads.rom"
+            HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
+            BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
+            EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
+            HAVE_EC="true"
+            NEED_EC_RESET="true"
+            COMPATIBLE_EC_FW_VERSION="2022-08-31_cbff21b"
+            EC_HASH_LINK_COMM="$EC_LINK_COMM.sha256"
+            BIOS_HASH_LINK_COMM="$BIOS_LINK_COMM.sha256"
+            EC_SIGN_LINK_COMM="$EC_LINK_COMM.sha256.sig"
+            BIOS_SIGN_LINK_COMM="$BIOS_LINK_COMM.sha256.sig"
+            PLATFORM_SIGN_KEY="customer-keys/novacustom/novacustom-open-source-firmware-release-1.x-key.asc \
              customer-keys/novacustom/dasharo-release-0.9.x-for-novacustom-signing-key.asc"
-          NEED_SMBIOS_MIGRATION="false"
-          NEED_SMMSTORE_MIGRATION="true"
-          NEED_BOOTSPLASH_MIGRATION="false"
-          NEED_BLOB_TRANSMISSION="false"
-          PROGRAMMER_BIOS="internal"
-          PROGRAMMER_EC="ite_ec:boardmismatch=force,romsize=128K,autoload=disable"
-          if check_if_dasharo; then
-          # if v1.7.2 or older, flash the whole bios region
-          # TODO: Let DTS determine which parameters are suitable.
-          # FIXME: Can we ever get rid of that? We change so much in each release,
-          # that we almost always need to flash whole BIOS regions
-          # because of non-backward compatible or breaking changes.
-            compare_versions $DASHARO_VERSION 1.7.2
-            if [ $? -eq 1 ]; then
-              # For Dasharo version lesser than 1.7.2
-              NEED_BOOTSPLASH_MIGRATION="true"
-              FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-            else
-              HAVE_HEADS_FW="true"
+            NEED_SMBIOS_MIGRATION="false"
+            NEED_SMMSTORE_MIGRATION="true"
+            NEED_BOOTSPLASH_MIGRATION="false"
+            NEED_BLOB_TRANSMISSION="false"
+            PROGRAMMER_BIOS="internal"
+            PROGRAMMER_EC="ite_ec:boardmismatch=force,romsize=128K,autoload=disable"
+            if check_if_dasharo; then
+                # if v1.7.2 or older, flash the whole bios region
+                # TODO: Let DTS determine which parameters are suitable.
+                # FIXME: Can we ever get rid of that? We change so much in each release,
+                # that we almost always need to flash whole BIOS regions
+                # because of non-backward compatible or breaking changes.
+                compare_versions $DASHARO_VERSION 1.7.2
+                if [ $? -eq 1 ]; then
+                    # For Dasharo version lesser than 1.7.2
+                    NEED_BOOTSPLASH_MIGRATION="true"
+                    FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
+                else
+                    HAVE_HEADS_FW="true"
+                fi
+                if [ "$DASHARO_FLAVOR" == "Dasharo (coreboot+heads)" ]; then
+                    HAVE_HEADS_FW="true"
+                fi
             fi
-            if [ "$DASHARO_FLAVOR" == "Dasharo (coreboot+heads)" ]; then
-              HAVE_HEADS_FW="true"
-            fi
-          fi
-          ;;
-        *)
-          print_error "Board model $SYSTEM_MODEL is currently not supported"
-          return 1
-          ;;
-      esac
-      ;;
-    "Micro-Star International Co., Ltd.")
-      case "$SYSTEM_MODEL" in
-        "MS-7D25")
-          case "$BOARD_MODEL" in
-            "PRO Z690-A WIFI DDR4(MS-7D25)" | "PRO Z690-A DDR4(MS-7D25)")
-              DASHARO_REL_NAME="msi_ms7d25"
-              DASHARO_REL_VER="1.1.1"
-              DASHARO_REL_VER_DES="1.1.3"
-              BIOS_LINK_COMM="${FW_STORE_URL}/${DASHARO_REL_NAME}/v${DASHARO_REL_VER}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_ddr4.rom"
-              BIOS_LINK_DES="${FW_STORE_URL_DES}/MS-7D25/v${DASHARO_REL_VER_DES}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DES}_ddr4.rom"
-              HAVE_HEADS_FW="true"
-              HEADS_REL_VER_DES="0.9.0"
-              HEADS_LINK_DES="${FW_STORE_URL_DES}/MS-7D25/v${HEADS_REL_VER_DES}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DES}_ddr4_heads.rom"
-              HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
-              HAVE_EC="false"
-              NEED_EC_RESET="false"
-              BIOS_HASH_LINK_COMM="${BIOS_LINK_COMM}.sha256"
-              BIOS_HASH_LINK_DES="${BIOS_LINK_DES}.sha256"
-              BIOS_SIGN_LINK_COMM="${BIOS_LINK_COMM}.sha256.sig"
-              BIOS_SIGN_LINK_DES="${BIOS_LINK_DES}.sha256.sig"
-              PLATFORM_SIGN_KEY="dasharo/msi_ms7d25/dasharo-release-1.x-compatible-with-msi-ms-7d25-signing-key.asc \
-                 dasharo/msi_ms7d25/dasharo-release-0.x-compatible-with-msi-ms-7d25-signing-key.asc"
-              NEED_SMBIOS_MIGRATION="true"
-              NEED_SMMSTORE_MIGRATION="true"
-              NEED_BOOTSPLASH_MIGRATION="false"
-              NEED_BLOB_TRANSMISSION="false"
-              PROGRAMMER_BIOS="internal"
-              PROGRAMMER_EC=""
-              NEED_ROMHOLE_MIGRATION="true"
-              if check_if_dasharo; then
-                # if v1.1.3 or older, flash the whole bios region
-                # TODO: Let DTS determine which parameters are suitable.
-                # FIXME: Can we ever get rid of that? We change so much in each release,
-                # that we almost always need to flash whole BIOS region
-                # because of non-backward compatible or breaking changes.
-                compare_versions $DASHARO_VERSION 1.1.3
-                if [ $? -eq 1 ]; then
-                  # For Dasharo version lesser than 1.1.3
-                  NEED_BOOTSPLASH_MIGRATION="true"
-                  FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-                fi
-              fi
-              ;;
-            "PRO Z690-A WIFI (MS-7D25)" | "PRO Z690-A (MS-7D25)")
-              DASHARO_REL_NAME="msi_ms7d25"
-              DASHARO_REL_VER="1.1.1"
-              DASHARO_REL_VER_DES="1.1.3"
-              BIOS_LINK_COMM="${FW_STORE_URL}/${DASHARO_REL_NAME}/v${DASHARO_REL_VER}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_ddr5.rom"
-              BIOS_LINK_DES="${FW_STORE_URL_DES}/MS-7D25/v${DASHARO_REL_VER_DES}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DES}_ddr5.rom"
-              HAVE_HEADS_FW="true"
-              HEADS_REL_VER_DES="0.9.0"
-              HEADS_LINK_DES="${FW_STORE_URL_DES}/MS-7D25/v${HEADS_REL_VER_DES}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DES}_ddr5_heads.rom"
-              HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
-              HAVE_EC="false"
-              NEED_EC_RESET="false"
-              BIOS_HASH_LINK_COMM="${BIOS_LINK_COMM}.sha256"
-              BIOS_HASH_LINK_DES="${BIOS_LINK_DES}.sha256"
-              BIOS_SIGN_LINK_COMM="${BIOS_LINK_COMM}.sha256.sig"
-              BIOS_SIGN_LINK_DES="${BIOS_LINK_DES}.sha256.sig"
-              PLATFORM_SIGN_KEY="dasharo/msi_ms7d25/dasharo-release-1.x-compatible-with-msi-ms-7d25-signing-key.asc \
-                 dasharo/msi_ms7d25/dasharo-release-0.x-compatible-with-msi-ms-7d25-signing-key.asc"
-              NEED_SMBIOS_MIGRATION="true"
-              NEED_SMMSTORE_MIGRATION="true"
-              NEED_BOOTSPLASH_MIGRATION="false"
-              NEED_BLOB_TRANSMISSION="false"
-              PROGRAMMER_BIOS="internal"
-              PROGRAMMER_EC=""
-              NEED_ROMHOLE_MIGRATION="true"
-              if check_if_dasharo; then
-                # if v1.1.3 or older, flash the whole bios region
-                # TODO: Let DTS determine which parameters are suitable.
-                # FIXME: Can we ever get rid of that? We change so much in each release,
-                # that we almost always need to flash whole BIOS region
-                # because of non-backward compatible or breaking changes.
-                compare_versions $DASHARO_VERSION 1.1.3
-                if [ $? -eq 1 ]; then
-                  # For Dasharo version lesser than 1.1.3
-                  NEED_BOOTSPLASH_MIGRATION="true"
-                  FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-                fi
-              fi
-              ;;
-            *)
-              print_error "Board model $BOARD_MODEL is currently not supported"
-              return 1
-              ;;
-          esac
-          ;;
-        "MS-7E06")
-          case "$BOARD_MODEL" in
-            "PRO Z790-P WIFI DDR4(MS-7E06)" | "PRO Z790-P DDR4(MS-7E06)" | "PRO Z790-P WIFI DDR4 (MS-7E06)" | "PRO Z790-P DDR4 (MS-7E06)")
-              DASHARO_REL_NAME="msi_ms7e06"
-              #DASHARO_REL_VER=""
-              DASHARO_REL_VER_DES="0.9.1"
-              #BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_ddr4.rom"
-              BIOS_LINK_DES="${FW_STORE_URL_DES}/MS-7E06/v${DASHARO_REL_VER_DES}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DES}_ddr4.rom"
-              HAVE_HEADS_FW="true"
-              HEADS_REL_VER_DES="0.9.0"
-              HEADS_LINK_DES="${FW_STORE_URL_DES}/MS-7E06/v${HEADS_REL_VER_DES}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DES}_ddr4_heads.rom"
-              HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
-              HAVE_EC="false"
-              NEED_EC_RESET="false"
-              #BIOS_HASH_LINK_COMM="${BIOS_LINK_COMM}.sha256"
-              BIOS_HASH_LINK_DES="${BIOS_LINK_DES}.sha256"
-              #BIOS_SIGN_LINK_COMM="${BIOS_LINK_COMM}.sha256.sig"
-              BIOS_SIGN_LINK_DES="${BIOS_LINK_DES}.sha256.sig"
-              PLATFORM_SIGN_KEY="dasharo/msi_ms7e06/dasharo-release-0.x-compatible-with-msi-ms-7e06-signing-key.asc"
-              NEED_SMBIOS_MIGRATION="false"
-              NEED_SMMSTORE_MIGRATION="true"
-              NEED_BOOTSPLASH_MIGRATION="false"
-              NEED_BLOB_TRANSMISSION="false"
-              PROGRAMMER_BIOS="internal:boardmismatch=force"
-              PROGRAMMER_EC=""
-              NEED_ROMHOLE_MIGRATION="true"
-              if check_if_dasharo; then
-                # if v0.9.1 or older, flash the whole bios region
-                # TODO: Let DTS determine which parameters are suitable.
-                # FIXME: Can we ever get rid of that? We change so much in each release,
-                # that we almost always need to flash whole BIOS region
-                # because of non-backward compatible or breaking changes.
-                compare_versions $DASHARO_VERSION 0.9.1
-                if [ $? -eq 1 ]; then
-                  # For Dasharo version lesser than 0.9.1
-                  NEED_BOOTSPLASH_MIGRATION="true"
-                  FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-                fi
-              fi
-              ;;
-            "PRO Z790-P WIFI (MS-7E06)" | "PRO Z790-P (MS-7E06)")
-              DASHARO_REL_NAME="msi_ms7e06"
-              #DASHARO_REL_VER=""
-              DASHARO_REL_VER_DES="0.9.1"
-              #BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_ddr5.rom"
-              BIOS_LINK_DES="${FW_STORE_URL_DES}/MS-7E06/v${DASHARO_REL_VER_DES}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DES}_ddr5.rom"
-              HAVE_HEADS_FW="true"
-              HEADS_REL_VER_DES="0.9.0"
-              HEADS_LINK_DES="${FW_STORE_URL_DES}/MS-7E06/v${HEADS_REL_VER_DES}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DES}_ddr5_heads.rom"
-              HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
-              HAVE_EC="false"
-              NEED_EC_RESET="false"
-              #BIOS_HASH_LINK_COMM="${BIOS_LINK_COMM}.sha256"
-              BIOS_HASH_LINK_DES="${BIOS_LINK_DES}.sha256"
-              #BIOS_SIGN_LINK_COMM="${BIOS_LINK_COMM}.sha256.sig"
-              BIOS_SIGN_LINK_DES="${BIOS_LINK_DES}.sha256.sig"
-              PLATFORM_SIGN_KEY="dasharo/msi_ms7e06/dasharo-release-0.x-compatible-with-msi-ms-7e06-signing-key.asc"
-              NEED_SMBIOS_MIGRATION="false"
-              NEED_SMMSTORE_MIGRATION="true"
-              NEED_BOOTSPLASH_MIGRATION="false"
-              NEED_BLOB_TRANSMISSION="false"
-              PROGRAMMER_BIOS="internal"
-              PROGRAMMER_EC=""
-              NEED_ROMHOLE_MIGRATION="true"
-              if check_if_dasharo; then
-                # if v0.9.1 or older, flash the whole bios region
-                # TODO: Let DTS determine which parameters are suitable.
-                # FIXME: Can we ever get rid of that? We change so much in each release,
-                # that we almost always need to flash whole BIOS region
-                # because of non-backward compatible or breaking changes.
-                compare_versions $DASHARO_VERSION 0.9.1
-                if [ $? -eq 1 ]; then
-                  # For Dasharo version lesser than 0.9.1
-                  NEED_BOOTSPLASH_MIGRATION="true"
-                  FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-                fi
-              fi
-              ;;
-            *)
-              print_error "Board model $BOARD_MODEL is currently not supported"
-              return 1
-              ;;
-          esac
-          ;;
-        *)
-          print_error "Board model $SYSTEM_MODEL is currently not supported"
-          return 1
-          ;;
-      esac
-      ;;
-    "Dell Inc.")
-      DASHARO_REL_NAME="dell_optiplex_9010"
-      DASHARO_REL_VER="0.1.0"
-      BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER.rom"
-      HAVE_EC="false"
-      NEED_EC_RESET="false"
-      BIOS_HASH_LINK_COMM="${BIOS_LINK_COMM}.sha256"
-      BIOS_SIGN_LINK_COMM="${BIOS_LINK_COMM}.sha256.sig"
-      NEED_SMBIOS_MIGRATION="true"
-      NEED_BLOB_TRANSMISSION="true"
-      PROGRAMMER_BIOS="internal"
-      SINIT_ACM_FILENAME="/tmp/630744_003.zip"
-      SINIT_ACM_URL="https://cdrdv2.intel.com/v1/dl/getContent/630744"
-      SINIT_ACM_HASH="0b412c1832bd504d4b8f5fa01b32449c344fe0019e5e4da6bb5d80d393df5e8b $SINIT_ACM_FILENAME"
-      SINIT_ACM="/tmp/630744_003/SNB_IVB_SINIT_20190708_PW.bin"
-      FLASHROM_ADD_OPT_DEPLOY="--ifd -i bios"
-      FLASHROM_ADD_OPT_UPDATE="--fmap -i RW_SECTION_A"
-      case "$SYSTEM_MODEL" in
-        "OptiPlex 7010")
-          DBT_BIOS_UPDATE_FILENAME="/tmp/O7010A29.exe"
-          DBT_BIOS_UPDATE_URL="https://dl.dell.com/FOLDER05066036M/1/O7010A29.exe"
-          DBT_BIOS_UPDATE_HASH="ceb82586c67cd8d5933ac858c12e0cb52f6e0e4cb3249f964f1c0cfc06d16f52  $DBT_BIOS_UPDATE_FILENAME"
-          DBT_UEFI_IMAGE="/tmp/_O7010A29.exe.extracted/65C10"
-          SCH5545_FW="/tmp/_O7010A29.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x50000/file-d386beb8-4b54-4e69-94f5-06091f67e0d3/section0.raw"
-          ACM_BIN="/tmp/_O7010A29.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x500000/file-2d27c618-7dcd-41f5-bb10-21166be7e143/object-0.raw"
-          ;;
-        "OptiPlex 9010")
-          DBT_BIOS_UPDATE_FILENAME="/tmp/O9010A30.exe"
-          DBT_BIOS_UPDATE_URL="https://dl.dell.com/FOLDER05066009M/1/O9010A30.exe"
-          DBT_BIOS_UPDATE_HASH="b11952f43d0ad66f3ce79558b8c5dd43f30866158ed8348e3b2dae1bbb07701b  $DBT_BIOS_UPDATE_FILENAME"
-          DBT_UEFI_IMAGE="/tmp/_O9010A30.exe.extracted/65C10"
-          SCH5545_FW="/tmp/_O9010A30.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x50000/file-d386beb8-4b54-4e69-94f5-06091f67e0d3/section0.raw"
-          ACM_BIN="/tmp/_O9010A30.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x500000/file-2d27c618-7dcd-41f5-bb10-21166be7e143/object-0.raw"
-          ;;
-        "Precision T1650")
-          # tested on Dasharo Firmware for OptiPlex 9010, will need to be
-          # enabled when build for T1650 exists
-          #
-          # DBT_BIOS_UPDATE_FILENAME="/tmp/T1650A28.exe"
-          # DBT_BIOS_UPDATE_URL="https://dl.dell.com/FOLDER05065992M/1/T1650A28.exe"
-          # DBT_BIOS_UPDATE_HASH="40a66210b8882f523885849c1d879e726dc58aa14718168b1e75f3e2caaa523b  $DBT_BIOS_UPDATE_FILENAME"
-          # DBT_UEFI_IMAGE="/tmp/_T1650A28.exe.extracted/65C10"
-          # SCH5545_FW="/tmp/_T1650A28.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x60000/file-d386beb8-4b54-4e69-94f5-06091f67e0d3/section0.raw"
-          # ACM_BIN="/tmp/_T1650A28.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x500000/file-2d27c618-7dcd-41f5-bb10-21166be7e143/object-0.raw"
-          print_warning "Dasharo Firmware for Precision T1650 not available yet!"
-          print_error "Board model $SYSTEM_MODEL is currently not supported"
-          return 1
-          ;;
-        *)
-          print_error "Board model $SYSTEM_MODEL is currently not supported"
-          return 1
-          ;;
-      esac
-      ;;
-    "ASUS")
-      case "$SYSTEM_MODEL" in
-        "KGPE-D16")
-          DASHARO_REL_NAME="asus_kgpe-d16"
-          DASHARO_REL_VER="0.4.0"
-          HAVE_EC="false"
-          NEED_EC_RESET="false"
-          case "$FLASH_CHIP_SIZE" in
-          "2")
-            BIOS_HASH_LINK_COMM="65e5370e9ea6b8ae7cd6cc878a031a4ff3a8f5d36830ef39656b8e5a6e37e889  $BIOS_UPDATE_FILE"
-            BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_vboot_notpm.rom"
             ;;
-          "8")
-            BIOS_HASH_LINK_COMM="da4e6217d50f2ac199dcb9a927a0bc02aa4e792ed73c8c9bac8ba74fc787dbef  $BIOS_UPDATE_FILE"
-            BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_${FLASH_CHIP_SIZE}M_vboot_notpm.rom"
-            ;;
-          "16")
-            BIOS_HASH_LINK_COMM="20055cf57185f149259706f58d5e9552a1589259c6617999c1ac7d8d3c960020  $BIOS_UPDATE_FILE"
-            BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_${FLASH_CHIP_SIZE}M_vboot_notpm.rom"
-            ;;
-          *)
-            print_error "Platform uses chipset with not supported size"
+        *)
+            print_error "Board model $SYSTEM_MODEL is currently not supported"
             return 1
             ;;
-          esac
-          NEED_SMBIOS_MIGRATION="true"
-          NEED_BLOB_TRANSMISSION="false"
-          PROGRAMMER_BIOS="internal"
-          ;;
+        esac
+        ;;
+    "Micro-Star International Co., Ltd.")
+        case "$SYSTEM_MODEL" in
+        "MS-7D25")
+            case "$BOARD_MODEL" in
+            "PRO Z690-A WIFI DDR4(MS-7D25)" | "PRO Z690-A DDR4(MS-7D25)")
+                DASHARO_REL_NAME="msi_ms7d25"
+                DASHARO_REL_VER="1.1.1"
+                DASHARO_REL_VER_DES="1.1.3"
+                BIOS_LINK_COMM="${FW_STORE_URL}/${DASHARO_REL_NAME}/v${DASHARO_REL_VER}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_ddr4.rom"
+                BIOS_LINK_DES="${FW_STORE_URL_DES}/MS-7D25/v${DASHARO_REL_VER_DES}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DES}_ddr4.rom"
+                HAVE_HEADS_FW="true"
+                HEADS_REL_VER_DES="0.9.0"
+                HEADS_LINK_DES="${FW_STORE_URL_DES}/MS-7D25/v${HEADS_REL_VER_DES}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DES}_ddr4_heads.rom"
+                HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
+                HAVE_EC="false"
+                NEED_EC_RESET="false"
+                BIOS_HASH_LINK_COMM="${BIOS_LINK_COMM}.sha256"
+                BIOS_HASH_LINK_DES="${BIOS_LINK_DES}.sha256"
+                BIOS_SIGN_LINK_COMM="${BIOS_LINK_COMM}.sha256.sig"
+                BIOS_SIGN_LINK_DES="${BIOS_LINK_DES}.sha256.sig"
+                PLATFORM_SIGN_KEY="dasharo/msi_ms7d25/dasharo-release-1.x-compatible-with-msi-ms-7d25-signing-key.asc \
+                 dasharo/msi_ms7d25/dasharo-release-0.x-compatible-with-msi-ms-7d25-signing-key.asc"
+                NEED_SMBIOS_MIGRATION="true"
+                NEED_SMMSTORE_MIGRATION="true"
+                NEED_BOOTSPLASH_MIGRATION="false"
+                NEED_BLOB_TRANSMISSION="false"
+                PROGRAMMER_BIOS="internal"
+                PROGRAMMER_EC=""
+                NEED_ROMHOLE_MIGRATION="true"
+                if check_if_dasharo; then
+                    # if v1.1.3 or older, flash the whole bios region
+                    # TODO: Let DTS determine which parameters are suitable.
+                    # FIXME: Can we ever get rid of that? We change so much in each release,
+                    # that we almost always need to flash whole BIOS region
+                    # because of non-backward compatible or breaking changes.
+                    compare_versions $DASHARO_VERSION 1.1.3
+                    if [ $? -eq 1 ]; then
+                        # For Dasharo version lesser than 1.1.3
+                        NEED_BOOTSPLASH_MIGRATION="true"
+                        FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
+                    fi
+                fi
+                ;;
+            "PRO Z690-A WIFI (MS-7D25)" | "PRO Z690-A (MS-7D25)")
+                DASHARO_REL_NAME="msi_ms7d25"
+                DASHARO_REL_VER="1.1.1"
+                DASHARO_REL_VER_DES="1.1.3"
+                BIOS_LINK_COMM="${FW_STORE_URL}/${DASHARO_REL_NAME}/v${DASHARO_REL_VER}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_ddr5.rom"
+                BIOS_LINK_DES="${FW_STORE_URL_DES}/MS-7D25/v${DASHARO_REL_VER_DES}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DES}_ddr5.rom"
+                HAVE_HEADS_FW="true"
+                HEADS_REL_VER_DES="0.9.0"
+                HEADS_LINK_DES="${FW_STORE_URL_DES}/MS-7D25/v${HEADS_REL_VER_DES}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DES}_ddr5_heads.rom"
+                HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
+                HAVE_EC="false"
+                NEED_EC_RESET="false"
+                BIOS_HASH_LINK_COMM="${BIOS_LINK_COMM}.sha256"
+                BIOS_HASH_LINK_DES="${BIOS_LINK_DES}.sha256"
+                BIOS_SIGN_LINK_COMM="${BIOS_LINK_COMM}.sha256.sig"
+                BIOS_SIGN_LINK_DES="${BIOS_LINK_DES}.sha256.sig"
+                PLATFORM_SIGN_KEY="dasharo/msi_ms7d25/dasharo-release-1.x-compatible-with-msi-ms-7d25-signing-key.asc \
+                 dasharo/msi_ms7d25/dasharo-release-0.x-compatible-with-msi-ms-7d25-signing-key.asc"
+                NEED_SMBIOS_MIGRATION="true"
+                NEED_SMMSTORE_MIGRATION="true"
+                NEED_BOOTSPLASH_MIGRATION="false"
+                NEED_BLOB_TRANSMISSION="false"
+                PROGRAMMER_BIOS="internal"
+                PROGRAMMER_EC=""
+                NEED_ROMHOLE_MIGRATION="true"
+                if check_if_dasharo; then
+                    # if v1.1.3 or older, flash the whole bios region
+                    # TODO: Let DTS determine which parameters are suitable.
+                    # FIXME: Can we ever get rid of that? We change so much in each release,
+                    # that we almost always need to flash whole BIOS region
+                    # because of non-backward compatible or breaking changes.
+                    compare_versions $DASHARO_VERSION 1.1.3
+                    if [ $? -eq 1 ]; then
+                        # For Dasharo version lesser than 1.1.3
+                        NEED_BOOTSPLASH_MIGRATION="true"
+                        FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
+                    fi
+                fi
+                ;;
+            *)
+                print_error "Board model $BOARD_MODEL is currently not supported"
+                return 1
+                ;;
+            esac
+            ;;
+        "MS-7E06")
+            case "$BOARD_MODEL" in
+            "PRO Z790-P WIFI DDR4(MS-7E06)" | "PRO Z790-P DDR4(MS-7E06)" | "PRO Z790-P WIFI DDR4 (MS-7E06)" | "PRO Z790-P DDR4 (MS-7E06)")
+                DASHARO_REL_NAME="msi_ms7e06"
+                #DASHARO_REL_VER=""
+                DASHARO_REL_VER_DES="0.9.1"
+                #BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_ddr4.rom"
+                BIOS_LINK_DES="${FW_STORE_URL_DES}/MS-7E06/v${DASHARO_REL_VER_DES}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DES}_ddr4.rom"
+                HAVE_HEADS_FW="true"
+                HEADS_REL_VER_DES="0.9.0"
+                HEADS_LINK_DES="${FW_STORE_URL_DES}/MS-7E06/v${HEADS_REL_VER_DES}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DES}_ddr4_heads.rom"
+                HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
+                HAVE_EC="false"
+                NEED_EC_RESET="false"
+                #BIOS_HASH_LINK_COMM="${BIOS_LINK_COMM}.sha256"
+                BIOS_HASH_LINK_DES="${BIOS_LINK_DES}.sha256"
+                #BIOS_SIGN_LINK_COMM="${BIOS_LINK_COMM}.sha256.sig"
+                BIOS_SIGN_LINK_DES="${BIOS_LINK_DES}.sha256.sig"
+                PLATFORM_SIGN_KEY="dasharo/msi_ms7e06/dasharo-release-0.x-compatible-with-msi-ms-7e06-signing-key.asc"
+                NEED_SMBIOS_MIGRATION="false"
+                NEED_SMMSTORE_MIGRATION="true"
+                NEED_BOOTSPLASH_MIGRATION="false"
+                NEED_BLOB_TRANSMISSION="false"
+                PROGRAMMER_BIOS="internal:boardmismatch=force"
+                PROGRAMMER_EC=""
+                NEED_ROMHOLE_MIGRATION="true"
+                if check_if_dasharo; then
+                    # if v0.9.1 or older, flash the whole bios region
+                    # TODO: Let DTS determine which parameters are suitable.
+                    # FIXME: Can we ever get rid of that? We change so much in each release,
+                    # that we almost always need to flash whole BIOS region
+                    # because of non-backward compatible or breaking changes.
+                    compare_versions $DASHARO_VERSION 0.9.1
+                    if [ $? -eq 1 ]; then
+                        # For Dasharo version lesser than 0.9.1
+                        NEED_BOOTSPLASH_MIGRATION="true"
+                        FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
+                    fi
+                fi
+                ;;
+            "PRO Z790-P WIFI (MS-7E06)" | "PRO Z790-P (MS-7E06)")
+                DASHARO_REL_NAME="msi_ms7e06"
+                #DASHARO_REL_VER=""
+                DASHARO_REL_VER_DES="0.9.1"
+                #BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_ddr5.rom"
+                BIOS_LINK_DES="${FW_STORE_URL_DES}/MS-7E06/v${DASHARO_REL_VER_DES}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DES}_ddr5.rom"
+                HAVE_HEADS_FW="true"
+                HEADS_REL_VER_DES="0.9.0"
+                HEADS_LINK_DES="${FW_STORE_URL_DES}/MS-7E06/v${HEADS_REL_VER_DES}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DES}_ddr5_heads.rom"
+                HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
+                HAVE_EC="false"
+                NEED_EC_RESET="false"
+                #BIOS_HASH_LINK_COMM="${BIOS_LINK_COMM}.sha256"
+                BIOS_HASH_LINK_DES="${BIOS_LINK_DES}.sha256"
+                #BIOS_SIGN_LINK_COMM="${BIOS_LINK_COMM}.sha256.sig"
+                BIOS_SIGN_LINK_DES="${BIOS_LINK_DES}.sha256.sig"
+                PLATFORM_SIGN_KEY="dasharo/msi_ms7e06/dasharo-release-0.x-compatible-with-msi-ms-7e06-signing-key.asc"
+                NEED_SMBIOS_MIGRATION="false"
+                NEED_SMMSTORE_MIGRATION="true"
+                NEED_BOOTSPLASH_MIGRATION="false"
+                NEED_BLOB_TRANSMISSION="false"
+                PROGRAMMER_BIOS="internal"
+                PROGRAMMER_EC=""
+                NEED_ROMHOLE_MIGRATION="true"
+                if check_if_dasharo; then
+                    # if v0.9.1 or older, flash the whole bios region
+                    # TODO: Let DTS determine which parameters are suitable.
+                    # FIXME: Can we ever get rid of that? We change so much in each release,
+                    # that we almost always need to flash whole BIOS region
+                    # because of non-backward compatible or breaking changes.
+                    compare_versions $DASHARO_VERSION 0.9.1
+                    if [ $? -eq 1 ]; then
+                        # For Dasharo version lesser than 0.9.1
+                        NEED_BOOTSPLASH_MIGRATION="true"
+                        FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
+                    fi
+                fi
+                ;;
+            *)
+                print_error "Board model $BOARD_MODEL is currently not supported"
+                return 1
+                ;;
+            esac
+            ;;
         *)
-          print_error "Board model $SYSTEM_MODEL is currently not supported"
-          return 1
-          ;;
-      esac
-      ;;
+            print_error "Board model $SYSTEM_MODEL is currently not supported"
+            return 1
+            ;;
+        esac
+        ;;
+    "Dell Inc.")
+        DASHARO_REL_NAME="dell_optiplex_9010"
+        DASHARO_REL_VER="0.1.0"
+        BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER.rom"
+        HAVE_EC="false"
+        NEED_EC_RESET="false"
+        BIOS_HASH_LINK_COMM="${BIOS_LINK_COMM}.sha256"
+        BIOS_SIGN_LINK_COMM="${BIOS_LINK_COMM}.sha256.sig"
+        NEED_SMBIOS_MIGRATION="true"
+        NEED_BLOB_TRANSMISSION="true"
+        PROGRAMMER_BIOS="internal"
+        SINIT_ACM_FILENAME="/tmp/630744_003.zip"
+        SINIT_ACM_URL="https://cdrdv2.intel.com/v1/dl/getContent/630744"
+        SINIT_ACM_HASH="0b412c1832bd504d4b8f5fa01b32449c344fe0019e5e4da6bb5d80d393df5e8b $SINIT_ACM_FILENAME"
+        SINIT_ACM="/tmp/630744_003/SNB_IVB_SINIT_20190708_PW.bin"
+        FLASHROM_ADD_OPT_DEPLOY="--ifd -i bios"
+        FLASHROM_ADD_OPT_UPDATE="--fmap -i RW_SECTION_A"
+        case "$SYSTEM_MODEL" in
+        "OptiPlex 7010")
+            DBT_BIOS_UPDATE_FILENAME="/tmp/O7010A29.exe"
+            DBT_BIOS_UPDATE_URL="https://dl.dell.com/FOLDER05066036M/1/O7010A29.exe"
+            DBT_BIOS_UPDATE_HASH="ceb82586c67cd8d5933ac858c12e0cb52f6e0e4cb3249f964f1c0cfc06d16f52  $DBT_BIOS_UPDATE_FILENAME"
+            DBT_UEFI_IMAGE="/tmp/_O7010A29.exe.extracted/65C10"
+            SCH5545_FW="/tmp/_O7010A29.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x50000/file-d386beb8-4b54-4e69-94f5-06091f67e0d3/section0.raw"
+            ACM_BIN="/tmp/_O7010A29.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x500000/file-2d27c618-7dcd-41f5-bb10-21166be7e143/object-0.raw"
+            ;;
+        "OptiPlex 9010")
+            DBT_BIOS_UPDATE_FILENAME="/tmp/O9010A30.exe"
+            DBT_BIOS_UPDATE_URL="https://dl.dell.com/FOLDER05066009M/1/O9010A30.exe"
+            DBT_BIOS_UPDATE_HASH="b11952f43d0ad66f3ce79558b8c5dd43f30866158ed8348e3b2dae1bbb07701b  $DBT_BIOS_UPDATE_FILENAME"
+            DBT_UEFI_IMAGE="/tmp/_O9010A30.exe.extracted/65C10"
+            SCH5545_FW="/tmp/_O9010A30.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x50000/file-d386beb8-4b54-4e69-94f5-06091f67e0d3/section0.raw"
+            ACM_BIN="/tmp/_O9010A30.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x500000/file-2d27c618-7dcd-41f5-bb10-21166be7e143/object-0.raw"
+            ;;
+        "Precision T1650")
+            # tested on Dasharo Firmware for OptiPlex 9010, will need to be
+            # enabled when build for T1650 exists
+            #
+            # DBT_BIOS_UPDATE_FILENAME="/tmp/T1650A28.exe"
+            # DBT_BIOS_UPDATE_URL="https://dl.dell.com/FOLDER05065992M/1/T1650A28.exe"
+            # DBT_BIOS_UPDATE_HASH="40a66210b8882f523885849c1d879e726dc58aa14718168b1e75f3e2caaa523b  $DBT_BIOS_UPDATE_FILENAME"
+            # DBT_UEFI_IMAGE="/tmp/_T1650A28.exe.extracted/65C10"
+            # SCH5545_FW="/tmp/_T1650A28.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x60000/file-d386beb8-4b54-4e69-94f5-06091f67e0d3/section0.raw"
+            # ACM_BIN="/tmp/_T1650A28.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x500000/file-2d27c618-7dcd-41f5-bb10-21166be7e143/object-0.raw"
+            print_warning "Dasharo Firmware for Precision T1650 not available yet!"
+            print_error "Board model $SYSTEM_MODEL is currently not supported"
+            return 1
+            ;;
+        *)
+            print_error "Board model $SYSTEM_MODEL is currently not supported"
+            return 1
+            ;;
+        esac
+        ;;
+    "ASUS")
+        case "$SYSTEM_MODEL" in
+        "KGPE-D16")
+            DASHARO_REL_NAME="asus_kgpe-d16"
+            DASHARO_REL_VER="0.4.0"
+            HAVE_EC="false"
+            NEED_EC_RESET="false"
+            case "$FLASH_CHIP_SIZE" in
+            "2")
+                BIOS_HASH_LINK_COMM="65e5370e9ea6b8ae7cd6cc878a031a4ff3a8f5d36830ef39656b8e5a6e37e889  $BIOS_UPDATE_FILE"
+                BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_vboot_notpm.rom"
+                ;;
+            "8")
+                BIOS_HASH_LINK_COMM="da4e6217d50f2ac199dcb9a927a0bc02aa4e792ed73c8c9bac8ba74fc787dbef  $BIOS_UPDATE_FILE"
+                BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_${FLASH_CHIP_SIZE}M_vboot_notpm.rom"
+                ;;
+            "16")
+                BIOS_HASH_LINK_COMM="20055cf57185f149259706f58d5e9552a1589259c6617999c1ac7d8d3c960020  $BIOS_UPDATE_FILE"
+                BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_${FLASH_CHIP_SIZE}M_vboot_notpm.rom"
+                ;;
+            *)
+                print_error "Platform uses chipset with not supported size"
+                return 1
+                ;;
+            esac
+            NEED_SMBIOS_MIGRATION="true"
+            NEED_BLOB_TRANSMISSION="false"
+            PROGRAMMER_BIOS="internal"
+            ;;
+        *)
+            print_error "Board model $SYSTEM_MODEL is currently not supported"
+            return 1
+            ;;
+        esac
+        ;;
     "PC Engines")
-      FLASH_CHIP_LIST="W25Q64JV-.Q"
-      shopt -s nocasematch
-      case "$SYSTEM_MODEL" in
+        FLASH_CHIP_LIST="W25Q64JV-.Q"
+        shopt -s nocasematch
+        case "$SYSTEM_MODEL" in
         "APU2")
-          DASHARO_REL_NAME="pcengines_apu2"
-          DASHARO_REL_VER_DES="0.9.0"
-          HAVE_EC="false"
-          NEED_EC_RESET="false"
-          BIOS_LINK_DES="${FW_STORE_URL_DES}/pcengines_apu2/v${DASHARO_REL_VER_DES}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DES}.rom"
-          BIOS_HASH_LINK_DES="${BIOS_LINK_DES}.sha256"
-          BIOS_SIGN_LINK_DES="${BIOS_LINK_DES}.sha256.sig"
-          PROGRAMMER_BIOS="internal:boardmismatch=force"
-          NEED_SMMSTORE_MIGRATION="true"
-          NEED_BOOTSPLASH_MIGRATION="true"
-          ;;
+            DASHARO_REL_NAME="pcengines_apu2"
+            DASHARO_REL_VER_DES="0.9.0"
+            HAVE_EC="false"
+            NEED_EC_RESET="false"
+            BIOS_LINK_DES="${FW_STORE_URL_DES}/pcengines_apu2/v${DASHARO_REL_VER_DES}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DES}.rom"
+            BIOS_HASH_LINK_DES="${BIOS_LINK_DES}.sha256"
+            BIOS_SIGN_LINK_DES="${BIOS_LINK_DES}.sha256.sig"
+            PROGRAMMER_BIOS="internal:boardmismatch=force"
+            NEED_SMMSTORE_MIGRATION="true"
+            NEED_BOOTSPLASH_MIGRATION="true"
+            ;;
         "APU3")
-          DASHARO_REL_NAME="pcengines_apu3"
-          DASHARO_REL_VER_DES="0.9.0"
-          HAVE_EC="false"
-          NEED_EC_RESET="false"
-          BIOS_LINK_DES="${FW_STORE_URL_DES}/pcengines_apu2/v${DASHARO_REL_VER_DES}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DES}.rom"
-          BIOS_HASH_LINK_DES="${BIOS_LINK_DES}.sha256"
-          BIOS_SIGN_LINK_DES="${BIOS_LINK_DES}.sha256.sig"
-          PROGRAMMER_BIOS="internal:boardmismatch=force"
-          NEED_SMMSTORE_MIGRATION="true"
-          NEED_BOOTSPLASH_MIGRATION="true"
-          ;;
+            DASHARO_REL_NAME="pcengines_apu3"
+            DASHARO_REL_VER_DES="0.9.0"
+            HAVE_EC="false"
+            NEED_EC_RESET="false"
+            BIOS_LINK_DES="${FW_STORE_URL_DES}/pcengines_apu2/v${DASHARO_REL_VER_DES}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DES}.rom"
+            BIOS_HASH_LINK_DES="${BIOS_LINK_DES}.sha256"
+            BIOS_SIGN_LINK_DES="${BIOS_LINK_DES}.sha256.sig"
+            PROGRAMMER_BIOS="internal:boardmismatch=force"
+            NEED_SMMSTORE_MIGRATION="true"
+            NEED_BOOTSPLASH_MIGRATION="true"
+            ;;
         "APU4")
-          DASHARO_REL_NAME="pcengines_apu4"
-          DASHARO_REL_VER_DES="0.9.0"
-          HAVE_EC="false"
-          NEED_EC_RESET="false"
-          BIOS_LINK_DES="${FW_STORE_URL_DES}/pcengines_apu2/v${DASHARO_REL_VER_DES}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DES}.rom"
-          BIOS_HASH_LINK_DES="${BIOS_LINK_DES}.sha256"
-          BIOS_SIGN_LINK_DES="${BIOS_LINK_DES}.sha256.sig"
-          PROGRAMMER_BIOS="internal:boardmismatch=force"
-          NEED_SMMSTORE_MIGRATION="true"
-          NEED_BOOTSPLASH_MIGRATION="true"
-          ;;
+            DASHARO_REL_NAME="pcengines_apu4"
+            DASHARO_REL_VER_DES="0.9.0"
+            HAVE_EC="false"
+            NEED_EC_RESET="false"
+            BIOS_LINK_DES="${FW_STORE_URL_DES}/pcengines_apu2/v${DASHARO_REL_VER_DES}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DES}.rom"
+            BIOS_HASH_LINK_DES="${BIOS_LINK_DES}.sha256"
+            BIOS_SIGN_LINK_DES="${BIOS_LINK_DES}.sha256.sig"
+            PROGRAMMER_BIOS="internal:boardmismatch=force"
+            NEED_SMMSTORE_MIGRATION="true"
+            NEED_BOOTSPLASH_MIGRATION="true"
+            ;;
         "APU6")
-          DASHARO_REL_NAME="pcengines_apu6"
-          DASHARO_REL_VER_DES="0.9.0"
-          HAVE_EC="false"
-          NEED_EC_RESET="false"
-          BIOS_LINK_DES="${FW_STORE_URL_DES}/pcengines_apu2/v${DASHARO_REL_VER_DES}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DES}.rom"
-          BIOS_HASH_LINK_DES="${BIOS_LINK_DES}.sha256"
-          BIOS_SIGN_LINK_DES="${BIOS_LINK_DES}.sha256.sig"
-          PROGRAMMER_BIOS="internal:boardmismatch=force"
-          NEED_SMMSTORE_MIGRATION="true"
-          NEED_BOOTSPLASH_MIGRATION="true"
-          ;;
+            DASHARO_REL_NAME="pcengines_apu6"
+            DASHARO_REL_VER_DES="0.9.0"
+            HAVE_EC="false"
+            NEED_EC_RESET="false"
+            BIOS_LINK_DES="${FW_STORE_URL_DES}/pcengines_apu2/v${DASHARO_REL_VER_DES}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DES}.rom"
+            BIOS_HASH_LINK_DES="${BIOS_LINK_DES}.sha256"
+            BIOS_SIGN_LINK_DES="${BIOS_LINK_DES}.sha256.sig"
+            PROGRAMMER_BIOS="internal:boardmismatch=force"
+            NEED_SMMSTORE_MIGRATION="true"
+            NEED_BOOTSPLASH_MIGRATION="true"
+            ;;
         *)
-          print_error "Board model $SYSTEM_MODEL is currently not supported"
-          return 1
-          ;;
-      esac
-      shopt -u nocasematch
-      ;;
+            print_error "Board model $SYSTEM_MODEL is currently not supported"
+            return 1
+            ;;
+        esac
+        shopt -u nocasematch
+        ;;
     *)
-      print_error "Board vendor: $SYSTEM_VENDOR is currently not supported"
-      return 1
-      ;;
-  esac
+        print_error "Board vendor: $SYSTEM_VENDOR is currently not supported"
+        return 1
+        ;;
+    esac
 }
 
 check_flash_lock() {
-    $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} > /tmp/check_flash_lock 2> /tmp/check_flash_lock.err
+    $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} >/tmp/check_flash_lock 2>/tmp/check_flash_lock.err
     # Check in flashrom output if lock is enabled
     grep -q 'PR0: Warning:.* is read-only\|SMM protection is enabled' /tmp/check_flash_lock.err
     if [ $? -eq 0 ]; then
@@ -674,77 +674,76 @@ check_flash_lock() {
 }
 
 check_flash_chip() {
-  echo "Gathering flash chip and chipset information..."
-  $FLASHROM -p "$PROGRAMMER_BIOS" --flash-name >> "$FLASH_INFO_FILE" 2>> "$ERR_LOG_FILE"
-  if [ $? -eq 0 ]; then
-    echo -n "Flash information: "
-    tail -n1 "$FLASH_INFO_FILE"
-    FLASH_CHIP_SIZE=$(($($FLASHROM -p "$PROGRAMMER_BIOS" --flash-size 2>> /dev/null | tail -n1) / 1024 / 1024))
-    echo -n "Flash size: "
-    echo ${FLASH_CHIP_SIZE}M
-  else
-    for flash_name in $FLASH_CHIP_LIST
-    do
-      $FLASHROM -p "$PROGRAMMER_BIOS" -c "$flash_name" --flash-name >> "$FLASH_INFO_FILE" 2>> "$ERR_LOG_FILE"
-      if [ $? -eq 0 ]; then
-        echo "Chipset found"
+    echo "Gathering flash chip and chipset information..."
+    $FLASHROM -p "$PROGRAMMER_BIOS" --flash-name >>"$FLASH_INFO_FILE" 2>>"$ERR_LOG_FILE"
+    if [ $? -eq 0 ]; then
+        echo -n "Flash information: "
         tail -n1 "$FLASH_INFO_FILE"
-        FLASH_CHIP_SELECT="-c ${flash_name}"
-        FLASH_CHIP_SIZE=$(($($FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} --flash-size 2>> /dev/null | tail -n1) / 1024 / 1024))
-        echo "Chipset size"
+        FLASH_CHIP_SIZE=$(($($FLASHROM -p "$PROGRAMMER_BIOS" --flash-size 2>>/dev/null | tail -n1) / 1024 / 1024))
+        echo -n "Flash size: "
         echo ${FLASH_CHIP_SIZE}M
-        break
-      fi
-    done
-    if [ -z "$FLASH_CHIP_SELECT" ]; then
-      error_exit "No supported chipset found, exit."
+    else
+        for flash_name in $FLASH_CHIP_LIST; do
+            $FLASHROM -p "$PROGRAMMER_BIOS" -c "$flash_name" --flash-name >>"$FLASH_INFO_FILE" 2>>"$ERR_LOG_FILE"
+            if [ $? -eq 0 ]; then
+                echo "Chipset found"
+                tail -n1 "$FLASH_INFO_FILE"
+                FLASH_CHIP_SELECT="-c ${flash_name}"
+                FLASH_CHIP_SIZE=$(($($FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} --flash-size 2>>/dev/null | tail -n1) / 1024 / 1024))
+                echo "Chipset size"
+                echo ${FLASH_CHIP_SIZE}M
+                break
+            fi
+        done
+        if [ -z "$FLASH_CHIP_SELECT" ]; then
+            error_exit "No supported chipset found, exit."
+        fi
     fi
-  fi
 }
 
 check_se_creds() {
-  local _check_dwn_req_resp_uefi="0"
-  local _check_dwn_req_resp_heads="0"
-  local _check_logs_req_resp="0"
-  # Ignore "SC2154 (warning): SE_credential_file is referenced but not assigned"
-  # for external variable:
-  # shellcheck disable=SC2154
-  CLOUDSEND_LOGS_URL=$(sed -n '1p' < ${SE_credential_file} | tr -d '\n')
-  CLOUDSEND_DOWNLOAD_URL=$(sed -n '2p' < ${SE_credential_file} | tr -d '\n')
-  CLOUDSEND_PASSWORD=$(sed -n '3p' < ${SE_credential_file} | tr -d '\n')
-  USER_DETAILS="$CLOUDSEND_DOWNLOAD_URL:$CLOUDSEND_PASSWORD"
-  board_config
-  if [ "$?" == "1" ]; then
-    return 1
-  fi
-  TEST_LOGS_URL="https://cloud.3mdeb.com/index.php/s/${CLOUDSEND_LOGS_URL}/authenticate/showShare"
-
-  if [ ! -v BIOS_LINK_DES ] && [ ! -v HEADS_LINK_DES ]; then
-    print_error "There is no Dasharo Entry Subscription available for your platform!"
-    return 1
-  fi
-
-  if check_network_connection; then
-    if [ -v BIOS_LINK_DES ]; then
-      _check_dwn_req_resp_uefi=$(curl -L -I -s -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$BIOS_LINK_DES" -o /dev/null -w "%{http_code}")
-    fi
-    if [ -v HEADS_LINK_DES ]; then
-      _check_dwn_req_resp_heads=$(curl -L -I -s -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$HEADS_LINK_DES" -o /dev/null -w "%{http_code}")
-    fi
-
-    _check_logs_req_resp=$(curl -L -I -s -f -H "$CLOUD_REQUEST" "$TEST_LOGS_URL" -o /dev/null -w "%{http_code}")
-    if [ ${_check_dwn_req_resp_uefi} -eq 200 ] || [ ${_check_dwn_req_resp_heads} -eq 200 ]; then
-      if [ ${_check_logs_req_resp} -eq 200 ]; then
-        return 0
-      else
-        echo ""
+    local _check_dwn_req_resp_uefi="0"
+    local _check_dwn_req_resp_heads="0"
+    local _check_logs_req_resp="0"
+    # Ignore "SC2154 (warning): SE_credential_file is referenced but not assigned"
+    # for external variable:
+    # shellcheck disable=SC2154
+    CLOUDSEND_LOGS_URL=$(sed -n '1p' <${SE_credential_file} | tr -d '\n')
+    CLOUDSEND_DOWNLOAD_URL=$(sed -n '2p' <${SE_credential_file} | tr -d '\n')
+    CLOUDSEND_PASSWORD=$(sed -n '3p' <${SE_credential_file} | tr -d '\n')
+    USER_DETAILS="$CLOUDSEND_DOWNLOAD_URL:$CLOUDSEND_PASSWORD"
+    board_config
+    if [ "$?" == "1" ]; then
         return 1
-      fi
-    else
-      echo ""
-      return 1
     fi
-  fi
+    TEST_LOGS_URL="https://cloud.3mdeb.com/index.php/s/${CLOUDSEND_LOGS_URL}/authenticate/showShare"
+
+    if [ ! -v BIOS_LINK_DES ] && [ ! -v HEADS_LINK_DES ]; then
+        print_error "There is no Dasharo Entry Subscription available for your platform!"
+        return 1
+    fi
+
+    if check_network_connection; then
+        if [ -v BIOS_LINK_DES ]; then
+            _check_dwn_req_resp_uefi=$(curl -L -I -s -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$BIOS_LINK_DES" -o /dev/null -w "%{http_code}")
+        fi
+        if [ -v HEADS_LINK_DES ]; then
+            _check_dwn_req_resp_heads=$(curl -L -I -s -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$HEADS_LINK_DES" -o /dev/null -w "%{http_code}")
+        fi
+
+        _check_logs_req_resp=$(curl -L -I -s -f -H "$CLOUD_REQUEST" "$TEST_LOGS_URL" -o /dev/null -w "%{http_code}")
+        if [ ${_check_dwn_req_resp_uefi} -eq 200 ] || [ ${_check_dwn_req_resp_heads} -eq 200 ]; then
+            if [ ${_check_logs_req_resp} -eq 200 ]; then
+                return 0
+            else
+                echo ""
+                return 1
+            fi
+        else
+            echo ""
+            return 1
+        fi
+    fi
 }
 
 compare_versions() {
@@ -762,274 +761,273 @@ compare_versions() {
     suffix2="$(echo $2 | sed 's/^[0-9]*\.[0-9]*\.[0-9]*-*//')"
 
     if [[ $ver1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && [[ $ver2 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-      IFS='.' read -r -a arr_ver1 <<< "$ver1"
-      IFS='.' read -r -a arr_ver2 <<< "$ver2"
+        IFS='.' read -r -a arr_ver1 <<<"$ver1"
+        IFS='.' read -r -a arr_ver2 <<<"$ver2"
 
-      if [ ${arr_ver2[0]} -lt ${arr_ver1[0]} ]; then
-          return 0
-      fi
+        if [ ${arr_ver2[0]} -lt ${arr_ver1[0]} ]; then
+            return 0
+        fi
 
-      if [ ${arr_ver2[0]} -gt ${arr_ver1[0]} ]; then
-          return 1
-      fi
+        if [ ${arr_ver2[0]} -gt ${arr_ver1[0]} ]; then
+            return 1
+        fi
 
-      if [ ${arr_ver2[0]} -eq ${arr_ver1[0]} ]; then
-          if [ ${arr_ver2[1]} -lt ${arr_ver1[1]} ]; then
-              return 0
-          fi
-
-          if [ ${arr_ver2[1]} -gt ${arr_ver1[1]} ]; then
-              return 1
-          fi
-
-          if [ ${arr_ver2[1]} -eq ${arr_ver1[1]} ]; then
-              if [ ${arr_ver2[2]} -lt ${arr_ver1[2]} ]; then
+        if [ ${arr_ver2[0]} -eq ${arr_ver1[0]} ]; then
+            if [ ${arr_ver2[1]} -lt ${arr_ver1[1]} ]; then
                 return 0
-              fi
+            fi
 
-              if [ ${arr_ver2[2]} -gt ${arr_ver1[2]} ]; then
+            if [ ${arr_ver2[1]} -gt ${arr_ver1[1]} ]; then
                 return 1
-              fi
+            fi
 
-              # check suffixes
-              if [ ! -z "$suffix2" ] && [ -z "$suffix1" ]; then
-                return 0
-              fi
+            if [ ${arr_ver2[1]} -eq ${arr_ver1[1]} ]; then
+                if [ ${arr_ver2[2]} -lt ${arr_ver1[2]} ]; then
+                    return 0
+                fi
 
-              if [ -z "$suffix2" ] && [ ! -z "$suffix1" ]; then
-                return 1
-              fi
-          fi
-      fi
+                if [ ${arr_ver2[2]} -gt ${arr_ver1[2]} ]; then
+                    return 1
+                fi
+
+                # check suffixes
+                if [ ! -z "$suffix2" ] && [ -z "$suffix1" ]; then
+                    return 0
+                fi
+
+                if [ -z "$suffix2" ] && [ ! -z "$suffix1" ]; then
+                    return 1
+                fi
+            fi
+        fi
     else
-      error_exit "Incorrect version format"
+        error_exit "Incorrect version format"
     fi
 }
 
 download_artifacts() {
-  echo -n "Downloading Dasharo firmware..."
-  if [ -v BIOS_LINK_COMM ] && [ ${BIOS_LINK} == ${BIOS_LINK_COMM} ]; then
-    curl -s -L -f "$BIOS_LINK" -o $BIOS_UPDATE_FILE
-    error_check "Cannot access $FW_STORE_URL while downloading binary. Please
-   check your internet connection"
-    curl -s -L -f "$BIOS_HASH_LINK" -o $BIOS_HASH_FILE
-    error_check "Cannot access $FW_STORE_URL while downloading signature. Please
-   check your internet connection"
-    curl -s -L -f "$BIOS_SIGN_LINK" -o $BIOS_SIGN_FILE
-    error_check "Cannot access $FW_STORE_URL while downloading signature. Please
-   check your internet connection"
-    if [ "$HAVE_EC" == "true" ] && [ -v EC_LINK ]; then
-      curl -s -L -f "$EC_LINK" -o "$EC_UPDATE_FILE"
-      error_check "Cannot access $FW_STORE_URL while downloading binary. Please
-     check your internet connection"
-      curl -s -L -f "$EC_HASH_LINK" -o $EC_HASH_FILE
-      error_check "Cannot access $FW_STORE_URL while downloading signature. Please
-     check your internet connection"
-      curl -s -L -f "$EC_SIGN_LINK" -o $EC_SIGN_FILE
-      error_check "Cannot access $FW_STORE_URL while downloading signature. Please
-     check your internet connection"
-    fi
-  else
-    USER_DETAILS="$CLOUDSEND_DOWNLOAD_URL:$CLOUDSEND_PASSWORD"
-    curl -s -L -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$BIOS_LINK" -o $BIOS_UPDATE_FILE
-    error_check "Cannot access $FW_STORE_URL_DES while downloading binary.
-   Please check your internet connection"
-    curl -s -L -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$BIOS_HASH_LINK" -o $BIOS_HASH_FILE
-    error_check "Cannot access $FW_STORE_URL_DES while downloading signature.
-   Please check your internet connection"
-    curl -s -L -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$BIOS_SIGN_LINK" -o $BIOS_SIGN_FILE
-    error_check "Cannot access $FW_STORE_URL_DES while downloading signature.
-   Please check your internet connection"
-    if [ "$HAVE_EC" == "true" ] && [ -v EC_LINK ]; then
-      if [ -v EC_LINK_COMM ] && [ ${EC_LINK} == ${EC_LINK_COMM} ]; then
-        curl -s -L -f "$EC_LINK" -o "$EC_UPDATE_FILE"
+    echo -n "Downloading Dasharo firmware..."
+    if [ -v BIOS_LINK_COMM ] && [ ${BIOS_LINK} == ${BIOS_LINK_COMM} ]; then
+        curl -s -L -f "$BIOS_LINK" -o $BIOS_UPDATE_FILE
         error_check "Cannot access $FW_STORE_URL while downloading binary. Please
-          check your internet connection"
-        curl -s -L -f "$EC_HASH_LINK" -o $EC_HASH_FILE
+   check your internet connection"
+        curl -s -L -f "$BIOS_HASH_LINK" -o $BIOS_HASH_FILE
         error_check "Cannot access $FW_STORE_URL while downloading signature. Please
-          check your internet connection"
-        curl -s -L -f "$EC_SIGN_LINK" -o $EC_SIGN_FILE
+   check your internet connection"
+        curl -s -L -f "$BIOS_SIGN_LINK" -o $BIOS_SIGN_FILE
         error_check "Cannot access $FW_STORE_URL while downloading signature. Please
+   check your internet connection"
+        if [ "$HAVE_EC" == "true" ] && [ -v EC_LINK ]; then
+            curl -s -L -f "$EC_LINK" -o "$EC_UPDATE_FILE"
+            error_check "Cannot access $FW_STORE_URL while downloading binary. Please
+     check your internet connection"
+            curl -s -L -f "$EC_HASH_LINK" -o $EC_HASH_FILE
+            error_check "Cannot access $FW_STORE_URL while downloading signature. Please
+     check your internet connection"
+            curl -s -L -f "$EC_SIGN_LINK" -o $EC_SIGN_FILE
+            error_check "Cannot access $FW_STORE_URL while downloading signature. Please
+     check your internet connection"
+        fi
+    else
+        USER_DETAILS="$CLOUDSEND_DOWNLOAD_URL:$CLOUDSEND_PASSWORD"
+        curl -s -L -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$BIOS_LINK" -o $BIOS_UPDATE_FILE
+        error_check "Cannot access $FW_STORE_URL_DES while downloading binary.
+   Please check your internet connection"
+        curl -s -L -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$BIOS_HASH_LINK" -o $BIOS_HASH_FILE
+        error_check "Cannot access $FW_STORE_URL_DES while downloading signature.
+   Please check your internet connection"
+        curl -s -L -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$BIOS_SIGN_LINK" -o $BIOS_SIGN_FILE
+        error_check "Cannot access $FW_STORE_URL_DES while downloading signature.
+   Please check your internet connection"
+        if [ "$HAVE_EC" == "true" ] && [ -v EC_LINK ]; then
+            if [ -v EC_LINK_COMM ] && [ ${EC_LINK} == ${EC_LINK_COMM} ]; then
+                curl -s -L -f "$EC_LINK" -o "$EC_UPDATE_FILE"
+                error_check "Cannot access $FW_STORE_URL while downloading binary. Please
           check your internet connection"
-      else
-        curl -s -L -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$EC_LINK" -o $EC_UPDATE_FILE
-        error_check "Cannot access $FW_STORE_URL while downloading binary. Please
+                curl -s -L -f "$EC_HASH_LINK" -o $EC_HASH_FILE
+                error_check "Cannot access $FW_STORE_URL while downloading signature. Please
           check your internet connection"
-        curl -s -L -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$EC_HASH_LINK" -o $EC_HASH_FILE
-        error_check "Cannot access $FW_STORE_URL while downloading signature. Please
+                curl -s -L -f "$EC_SIGN_LINK" -o $EC_SIGN_FILE
+                error_check "Cannot access $FW_STORE_URL while downloading signature. Please
           check your internet connection"
-        curl -s -L -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$EC_SIGN_LINK" -o $EC_SIGN_FILE
-        error_check "Cannot access $FW_STORE_URL while downloading signature. Please
+            else
+                curl -s -L -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$EC_LINK" -o $EC_UPDATE_FILE
+                error_check "Cannot access $FW_STORE_URL while downloading binary. Please
           check your internet connection"
-     fi
+                curl -s -L -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$EC_HASH_LINK" -o $EC_HASH_FILE
+                error_check "Cannot access $FW_STORE_URL while downloading signature. Please
+          check your internet connection"
+                curl -s -L -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$EC_SIGN_LINK" -o $EC_SIGN_FILE
+                error_check "Cannot access $FW_STORE_URL while downloading signature. Please
+          check your internet connection"
+            fi
+        fi
     fi
-  fi
-  print_ok "Done"
+    print_ok "Done"
 }
 
 download_keys() {
-  mkdir $KEYS_DIR
-  wget -O $KEYS_DIR/recovery_key.vbpubk https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/recovery_key.vbpubk >> $ERR_LOG_FILE 2>&1
-  wget -O $KEYS_DIR/firmware.keyblock https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/firmware.keyblock >> $ERR_LOG_FILE 2>&1
-  wget -O $KEYS_DIR/firmware_data_key.vbprivk https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/firmware_data_key.vbprivk >> $ERR_LOG_FILE 2>&1
-  wget -O $KEYS_DIR/kernel_subkey.vbpubk https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/kernel_subkey.vbpubk >> $ERR_LOG_FILE 2>&1
-  wget -O $KEYS_DIR/root_key.vbpubk https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/root_key.vbpubk >> $ERR_LOG_FILE 2>&1
+    mkdir $KEYS_DIR
+    wget -O $KEYS_DIR/recovery_key.vbpubk https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/recovery_key.vbpubk >>$ERR_LOG_FILE 2>&1
+    wget -O $KEYS_DIR/firmware.keyblock https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/firmware.keyblock >>$ERR_LOG_FILE 2>&1
+    wget -O $KEYS_DIR/firmware_data_key.vbprivk https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/firmware_data_key.vbprivk >>$ERR_LOG_FILE 2>&1
+    wget -O $KEYS_DIR/kernel_subkey.vbpubk https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/kernel_subkey.vbpubk >>$ERR_LOG_FILE 2>&1
+    wget -O $KEYS_DIR/root_key.vbpubk https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/root_key.vbpubk >>$ERR_LOG_FILE 2>&1
 }
 
 get_signing_keys() {
     local platform_keys=$PLATFORM_SIGN_KEY
     echo -n "Getting platform specific GPG key... "
     for key in $platform_keys; do
-        wget -q https://raw.githubusercontent.com/3mdeb/3mdeb-secpack/master/$key -O - | gpg --import - >> $ERR_LOG_FILE 2>&1
+        wget -q https://raw.githubusercontent.com/3mdeb/3mdeb-secpack/master/$key -O - | gpg --import - >>$ERR_LOG_FILE 2>&1
         error_check "Cannot get $key key to verify signatures."
     done
     print_ok "Done"
 }
 
 verify_artifacts() {
-  local _type="$1"
-  local _update_file=""
-  local _hash_file=""
-  local _sign_file=""
-  local _name=""
-  local _sig_result=""
+    local _type="$1"
+    local _update_file=""
+    local _hash_file=""
+    local _sign_file=""
+    local _name=""
+    local _sig_result=""
 
-  case ${_type} in
+    case ${_type} in
     ec)
-    _update_file=$EC_UPDATE_FILE
-    _hash_file=$EC_HASH_FILE
-    _sign_file=$EC_SIGN_FILE
-    _name="Dasharo EC"
-    ;;
+        _update_file=$EC_UPDATE_FILE
+        _hash_file=$EC_HASH_FILE
+        _sign_file=$EC_SIGN_FILE
+        _name="Dasharo EC"
+        ;;
     bios)
-    _update_file=$BIOS_UPDATE_FILE
-    _hash_file=$BIOS_HASH_FILE
-    _sign_file=$BIOS_SIGN_FILE
-    _name="Dasharo"
-    ;;
-    *)
-    ;;
-  esac
-  echo -n "Checking $_name firmware checksum... "
-  sha256sum --check <(echo "$(cat $_hash_file | cut -d ' ' -f 1)" $_update_file) >> $ERR_LOG_FILE 2>&1
-  error_check "Failed to verify $_name firmware checksum"
-  print_ok "Verified."
-  if [ -v PLATFORM_SIGN_KEY ]; then
-    echo -n "Checking $_name firmware signature... "
-    _sig_result="$(cat $_hash_file | gpg --verify $_sign_file - >> $ERR_LOG_FILE 2>&1)"
-    error_check "Failed to verify $_name firmware signature.$'\n'$_sig_result"
+        _update_file=$BIOS_UPDATE_FILE
+        _hash_file=$BIOS_HASH_FILE
+        _sign_file=$BIOS_SIGN_FILE
+        _name="Dasharo"
+        ;;
+    *) ;;
+    esac
+    echo -n "Checking $_name firmware checksum... "
+    sha256sum --check <(echo "$(cat $_hash_file | cut -d ' ' -f 1)" $_update_file) >>$ERR_LOG_FILE 2>&1
+    error_check "Failed to verify $_name firmware checksum"
     print_ok "Verified."
-  fi
-  echo "$_sig_result"
+    if [ -v PLATFORM_SIGN_KEY ]; then
+        echo -n "Checking $_name firmware signature... "
+        _sig_result="$(cat $_hash_file | gpg --verify $_sign_file - >>$ERR_LOG_FILE 2>&1)"
+        error_check "Failed to verify $_name firmware signature.$'\n'$_sig_result"
+        print_ok "Verified."
+    fi
+    echo "$_sig_result"
 }
 
 check_intel_regions() {
 
-  FLASH_REGIONS=$($FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} 2>&1)
-  BOARD_HAS_FD_REGION=0
-  BOARD_FD_REGION_RW=0
-  BOARD_HAS_ME_REGION=0
-  BOARD_ME_REGION_RW=0
-  BOARD_ME_REGION_LOCKED=0
-  BOARD_HAS_GBE_REGION=0
-  BOARD_GBE_REGION_RW=0
-  BOARD_GBE_REGION_LOCKED=0
+    FLASH_REGIONS=$($FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} 2>&1)
+    BOARD_HAS_FD_REGION=0
+    BOARD_FD_REGION_RW=0
+    BOARD_HAS_ME_REGION=0
+    BOARD_ME_REGION_RW=0
+    BOARD_ME_REGION_LOCKED=0
+    BOARD_HAS_GBE_REGION=0
+    BOARD_GBE_REGION_RW=0
+    BOARD_GBE_REGION_LOCKED=0
 
-  grep -q "Flash Descriptor region" <<< "$FLASH_REGIONS" && BOARD_HAS_FD_REGION=1
-  grep -qE "Flash Descriptor region.*read-write" <<< "$FLASH_REGIONS" && BOARD_FD_REGION_RW=1
+    grep -q "Flash Descriptor region" <<<"$FLASH_REGIONS" && BOARD_HAS_FD_REGION=1
+    grep -qE "Flash Descriptor region.*read-write" <<<"$FLASH_REGIONS" && BOARD_FD_REGION_RW=1
 
-  grep -q "Management Engine region" <<< "$FLASH_REGIONS" && BOARD_HAS_ME_REGION=1
-  grep -qE "Management Engine region.*read-write" <<< "$FLASH_REGIONS" && BOARD_ME_REGION_RW=1
-  grep -qE "Management Engine region.*locked" <<<  "$FLASH_REGIONS" && BOARD_ME_REGION_LOCKED=1
+    grep -q "Management Engine region" <<<"$FLASH_REGIONS" && BOARD_HAS_ME_REGION=1
+    grep -qE "Management Engine region.*read-write" <<<"$FLASH_REGIONS" && BOARD_ME_REGION_RW=1
+    grep -qE "Management Engine region.*locked" <<<"$FLASH_REGIONS" && BOARD_ME_REGION_LOCKED=1
 
-  grep -q "Gigabit Ethernet region" <<<  "$FLASH_REGIONS" && BOARD_HAS_GBE_REGION=1
-  grep -qE "Gigabit Ethernet region.*read-write" <<<  "$FLASH_REGIONS" && BOARD_GBE_REGION_RW=1
-  grep -qE "Gigabit Ethernet region.*locked" <<< "$FLASH_REGIONS" && BOARD_GBE_REGION_LOCKED=1
+    grep -q "Gigabit Ethernet region" <<<"$FLASH_REGIONS" && BOARD_HAS_GBE_REGION=1
+    grep -qE "Gigabit Ethernet region.*read-write" <<<"$FLASH_REGIONS" && BOARD_GBE_REGION_RW=1
+    grep -qE "Gigabit Ethernet region.*locked" <<<"$FLASH_REGIONS" && BOARD_GBE_REGION_LOCKED=1
 }
 
 check_blobs_in_binary() {
-  BINARY_HAS_FD=0
-  BINARY_HAS_ME=0
+    BINARY_HAS_FD=0
+    BINARY_HAS_ME=0
 
-  # If there is no descriptor, there is no ME as well, so skip the check
-  if [ $BOARD_HAS_FD_REGION -ne 0 ]; then
-    ME_OFFSET=$(ifdtool -d $1 2> /dev/null | grep "Flash Region 2 (Intel ME):" | sed 's/Flash Region 2 (Intel ME)\://' |awk '{print $1;}')
-    # Check for IFD signature at offset 0 (old descriptors)
-    if [ "$(tail -c +0 $1|head -c 4|xxd -ps)" == "5aa5f00f" ]; then
-      BINARY_HAS_FD=1
+    # If there is no descriptor, there is no ME as well, so skip the check
+    if [ $BOARD_HAS_FD_REGION -ne 0 ]; then
+        ME_OFFSET=$(ifdtool -d $1 2>/dev/null | grep "Flash Region 2 (Intel ME):" | sed 's/Flash Region 2 (Intel ME)\://' | awk '{print $1;}')
+        # Check for IFD signature at offset 0 (old descriptors)
+        if [ "$(tail -c +0 $1 | head -c 4 | xxd -ps)" == "5aa5f00f" ]; then
+            BINARY_HAS_FD=1
+        fi
+        # Check for IFD signature at offset 16 (new descriptors)
+        if [ "$(tail -c +17 $1 | head -c 4 | xxd -ps)" == "5aa5f00f" ]; then
+            BINARY_HAS_FD=1
+        fi
+        # Check for ME FPT signature at ME offset + 16 (old ME)
+        if [ "$(tail -c +$((0x$ME_OFFSET + 17)) $1 | head -c 4 | tr -d '\0')" == "\$FPT" ]; then
+            BINARY_HAS_ME=1
+        fi
+        # Check for aa55 signature at ME offset + 4096 (new ME)
+        if [ "$(tail -c +$((0x$ME_OFFSET + 4097)) $1 | head -c 2 | xxd -ps)" == "aa55" ]; then
+            BINARY_HAS_ME=1
+        fi
     fi
-    # Check for IFD signature at offset 16 (new descriptors)
-    if [ "$(tail -c +17 $1|head -c 4|xxd -ps)" == "5aa5f00f" ]; then
-      BINARY_HAS_FD=1
-    fi
-    # Check for ME FPT signature at ME offset + 16 (old ME)
-    if [ "$(tail -c +$((0x$ME_OFFSET + 17)) $1|head -c 4|tr -d '\0')" == "\$FPT" ]; then
-      BINARY_HAS_ME=1
-    fi
-    # Check for aa55 signature at ME offset + 4096 (new ME)
-    if [ "$(tail -c +$((0x$ME_OFFSET + 4097)) $1|head -c 2|xxd -ps)" == "aa55" ]; then
-      BINARY_HAS_ME=1
-    fi
-  fi
 }
 
 check_if_me_disabled() {
 
-  ME_DISABLED=0
+    ME_DISABLED=0
 
-  if [ $BOARD_HAS_ME_REGION -eq 0 ]; then
-    # No ME region
-    ME_DISABLED=1
-    return
-  fi
-
-  # Check if HECI present
-  # FIXME: what if HECI is not device 16.0?
-  if [ -d /sys/class/pci_bus/0000:00/device/0000:00:16.0 ]; then
-    # Check ME Current Operation Mode at offset 0x40 bits 19:16
-    ME_OPMODE="$(setpci -s 00:16.0 42.B 2> /dev/null | cut -c2-)"
-    if [ $ME_OPMODE == "0" ]; then
-      echo "ME is not disabled"  >> $ERR_LOG_FILE
-      return
-    elif [ $ME_OPMODE == "2" ]; then
-      echo "ME is disabled (HAP/Debug Mode)"  >> $ERR_LOG_FILE
-      ME_DISABLED=1
-      return
-    elif [ $ME_OPMODE == "3" ]; then
-      echo "ME is soft disabled (HECI)"  >> $ERR_LOG_FILE
-      ME_DISABLED=1
-      return
-    elif [ $ME_OPMODE == "4" ]; then
-      echo "ME disabled by Security Override Jumper/FDOPS"  >> $ERR_LOG_FILE
-      ME_DISABLED=1
-      return
-    elif [ $ME_OPMODE == "5" ]; then
-      echo "ME disabled by Security Override MEI Message/HMRFPO"  >> $ERR_LOG_FILE
-      ME_DISABLED=1
-      return
-    elif [ $ME_OPMODE == "6" ]; then
-      echo "ME disabled by Security Override MEI Message/HMRFPO"  >> $ERR_LOG_FILE
-      ME_DISABLED=1
-      return
-    elif [ $ME_OPMODE == "7" ]; then
-      echo "ME disabled (Enhanced Debug Mode) or runs Ignition FW"  >> $ERR_LOG_FILE
-      ME_DISABLED=1
-      return
-    else
-      print_warning "Unknown ME operation mode, assuming enabled."
-      echo "Unknown ME operation mode, assuming enabled."  >> $ERR_LOG_FILE
-      return
+    if [ $BOARD_HAS_ME_REGION -eq 0 ]; then
+        # No ME region
+        ME_DISABLED=1
+        return
     fi
-  else
-    # If we are running coreboot, check for status in logs
-    cbmem -1 | grep -q "ME is disabled" && ME_DISABLED=1 && return # HECI (soft) disabled
-    cbmem -1 | grep -q "ME is HAP disabled" && ME_DISABLED=1 && return # HAP disabled
-    # TODO: If proprietary BIOS, then also try to check SMBIOS for ME FWSTS
-    # BTW we could do the same in coreboot, expose FWSTS in SMBIOS before it
-    # gets disabled
-    print_warning "Can not determine if ME is disabled, assuming enabled."
-    echo "Can not determine if ME is disabled, assuming enabled."  >> $ERR_LOG_FILE
-  fi
+
+    # Check if HECI present
+    # FIXME: what if HECI is not device 16.0?
+    if [ -d /sys/class/pci_bus/0000:00/device/0000:00:16.0 ]; then
+        # Check ME Current Operation Mode at offset 0x40 bits 19:16
+        ME_OPMODE="$(setpci -s 00:16.0 42.B 2>/dev/null | cut -c2-)"
+        if [ $ME_OPMODE == "0" ]; then
+            echo "ME is not disabled" >>$ERR_LOG_FILE
+            return
+        elif [ $ME_OPMODE == "2" ]; then
+            echo "ME is disabled (HAP/Debug Mode)" >>$ERR_LOG_FILE
+            ME_DISABLED=1
+            return
+        elif [ $ME_OPMODE == "3" ]; then
+            echo "ME is soft disabled (HECI)" >>$ERR_LOG_FILE
+            ME_DISABLED=1
+            return
+        elif [ $ME_OPMODE == "4" ]; then
+            echo "ME disabled by Security Override Jumper/FDOPS" >>$ERR_LOG_FILE
+            ME_DISABLED=1
+            return
+        elif [ $ME_OPMODE == "5" ]; then
+            echo "ME disabled by Security Override MEI Message/HMRFPO" >>$ERR_LOG_FILE
+            ME_DISABLED=1
+            return
+        elif [ $ME_OPMODE == "6" ]; then
+            echo "ME disabled by Security Override MEI Message/HMRFPO" >>$ERR_LOG_FILE
+            ME_DISABLED=1
+            return
+        elif [ $ME_OPMODE == "7" ]; then
+            echo "ME disabled (Enhanced Debug Mode) or runs Ignition FW" >>$ERR_LOG_FILE
+            ME_DISABLED=1
+            return
+        else
+            print_warning "Unknown ME operation mode, assuming enabled."
+            echo "Unknown ME operation mode, assuming enabled." >>$ERR_LOG_FILE
+            return
+        fi
+    else
+        # If we are running coreboot, check for status in logs
+        cbmem -1 | grep -q "ME is disabled" && ME_DISABLED=1 && return     # HECI (soft) disabled
+        cbmem -1 | grep -q "ME is HAP disabled" && ME_DISABLED=1 && return # HAP disabled
+        # TODO: If proprietary BIOS, then also try to check SMBIOS for ME FWSTS
+        # BTW we could do the same in coreboot, expose FWSTS in SMBIOS before it
+        # gets disabled
+        print_warning "Can not determine if ME is disabled, assuming enabled."
+        echo "Can not determine if ME is disabled, assuming enabled." >>$ERR_LOG_FILE
+    fi
 }
 
 force_me_update() {
@@ -1038,226 +1036,222 @@ force_me_update() {
     print_warning "Recovering from such state may require removal of AC power supply and resetting CMOS battery."
     print_warning "Keeping an older version of ME may cause a CPU to perform less efficient, e.g. if upgraded the CPU to a newer generation."
     print_warning "You have been warned."
-  while : ; do
-    echo
-    read -r -p "Skip ME flashing and proceed with BIOS/firmware flashing/updating? (Y|n) " OPTION
-    echo
-
-    case ${OPTION} in
-      yes|y|Y|Yes|YES)
-        print_warning "Proceeding without ME flashing, because we were asked to."
-        break
-        ;;
-      n|N)
-        error_exit "Cancelling flashing process..."
-        ;;
-      *)
-        ;;
-    esac
-  done
-}
-
-set_flashrom_update_params() {
-  # Safe defaults which should always work
-  if [ $BOARD_HAS_FD_REGION -eq 0 ]; then
-    FLASHROM_ADD_OPT_UPDATE=""
-  else
-    FLASHROM_ADD_OPT_UPDATE="-N --ifd -i bios"
-  fi
-  BINARY_HAS_RW_B=1
-  # We need to read whole binary (or BIOS region), otherwise cbfstool will
-  # return different attributes for CBFS regions
-  echo "Checking flash layout."
-  $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE} -r /tmp/bios.bin > /dev/null 2>&1
-  if [ $? -eq 0 ] && [ -f "/tmp/bios.bin" ]; then
-    BOARD_FMAP_LAYOUT=$(cbfstool /tmp/bios.bin layout -w 2> /dev/null)
-    BINARY_FMAP_LAYOUT=$(cbfstool $1 layout -w 2> /dev/null)
-    diff <(echo "$BOARD_FMAP_LAYOUT") <(echo "$BINARY_FMAP_LAYOUT") > /dev/null 2>&1
-    # If layout is identical, perform standard update using FMAP only
-    if [ $? -eq 0 ]; then
-      # Simply update RW_A fmap region if exists
-      grep -q "RW_SECTION_A" <<< $BINARY_FMAP_LAYOUT
-      if [ $? -eq 0 ]; then
-        FLASHROM_ADD_OPT_UPDATE="-N --fmap -i RW_SECTION_A"
-      else
-        # RW_A does not exists, it means no vboot. Update COREBOOT region only
-        FLASHROM_ADD_OPT_UPDATE="-N --fmap -i COREBOOT"
-      fi
-      # If RW_B present, use this variable later to perform 2-step update
-      grep -q "RW_SECTION_B" <<< $BINARY_FMAP_LAYOUT && BINARY_HAS_RW_B=0
-    fi
-  else
-    print_warning "Could not read the FMAP region"
-    echo "Could not read the FMAP region" >> $ERR_LOG_FILE
-  fi
-}
-
-set_intel_regions_update_params() {
-  if [ $BOARD_HAS_FD_REGION -eq 0 ]; then
-    # No FD on board, so no further flashing
-    FLASHROM_ADD_OPT_REGIONS=""
-  else
-    # Safe defaults, only BIOS region and do not verify all regions,
-    # as some of them may not be readable. First argument is the initial
-    # params.
-    FLASHROM_ADD_OPT_REGIONS=$1
-
-    if [ $BINARY_HAS_FD -ne 0 ]; then
-      if [ $BOARD_FD_REGION_RW -ne 0 ]; then
-        # FD writable and the binary provides FD, safe to flash
-        FLASHROM_ADD_OPT_REGIONS+=" -i fd"
-      else
-        print_error "The firmware binary to be flashed contains Flash Descriptor (FD), but FD is not writable!"
-        print_warning "Proceeding without FD flashing, as it is not critical."
-        echo "The firmware binary contains Flash Descriptor (FD), but FD is not writable!"  >> $ERR_LOG_FILE
-      fi
-    fi
-
-    if [ $BINARY_HAS_ME -ne 0 ]; then
-      if [ $BOARD_ME_REGION_RW -ne 0 ]; then
-        # ME writable and the binary provides ME, safe to flash if ME disabled
-        if [ $ME_DISABLED -eq 1 ]; then
-          FLASHROM_ADD_OPT_REGIONS+=" -i me"
-        else
-          echo "The firmware binary to be flashed contains Management Engine (ME), but ME is not disabled!"  >> $ERR_LOG_FILE
-          print_error "The firmware binary contains Management Engine (ME), but ME is not disabled!"
-          force_me_update
-        fi
-      else
-        echo "The firmware binary to be flashed contains Management Engine (ME), but ME is not writable!"  >> $ERR_LOG_FILE
-        print_error "The firmware binary contains Management Engine (ME), but ME is not writable!"
-      fi
-    fi
-  fi
-}
-
-handle_fw_switching() {
-  local _can_switch_to_heads=$1
-
-  if [ "$_can_switch_to_heads" == "true" ] && [ "$DASHARO_FLAVOR" != "Dasharo (coreboot+heads)" ]; then
-    while : ; do
-      echo
-      read -r -p "Would you like to switch to Dasharo heads firmware? (Y|n) " OPTION
-      echo
-
-      case ${OPTION} in
-        yes|y|Y|Yes|YES)
-          UPDATE_VERSION=$HEADS_REL_VER_DES
-          FLASHROM_ADD_OPT_UPDATE_OVERRIDE=$HEADS_SWITCH_FLASHROM_OPT_OVERRIDE
-          BIOS_HASH_LINK="${HEADS_LINK_DES}.sha256"
-          BIOS_SIGN_LINK="${HEADS_LINK_DES}.sha256.sig"
-          BIOS_LINK=$HEADS_LINK_DES
-          export SWITCHING_TO="heads"
-          echo
-          echo "Switching to Dasharo heads firmware v$UPDATE_VERSION"
-          break
-          ;;
-        n|N)
-          compare_versions $DASHARO_VERSION $UPDATE_VERSION
-          if [ $? -ne 1 ]; then
-            error_exit "No update available for your machine"
-          fi
-          echo "Will not install Dasharo heads firmware. Proceeding with regular Dasharo firmware update."
-          break
-          ;;
-        *)
-          ;;
-      esac
-    done
-  elif [ -v DES_IS_LOGGED ] && [ -v HEADS_LINK_DES ]; then
-    local _heads_des=1
-    curl -sfI -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$HEADS_LINK_DES" -o /dev/null
-    _heads_des=$?
-    # We are on heads, offer switch back or perform update if DES gives access to heads
-    if [ "$DASHARO_FLAVOR" == "Dasharo (coreboot+heads)" ]; then
-      while : ; do
+    while :; do
         echo
-        read -r -p "Would you like to switch back to the regular Dasharo firmware? (Y|n) " OPTION
+        read -r -p "Skip ME flashing and proceed with BIOS/firmware flashing/updating? (Y|n) " OPTION
         echo
 
         case ${OPTION} in
-          yes|y|Y|Yes|YES)
-            echo
-            echo "Switching back to regular Dasharo firmware v$UPDATE_VERSION"
-            echo
-            FLASHROM_ADD_OPT_UPDATE_OVERRIDE=$HEADS_SWITCH_FLASHROM_OPT_OVERRIDE
-            export SWITCHING_TO="uefi"
+        yes | y | Y | Yes | YES)
+            print_warning "Proceeding without ME flashing, because we were asked to."
             break
             ;;
-          n|N)
-            if [ $_heads_des -ne 0 ]; then
-              error_exit "No update available for your machine"
-            fi
-            UPDATE_VERSION=$HEADS_REL_VER_DES
-            compare_versions $DASHARO_VERSION $UPDATE_VERSION
-            if [ $? -ne 1 ]; then
-              error_exit "No update available for your machine"
-            fi
-            echo "Will not switch back to regular Dasharo firmware. Proceeding with Dasharo heads firmware update to $UPDATE_VERSION."
-            FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-            BIOS_HASH_LINK="${HEADS_LINK_DES}.sha256"
-            BIOS_SIGN_LINK="${HEADS_LINK_DES}.sha256.sig"
-            BIOS_LINK=$HEADS_LINK_DES
-            break
+        n | N)
+            error_exit "Cancelling flashing process..."
             ;;
-          *)
-            ;;
+        *) ;;
         esac
-      done
-    fi
-  elif [ ! -v DES_IS_LOGGED ] && [ "$DASHARO_FLAVOR" == "Dasharo (coreboot+heads)" ]; then
-    # Not logged with DES and we are on heads, offer switch back
-    compare_versions $DASHARO_VERSION $HEADS_REL_VER_DES
-    if [ $? -eq 1 ]; then
-      print_warning "You are running heads firmware, but did not provide DES credentials."
-      print_warning "There are updates available if you provide DES credentials in main DTS menu."
-    fi
-    echo
-    echo "Latest available Dasharo version: $HEADS_REL_VER_DES"
-    echo
-    while : ; do
-      echo
-      read -r -p "Would you like to switch back to the regular Dasharo firmware? (Y|n) " OPTION
-      echo
-
-      case ${OPTION} in
-        yes|y|Y|Yes|YES)
-          echo
-          echo "Switching back to regular Dasharo firmware v$UPDATE_VERSION"
-          echo
-          FLASHROM_ADD_OPT_UPDATE_OVERRIDE=$HEADS_SWITCH_FLASHROM_OPT_OVERRIDE
-          export SWITCHING_TO="uefi"
-          break
-          ;;
-        n|N)
-          print_warning "No update currently possible. Aborting update process..."
-          exit 0
-          break;
-          ;;
-        *)
-          ;;
-      esac
     done
-  else
-    compare_versions $DASHARO_VERSION $UPDATE_VERSION
-    if [ $? -ne 1 ]; then
-      error_exit "No update available for your machine"
+}
+
+set_flashrom_update_params() {
+    # Safe defaults which should always work
+    if [ $BOARD_HAS_FD_REGION -eq 0 ]; then
+        FLASHROM_ADD_OPT_UPDATE=""
+    else
+        FLASHROM_ADD_OPT_UPDATE="-N --ifd -i bios"
     fi
-  fi
+    BINARY_HAS_RW_B=1
+    # We need to read whole binary (or BIOS region), otherwise cbfstool will
+    # return different attributes for CBFS regions
+    echo "Checking flash layout."
+    $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE} -r /tmp/bios.bin >/dev/null 2>&1
+    if [ $? -eq 0 ] && [ -f "/tmp/bios.bin" ]; then
+        BOARD_FMAP_LAYOUT=$(cbfstool /tmp/bios.bin layout -w 2>/dev/null)
+        BINARY_FMAP_LAYOUT=$(cbfstool $1 layout -w 2>/dev/null)
+        diff <(echo "$BOARD_FMAP_LAYOUT") <(echo "$BINARY_FMAP_LAYOUT") >/dev/null 2>&1
+        # If layout is identical, perform standard update using FMAP only
+        if [ $? -eq 0 ]; then
+            # Simply update RW_A fmap region if exists
+            grep -q "RW_SECTION_A" <<<$BINARY_FMAP_LAYOUT
+            if [ $? -eq 0 ]; then
+                FLASHROM_ADD_OPT_UPDATE="-N --fmap -i RW_SECTION_A"
+            else
+                # RW_A does not exists, it means no vboot. Update COREBOOT region only
+                FLASHROM_ADD_OPT_UPDATE="-N --fmap -i COREBOOT"
+            fi
+            # If RW_B present, use this variable later to perform 2-step update
+            grep -q "RW_SECTION_B" <<<$BINARY_FMAP_LAYOUT && BINARY_HAS_RW_B=0
+        fi
+    else
+        print_warning "Could not read the FMAP region"
+        echo "Could not read the FMAP region" >>$ERR_LOG_FILE
+    fi
+}
+
+set_intel_regions_update_params() {
+    if [ $BOARD_HAS_FD_REGION -eq 0 ]; then
+        # No FD on board, so no further flashing
+        FLASHROM_ADD_OPT_REGIONS=""
+    else
+        # Safe defaults, only BIOS region and do not verify all regions,
+        # as some of them may not be readable. First argument is the initial
+        # params.
+        FLASHROM_ADD_OPT_REGIONS=$1
+
+        if [ $BINARY_HAS_FD -ne 0 ]; then
+            if [ $BOARD_FD_REGION_RW -ne 0 ]; then
+                # FD writable and the binary provides FD, safe to flash
+                FLASHROM_ADD_OPT_REGIONS+=" -i fd"
+            else
+                print_error "The firmware binary to be flashed contains Flash Descriptor (FD), but FD is not writable!"
+                print_warning "Proceeding without FD flashing, as it is not critical."
+                echo "The firmware binary contains Flash Descriptor (FD), but FD is not writable!" >>$ERR_LOG_FILE
+            fi
+        fi
+
+        if [ $BINARY_HAS_ME -ne 0 ]; then
+            if [ $BOARD_ME_REGION_RW -ne 0 ]; then
+                # ME writable and the binary provides ME, safe to flash if ME disabled
+                if [ $ME_DISABLED -eq 1 ]; then
+                    FLASHROM_ADD_OPT_REGIONS+=" -i me"
+                else
+                    echo "The firmware binary to be flashed contains Management Engine (ME), but ME is not disabled!" >>$ERR_LOG_FILE
+                    print_error "The firmware binary contains Management Engine (ME), but ME is not disabled!"
+                    force_me_update
+                fi
+            else
+                echo "The firmware binary to be flashed contains Management Engine (ME), but ME is not writable!" >>$ERR_LOG_FILE
+                print_error "The firmware binary contains Management Engine (ME), but ME is not writable!"
+            fi
+        fi
+    fi
+}
+
+handle_fw_switching() {
+    local _can_switch_to_heads=$1
+
+    if [ "$_can_switch_to_heads" == "true" ] && [ "$DASHARO_FLAVOR" != "Dasharo (coreboot+heads)" ]; then
+        while :; do
+            echo
+            read -r -p "Would you like to switch to Dasharo heads firmware? (Y|n) " OPTION
+            echo
+
+            case ${OPTION} in
+            yes | y | Y | Yes | YES)
+                UPDATE_VERSION=$HEADS_REL_VER_DES
+                FLASHROM_ADD_OPT_UPDATE_OVERRIDE=$HEADS_SWITCH_FLASHROM_OPT_OVERRIDE
+                BIOS_HASH_LINK="${HEADS_LINK_DES}.sha256"
+                BIOS_SIGN_LINK="${HEADS_LINK_DES}.sha256.sig"
+                BIOS_LINK=$HEADS_LINK_DES
+                export SWITCHING_TO="heads"
+                echo
+                echo "Switching to Dasharo heads firmware v$UPDATE_VERSION"
+                break
+                ;;
+            n | N)
+                compare_versions $DASHARO_VERSION $UPDATE_VERSION
+                if [ $? -ne 1 ]; then
+                    error_exit "No update available for your machine"
+                fi
+                echo "Will not install Dasharo heads firmware. Proceeding with regular Dasharo firmware update."
+                break
+                ;;
+            *) ;;
+            esac
+        done
+    elif [ -v DES_IS_LOGGED ] && [ -v HEADS_LINK_DES ]; then
+        local _heads_des=1
+        curl -sfI -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$HEADS_LINK_DES" -o /dev/null
+        _heads_des=$?
+        # We are on heads, offer switch back or perform update if DES gives access to heads
+        if [ "$DASHARO_FLAVOR" == "Dasharo (coreboot+heads)" ]; then
+            while :; do
+                echo
+                read -r -p "Would you like to switch back to the regular Dasharo firmware? (Y|n) " OPTION
+                echo
+
+                case ${OPTION} in
+                yes | y | Y | Yes | YES)
+                    echo
+                    echo "Switching back to regular Dasharo firmware v$UPDATE_VERSION"
+                    echo
+                    FLASHROM_ADD_OPT_UPDATE_OVERRIDE=$HEADS_SWITCH_FLASHROM_OPT_OVERRIDE
+                    export SWITCHING_TO="uefi"
+                    break
+                    ;;
+                n | N)
+                    if [ $_heads_des -ne 0 ]; then
+                        error_exit "No update available for your machine"
+                    fi
+                    UPDATE_VERSION=$HEADS_REL_VER_DES
+                    compare_versions $DASHARO_VERSION $UPDATE_VERSION
+                    if [ $? -ne 1 ]; then
+                        error_exit "No update available for your machine"
+                    fi
+                    echo "Will not switch back to regular Dasharo firmware. Proceeding with Dasharo heads firmware update to $UPDATE_VERSION."
+                    FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
+                    BIOS_HASH_LINK="${HEADS_LINK_DES}.sha256"
+                    BIOS_SIGN_LINK="${HEADS_LINK_DES}.sha256.sig"
+                    BIOS_LINK=$HEADS_LINK_DES
+                    break
+                    ;;
+                *) ;;
+                esac
+            done
+        fi
+    elif [ ! -v DES_IS_LOGGED ] && [ "$DASHARO_FLAVOR" == "Dasharo (coreboot+heads)" ]; then
+        # Not logged with DES and we are on heads, offer switch back
+        compare_versions $DASHARO_VERSION $HEADS_REL_VER_DES
+        if [ $? -eq 1 ]; then
+            print_warning "You are running heads firmware, but did not provide DES credentials."
+            print_warning "There are updates available if you provide DES credentials in main DTS menu."
+        fi
+        echo
+        echo "Latest available Dasharo version: $HEADS_REL_VER_DES"
+        echo
+        while :; do
+            echo
+            read -r -p "Would you like to switch back to the regular Dasharo firmware? (Y|n) " OPTION
+            echo
+
+            case ${OPTION} in
+            yes | y | Y | Yes | YES)
+                echo
+                echo "Switching back to regular Dasharo firmware v$UPDATE_VERSION"
+                echo
+                FLASHROM_ADD_OPT_UPDATE_OVERRIDE=$HEADS_SWITCH_FLASHROM_OPT_OVERRIDE
+                export SWITCHING_TO="uefi"
+                break
+                ;;
+            n | N)
+                print_warning "No update currently possible. Aborting update process..."
+                exit 0
+                break
+                ;;
+            *) ;;
+            esac
+        done
+    else
+        compare_versions $DASHARO_VERSION $UPDATE_VERSION
+        if [ $? -ne 1 ]; then
+            error_exit "No update available for your machine"
+        fi
+    fi
 }
 
 sync_clocks() {
-  echo "Waiting for system clock to be synced ..."
-  chronyc waitsync 10 0 0 5 &> /dev/null
-  if [[ $? -ne 0 ]]; then
-    print_warning "Failed to sync system clock with NTP server!"
-    print_warning "Some time critical tasks might fail!"
-  fi
+    echo "Waiting for system clock to be synced ..."
+    chronyc waitsync 10 0 0 5 &>/dev/null
+    if [[ $? -ne 0 ]]; then
+        print_warning "Failed to sync system clock with NTP server!"
+        print_warning "Some time critical tasks might fail!"
+    fi
 }
 
 print_disclaimer() {
-echo -e \
-"Please note that the report is not anonymous, but we will use it only for\r
+    echo -e \
+        "Please note that the report is not anonymous, but we will use it only for\r
 backup and future improvement of the Dasharo product. Every log is encrypted\r
 and sent over HTTPS, so security is assured.\r
 If you still have doubts, you can skip HCL report generation.\r\n
@@ -1271,208 +1265,208 @@ You can find more info about HCL in docs.dasharo.com/glossary\r"
 }
 
 show_ram_inf() {
-  # Get the data:
-  local data=""
-  data=$(dmidecode)
+    # Get the data:
+    local data=""
+    data=$(dmidecode)
 
-  # Initialize an empty array to store the extracted values:
-  local -a memory_devices_array
+    # Initialize an empty array to store the extracted values:
+    local -a memory_devices_array
 
-  # Parse the data to exclude fields "Locator" and "Part Number" and format to
-  # "Locator: Part Number":
-  while IFS= read -r line; do
-    # memory_device signals whether the line contains beginning of "Memory
-    # Device" dmidecode structure, if so - set to 1 and pars the structure, if
-    # the line contains "Handle" (the string every structure in dmidecode begins
-    # with) - set to 0:
-    if [[ $line =~ ^Handle ]]; then
-      memory_device=0
-    elif [[ $line =~ Memory\ Device ]]; then
-      memory_device=1
-    # Modify entry if "Memory Device" structure has been found
-    # (memory_device is set to 1) and either "Locator" or "Part Number"
-    # fields have been found:
-    elif [[ $memory_device -eq 1 && $line =~ Locator:\ |Part\ Number: ]]; then
-      # Extract a value of "Locator" field and then add a value of "Part Number"
-      # field but ignore "Bank Locator" field, cos it will be included by parent
-      # condition:
-      if [[ $line =~ Bank\ Locator ]]; then
-        continue  # Ignore Bank Locator field.
-      elif [[ $line =~ Locator: ]]; then
-        entry="${line#*: }"  # Extract the Locator value.
-      elif [[ $line =~ Part\ Number: ]]; then
-        entry+=": ${NORMAL}${line#*: }"  # Concatenate Part Number value with
-					 # Locator and add a colon with yellow
-					 # color termination.
-        memory_devices_array+=("$entry")
-      fi
-    fi
-  done <<< "$data"
+    # Parse the data to exclude fields "Locator" and "Part Number" and format to
+    # "Locator: Part Number":
+    while IFS= read -r line; do
+        # memory_device signals whether the line contains beginning of "Memory
+        # Device" dmidecode structure, if so - set to 1 and pars the structure, if
+        # the line contains "Handle" (the string every structure in dmidecode begins
+        # with) - set to 0:
+        if [[ $line =~ ^Handle ]]; then
+            memory_device=0
+        elif [[ $line =~ Memory\ Device ]]; then
+            memory_device=1
+        # Modify entry if "Memory Device" structure has been found
+        # (memory_device is set to 1) and either "Locator" or "Part Number"
+        # fields have been found:
+        elif [[ $memory_device -eq 1 && $line =~ Locator:\ |Part\ Number: ]]; then
+            # Extract a value of "Locator" field and then add a value of "Part Number"
+            # field but ignore "Bank Locator" field, cos it will be included by parent
+            # condition:
+            if [[ $line =~ Bank\ Locator ]]; then
+                continue # Ignore Bank Locator field.
+            elif [[ $line =~ Locator: ]]; then
+                entry="${line#*: }" # Extract the Locator value.
+            elif [[ $line =~ Part\ Number: ]]; then
+                entry+=": ${NORMAL}${line#*: }" # Concatenate Part Number value with
+                # Locator and add a colon with yellow
+                # color termination.
+                memory_devices_array+=("$entry")
+            fi
+        fi
+    done <<<"$data"
 
-  # Print the extracted values preformatted:
-  for entry in "${memory_devices_array[@]}"; do
-    echo -e "${BLUE}**${YELLOW}    RAM ${entry}"
-  done
+    # Print the extracted values preformatted:
+    for entry in "${memory_devices_array[@]}"; do
+        echo -e "${BLUE}**${YELLOW}    RAM ${entry}"
+    done
 }
 
 show_header() {
-  local _os_version
-  _os_version=$(grep "VERSION_ID" ${OS_VERSION_FILE} | cut -d "=" -f 2-)
-  printf "\ec"
-  echo -e "${NORMAL}\n Dasharo Tools Suite Script ${_os_version} ${NORMAL}"
-  echo -e "${NORMAL} (c) Dasharo <contact@dasharo.com> ${NORMAL}"
-  echo -e "${NORMAL} Report issues at: https://github.com/Dasharo/dasharo-issues ${NORMAL}"
-  echo -e "${BLUE}*********************************************************${NORMAL}"
-  echo -e "${BLUE}**${NORMAL}                HARDWARE INFORMATION ${NORMAL}"
-  echo -e "${BLUE}*********************************************************${NORMAL}"
-  echo -e "${BLUE}**${YELLOW}    System Inf.: ${NORMAL}${SYSTEM_VENDOR} ${SYSTEM_MODEL}"
-  echo -e "${BLUE}**${YELLOW} Baseboard Inf.: ${NORMAL}${BOARD_VENDOR} ${BOARD_MODEL}"
-  echo -e "${BLUE}**${YELLOW}       CPU Inf.: ${NORMAL}${CPU_VERSION}"
-  show_ram_inf
-  echo -e "${BLUE}*********************************************************${NORMAL}"
-  echo -e "${BLUE}**${NORMAL}                FIRMWARE INFORMATION ${NORMAL}"
-  echo -e "${BLUE}*********************************************************${NORMAL}"
-  echo -e "${BLUE}**${YELLOW}      BIOS Inf.: ${NORMAL}${BIOS_VENDOR} ${BIOS_VERSION}"
-  echo -e "${BLUE}*********************************************************${NORMAL}"
+    local _os_version
+    _os_version=$(grep "VERSION_ID" ${OS_VERSION_FILE} | cut -d "=" -f 2-)
+    printf "\ec"
+    echo -e "${NORMAL}\n Dasharo Tools Suite Script ${_os_version} ${NORMAL}"
+    echo -e "${NORMAL} (c) Dasharo <contact@dasharo.com> ${NORMAL}"
+    echo -e "${NORMAL} Report issues at: https://github.com/Dasharo/dasharo-issues ${NORMAL}"
+    echo -e "${BLUE}*********************************************************${NORMAL}"
+    echo -e "${BLUE}**${NORMAL}                HARDWARE INFORMATION ${NORMAL}"
+    echo -e "${BLUE}*********************************************************${NORMAL}"
+    echo -e "${BLUE}**${YELLOW}    System Inf.: ${NORMAL}${SYSTEM_VENDOR} ${SYSTEM_MODEL}"
+    echo -e "${BLUE}**${YELLOW} Baseboard Inf.: ${NORMAL}${BOARD_VENDOR} ${BOARD_MODEL}"
+    echo -e "${BLUE}**${YELLOW}       CPU Inf.: ${NORMAL}${CPU_VERSION}"
+    show_ram_inf
+    echo -e "${BLUE}*********************************************************${NORMAL}"
+    echo -e "${BLUE}**${NORMAL}                FIRMWARE INFORMATION ${NORMAL}"
+    echo -e "${BLUE}*********************************************************${NORMAL}"
+    echo -e "${BLUE}**${YELLOW}      BIOS Inf.: ${NORMAL}${BIOS_VENDOR} ${BIOS_VERSION}"
+    echo -e "${BLUE}*********************************************************${NORMAL}"
 }
 
 show_des_credentials() {
-  if [ -n "${DES_IS_LOGGED}" ]; then
-    echo -e "${BLUE}**${NORMAL}                DES credentials ${NORMAL}"
-    echo -e "${BLUE}*********************************************************${NORMAL}"
-    echo -e "${BLUE}**${YELLOW}       Logs key: ${NORMAL}${CLOUDSEND_LOGS_URL}"
-    echo -e "${BLUE}**${YELLOW}   Download key: ${NORMAL}${CLOUDSEND_DOWNLOAD_URL}"
-    echo -e "${BLUE}**${YELLOW}       Password: ${NORMAL}${CLOUDSEND_PASSWORD}"
-    echo -e "${BLUE}*********************************************************${NORMAL}"
-  fi
+    if [ -n "${DES_IS_LOGGED}" ]; then
+        echo -e "${BLUE}**${NORMAL}                DES credentials ${NORMAL}"
+        echo -e "${BLUE}*********************************************************${NORMAL}"
+        echo -e "${BLUE}**${YELLOW}       Logs key: ${NORMAL}${CLOUDSEND_LOGS_URL}"
+        echo -e "${BLUE}**${YELLOW}   Download key: ${NORMAL}${CLOUDSEND_DOWNLOAD_URL}"
+        echo -e "${BLUE}**${YELLOW}       Password: ${NORMAL}${CLOUDSEND_PASSWORD}"
+        echo -e "${BLUE}*********************************************************${NORMAL}"
+    fi
 }
 
 show_ssh_info() {
-  if systemctl is-active sshd.socket &> /dev/null; then
-    local ip=""
-    ip=$(ip -br -f inet a show scope global | grep UP | awk '{ print $3 }' | tr '\n' ' ')
-    # Display "check your connection" in red color in IP field in case no IPV4
-    # address is assigned, otherwise display IP/PORT:
-    if [[ -z "$ip" ]]; then
-      echo -e "${BLUE}**${NORMAL}    SSH status: ${GREEN}ON${NORMAL} IP: ${RED}check your connection${NORMAL}"
-      echo -e "${BLUE}*********************************************************${NORMAL}"
-    else
-      echo -e "${BLUE}**${NORMAL}    SSH status: ${GREEN}ON${NORMAL} IP: ${ip}${NORMAL}"
-      echo -e "${BLUE}*********************************************************${NORMAL}"
+    if systemctl is-active sshd.socket &>/dev/null; then
+        local ip=""
+        ip=$(ip -br -f inet a show scope global | grep UP | awk '{ print $3 }' | tr '\n' ' ')
+        # Display "check your connection" in red color in IP field in case no IPV4
+        # address is assigned, otherwise display IP/PORT:
+        if [[ -z "$ip" ]]; then
+            echo -e "${BLUE}**${NORMAL}    SSH status: ${GREEN}ON${NORMAL} IP: ${RED}check your connection${NORMAL}"
+            echo -e "${BLUE}*********************************************************${NORMAL}"
+        else
+            echo -e "${BLUE}**${NORMAL}    SSH status: ${GREEN}ON${NORMAL} IP: ${ip}${NORMAL}"
+            echo -e "${BLUE}*********************************************************${NORMAL}"
+        fi
     fi
-  fi
 }
 
 show_menu() {
-  echo -e "${BLUE}**${YELLOW}     ${HCL_REPORT_OPT})${BLUE} Dasharo HCL report${NORMAL}"
-  if ! check_if_dasharo; then
-    echo -e "${BLUE}**${YELLOW}     ${DASHARO_FIRM_OPT})${BLUE} Update Dasharo Firmware${NORMAL}"
-  else
-    echo -e "${BLUE}**${YELLOW}     ${DASHARO_FIRM_OPT})${BLUE} Install Dasharo Firmware${NORMAL}"
-  fi
-  echo -e "${BLUE}**${YELLOW}     ${REST_FIRM_OPT})${BLUE} Restore firmware from Dasharo HCL report${NORMAL}"
-  if [ -n "${DES_IS_LOGGED}" ]; then
-    echo -e "${BLUE}**${YELLOW}     ${DES_KEYS_OPT})${BLUE} Edit your DES keys${NORMAL}"
-  else
-    echo -e "${BLUE}**${YELLOW}     ${DES_KEYS_OPT})${BLUE} Load your DES keys${NORMAL}"
-  fi
-  echo -e "${BLUE}*********************************************************${NORMAL}"
-  echo -e "${YELLOW}Select a menu option or${NORMAL}"
-  echo -ne "${RED}${REBOOT_OPT_UP}${NORMAL} to reboot  ${NORMAL}"
-  echo -ne "${RED}${POWEROFF_OPT_UP}${NORMAL} to poweroff  ${NORMAL}"
-  echo -e "${RED}${SHELL_OPT_UP}${NORMAL} to enter shell  ${NORMAL}"
-  if systemctl is-active sshd.socket &> /dev/null; then
-    echo -ne "${RED}${SSH_OPT_UP}${NORMAL} to stop SSH server  ${NORMAL}"
-  else
-    echo -ne "${RED}${SSH_OPT_UP}${NORMAL} to launch SSH server  ${NORMAL}"
-  fi
+    echo -e "${BLUE}**${YELLOW}     ${HCL_REPORT_OPT})${BLUE} Dasharo HCL report${NORMAL}"
+    if ! check_if_dasharo; then
+        echo -e "${BLUE}**${YELLOW}     ${DASHARO_FIRM_OPT})${BLUE} Update Dasharo Firmware${NORMAL}"
+    else
+        echo -e "${BLUE}**${YELLOW}     ${DASHARO_FIRM_OPT})${BLUE} Install Dasharo Firmware${NORMAL}"
+    fi
+    echo -e "${BLUE}**${YELLOW}     ${REST_FIRM_OPT})${BLUE} Restore firmware from Dasharo HCL report${NORMAL}"
+    if [ -n "${DES_IS_LOGGED}" ]; then
+        echo -e "${BLUE}**${YELLOW}     ${DES_KEYS_OPT})${BLUE} Edit your DES keys${NORMAL}"
+    else
+        echo -e "${BLUE}**${YELLOW}     ${DES_KEYS_OPT})${BLUE} Load your DES keys${NORMAL}"
+    fi
+    echo -e "${BLUE}*********************************************************${NORMAL}"
+    echo -e "${YELLOW}Select a menu option or${NORMAL}"
+    echo -ne "${RED}${REBOOT_OPT_UP}${NORMAL} to reboot  ${NORMAL}"
+    echo -ne "${RED}${POWEROFF_OPT_UP}${NORMAL} to poweroff  ${NORMAL}"
+    echo -e "${RED}${SHELL_OPT_UP}${NORMAL} to enter shell  ${NORMAL}"
+    if systemctl is-active sshd.socket &>/dev/null; then
+        echo -ne "${RED}${SSH_OPT_UP}${NORMAL} to stop SSH server  ${NORMAL}"
+    else
+        echo -ne "${RED}${SSH_OPT_UP}${NORMAL} to launch SSH server  ${NORMAL}"
+    fi
 }
 
 check_if_fused() {
-  file_path="/sys/class/mei/mei0/fw_status"
+    file_path="/sys/class/mei/mei0/fw_status"
 
-  if [[ ! -f $file_path ]]; then
-    echo "File not found: $file_path"
-    return 2
-  fi
-
-  hfsts6_value=""
-  line_number=1
-  while IFS= read -r line; do
-    if [[ $line_number -eq 6 ]]; then
-      hfsts6_value=$line
-      break
+    if [[ ! -f $file_path ]]; then
+        echo "File not found: $file_path"
+        return 2
     fi
-    ((line_number++))
-  done <"$file_path"
 
-  if [[ -z $hfsts6_value ]]; then
-    echo "Failed to read HFSTS6 value"
-    exit 1
-  fi
+    hfsts6_value=""
+    line_number=1
+    while IFS= read -r line; do
+        if [[ $line_number -eq 6 ]]; then
+            hfsts6_value=$line
+            break
+        fi
+        ((line_number++))
+    done <"$file_path"
 
-  hfsts6_binary=$(echo "ibase=16; obase=2; $hfsts6_value" | bc)
+    if [[ -z $hfsts6_value ]]; then
+        echo "Failed to read HFSTS6 value"
+        exit 1
+    fi
 
-  binary_length=${#hfsts6_binary}
+    hfsts6_binary=$(echo "ibase=16; obase=2; $hfsts6_value" | bc)
 
-  # Add leading zeros
-  if [ $binary_length -lt 32 ]; then
-    padding=$((32 - $binary_length))
-    zeros=$(printf "%${padding}s" | tr ' ' "0")
-    hfsts6_binary=$zeros$hfsts6_binary
-  fi
+    binary_length=${#hfsts6_binary}
 
-  bit_30_value=${hfsts6_binary:1:1}
+    # Add leading zeros
+    if [ $binary_length -lt 32 ]; then
+        padding=$((32 - $binary_length))
+        zeros=$(printf "%${padding}s" | tr ' ' "0")
+        hfsts6_binary=$zeros$hfsts6_binary
+    fi
 
-  if [ $bit_30_value == 0 ]; then
-    return 1
-  else
-    return 0
-  fi
+    bit_30_value=${hfsts6_binary:1:1}
+
+    if [ $bit_30_value == 0 ]; then
+        return 1
+    else
+        return 0
+    fi
 }
 
 check_if_boot_guard_enabled() {
-  # MSR cannot be read
-  if ! rdmsr 0x13a -0; then
+    # MSR cannot be read
+    if ! rdmsr 0x13a -0; then
+        return 1
+    fi
+
+    msr_hex=$(rdmsr 0x13a -0 | tr '[:lower:]' '[:upper:]')
+    msr_binary=$(echo "ibase=16; obase=2; $msr_hex" | bc)
+
+    binary_length=${#msr_binary}
+
+    if [ $binary_length -lt 64 ]; then
+        padding=$((64 - $binary_length))
+        zeros=$(printf "%${padding}s" | tr ' ' "0")
+        msr_binary=$zeros$msr_binary
+    fi
+
+    # Bit 4
+    facb_fpf=${msr_binary:59:1}
+
+    # Bit 6
+    verified_boot=${msr_binary:57:1}
+
+    if [ $facb_fpf == 1 ] && [ $verified_boot == 1 ]; then
+        return 0
+    fi
     return 1
-  fi
-
-  msr_hex=$(rdmsr 0x13a -0 | tr '[:lower:]' '[:upper:]')
-  msr_binary=$(echo "ibase=16; obase=2; $msr_hex" | bc)
-
-  binary_length=${#msr_binary}
-
-  if [ $binary_length -lt 64 ]; then
-    padding=$((64 - $binary_length))
-    zeros=$(printf "%${padding}s" | tr ' ' "0")
-    msr_binary=$zeros$msr_binary
-  fi
-
-  # Bit 4
-  facb_fpf=${msr_binary:59:1}
-
-  # Bit 6
-  verified_boot=${msr_binary:57:1}
-
-  if [ $facb_fpf == 1 ] && [ $verified_boot == 1 ]; then
-    return 0
-  fi
-  return 1
 }
 
 can_install_dasharo() {
-  if check_if_intel; then
-    if check_if_fused && check_if_boot_guard_enabled; then
-      return 1
+    if check_if_intel; then
+        if check_if_fused && check_if_boot_guard_enabled; then
+            return 1
+        fi
     fi
-  fi
-  return 0
+    return 0
 }
 
 check_if_intel() {
-  cpu_vendor=$(cat /proc/cpuinfo | grep "vendor_id" | head -n 1 | sed 's/.*: //')
-  if [ $cpu_vendor == "GenuineIntel" ]; then
-    return 0
-  fi
-  return 1
+    cpu_vendor=$(cat /proc/cpuinfo | grep "vendor_id" | head -n 1 | sed 's/.*: //')
+    if [ $cpu_vendor == "GenuineIntel" ]; then
+        return 0
+    fi
+    return 1
 }
