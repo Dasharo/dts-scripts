@@ -10,19 +10,19 @@ HW_UUID="$1"
 
 ### Error checks
 print_error() {
-  echo -e "$RED""$1""$NORMAL"
+    echo -e "$RED""$1""$NORMAL"
 }
 
 error_exit() {
-  _error_msg="$1"
-  print_error "$_error_msg"
-  exit 1
+    _error_msg="$1"
+    print_error "$_error_msg"
+    exit 1
 }
 
 error_check() {
-  _error_code=$?
-  _error_msg="$1"
-  [ "$_error_code" -ne 0 ] && error_exit "$_error_msg : ($_error_code)"
+    _error_code=$?
+    _error_msg="$1"
+    [ "$_error_code" -ne 0 ] && error_exit "$_error_msg : ($_error_code)"
 }
 
 USER_DETAILS="$CLOUDSEND_LOGS_URL:$CLOUDSEND_PASSWORD"
@@ -40,7 +40,7 @@ sed -i 's/<dresponse>/&\n&\n<dresponse>/g' "$TMP_RESPONSE"
 sed -i 's#<&/dresponse>#<&/dresponse>&\n#g' "$TMP_RESPONSE"
 
 # create line per record
-grep "public.php/webdav/" "$TMP_RESPONSE" > "$TMP_LIST"
+grep "public.php/webdav/" "$TMP_RESPONSE" >"$TMP_LIST"
 # remove xml tags
 sed -i 's#/dhref.*#\/dhref>#' "$TMP_LIST"
 sed -i 's#<*dresponse>##g' "$TMP_LIST"
@@ -55,8 +55,8 @@ HCL_REPORT_NAME=$(cat $TMP_LIST | grep -m1 $HW_UUID)
 tmpURL="https://cloud.3mdeb.com/public.php/webdav/$HCL_REPORT_NAME"
 curl -L -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" -X GET "$tmpURL" -o /$HCL_REPORT_NAME
 if [ -f /$HCL_REPORT_NAME ]; then
-  echo "Report downloaded"
+    echo "Report downloaded"
 else
-  echo "Report not found!"
-  exit 1
+    echo "Report not found!"
+    exit 1
 fi
