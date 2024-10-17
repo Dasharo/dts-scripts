@@ -834,10 +834,27 @@ board_config() {
           return 1
           ;;
       esac
-
-      BIOS_LINK_DPP="$FW_STORE_URL_DPP/$DASHARO_REL_NAME/v$DASHARO_REL_VER_DPP/${DASHARO_REL_NAME}_v$DASHARO_REL_VER_DPP.rom"
-      BIOS_HASH_LINK_DPP="${BIOS_LINK_DPP}.sha256"
-      BIOS_SIGN_LINK_DPP="${BIOS_LINK_DPP}.sha256.sig"
+      ;;
+    "Intel")
+      shopt -s nocasematch
+      case "$SYSTEM_MODEL" in
+        "Minnow Max")
+          DASHARO_REL_NAME="intel_minnowmax"
+          DASHARO_REL_VER_DPP="v0.9.0-rc3"
+          VER_DPP_NAME=$(echo "$DASHARO_REL_VER_DPP" | sed 's/-/_/g')
+          HAVE_EC="false"
+          NEED_EC_RESET="false"
+          BIOS_LINK_DPP="${FW_STORE_URL_DPP}/intel_minnowmax/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_no_sb_v${DASHARO_REL_VER_DPP}.rom"
+          FLASH_CHIP_LIST="W25Q64JV-.Q"
+          PROGRAMMER_BIOS="internal"
+          DISABLE_WP="true"
+          ;;
+        *)
+          print_error "Board model $SYSTEM_MODEL is currently not supported"
+          return 1
+          ;;
+      esac
+      shopt -u nocasematch
       ;;
     *)
       print_error "Board vendor: $SYSTEM_VENDOR is currently not supported"
@@ -1178,6 +1195,9 @@ set_flashrom_update_params() {
     FLASHROM_ADD_OPT_UPDATE=""
   else
     FLASHROM_ADD_OPT_UPDATE="-N --ifd -i bios"
+  fi
+  if [ $DISABLE_WP == "true" ]; then
+    FLASHROM_ADD_OPT_UPDATE="$FLASHROM_ADD_OPT_UPDATE --wp-disable --wp-range=0x0,0x0"
   fi
   BINARY_HAS_RW_B=1
   # We need to read whole binary (or BIOS region), otherwise cbfstool will
