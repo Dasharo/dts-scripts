@@ -131,6 +131,8 @@ declare EC_LINK_COMM
 declare EC_HASH_LINK_COMM
 declare EC_SIGN_LINK_COMM
 declare HEADS_LINK_DPP
+declare HEADS_HASH_LINK_DPP
+declare HEADS_SIGN_LINK_DPP
 # and for capsules:
 declare BIOS_LINK_COMM_CAP
 declare BIOS_HASH_LINK_COMM_CAP
