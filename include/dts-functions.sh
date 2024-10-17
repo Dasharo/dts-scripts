@@ -436,7 +436,7 @@ board_config() {
           # Common configuration for all MS-7D25:
           DASHARO_REL_NAME="msi_ms7d25"
           DASHARO_REL_VER="1.1.1"
-          DASHARO_REL_VER_DPP="1.1.3"
+          DASHARO_REL_VER_DPP="1.1.4"
           CAN_INSTALL_BIOS="true"
           CAN_USE_FLASHROM="true"
           HAVE_HEADS_FW="true"
@@ -484,7 +484,7 @@ board_config() {
           # Common configuration for all MS-7E06:
           DASHARO_REL_NAME="msi_ms7e06"
           #DASHARO_REL_VER=""
-          DASHARO_REL_VER_DPP="0.9.1"
+          DASHARO_REL_VER_DPP="0.9.2"
           CAN_INSTALL_BIOS="true"
           CAN_USE_FLASHROM="true"
           HAVE_HEADS_FW="true"
