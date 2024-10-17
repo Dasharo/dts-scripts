@@ -114,10 +114,10 @@ tool_wrapper(){
       $_mock_func $_arguments 1>&1 2>&2
     elif type ${_tool}_$_mock_func &> /dev/null; then
       ${_tool}_$_mock_func $_arguments 1>&1 2>&2
-    elif type ${_tool}_common_mock; then
+    elif type ${_tool}_common_mock &> /dev/null; then
       ${_tool}_common_mock $_arguments 1>&1 2>&2
     else
-      common_mock 1>&1 2>&2
+      common_mock $_tool 1>&1 2>&2
     fi
 
     return $?

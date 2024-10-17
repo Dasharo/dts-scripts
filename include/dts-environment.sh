@@ -7,6 +7,8 @@
 # shellcheck disable=SC2034
 # shellcheck source=../include/hal/dts-hal.sh
 source $DTS_HAL
+# shellcheck source=../include/dts-functions.sh
+source $DTS_FUNCS
 
 # Text colors:
 NORMAL='\033[0m'
@@ -129,6 +131,8 @@ declare EC_LINK_COMM
 declare EC_HASH_LINK_COMM
 declare EC_SIGN_LINK_COMM
 declare HEADS_LINK_DPP
+declare HEADS_HASH_LINK_DPP
+declare HEADS_SIGN_LINK_DPP
 # and for capsules:
 declare BIOS_LINK_COMM_CAP
 declare BIOS_HASH_LINK_COMM_CAP
