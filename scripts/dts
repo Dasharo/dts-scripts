@@ -11,6 +11,9 @@ source $DTS_SUBS
 trap : 2
 trap : 3
 
+# Some menu options depend on platform data:
+board_config
+
 while : ; do
   # Do some subscription routine each time menu is rendered:
   subscription_routine
