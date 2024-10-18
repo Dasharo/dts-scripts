@@ -21,9 +21,9 @@ check_for_dasharo_firmware() {
   # Ignore "SC2154 (warning): DPP_credential_file is referenced but not assigned"
   # for external variable:
   # shellcheck disable=SC2154
-  CLOUDSEND_LOGS_URL=$(sed -n '1p' < ${DPP_credential_file} | tr -d '\n')
-  CLOUDSEND_DOWNLOAD_URL=$(sed -n '2p' < ${DPP_credential_file} | tr -d '\n')
-  CLOUDSEND_PASSWORD=$(sed -n '3p' < ${DPP_credential_file} | tr -d '\n')
+  CLOUDSEND_LOGS_URL=$(sed -n '1p' <${DPP_credential_file} | tr -d '\n')
+  CLOUDSEND_DOWNLOAD_URL=$(sed -n '2p' <${DPP_credential_file} | tr -d '\n')
+  CLOUDSEND_PASSWORD=$(sed -n '3p' <${DPP_credential_file} | tr -d '\n')
   USER_DETAILS="$CLOUDSEND_DOWNLOAD_URL:$CLOUDSEND_PASSWORD"
 
   # Check the board information:
@@ -80,14 +80,14 @@ get_dpp_creds() {
   # Export DPP creds to a file for future use. Currently these are being used
   # for both: MinIO (and its mc CLI) and cloudsend (deprecated, all DPP
   # sibscribtions will be megrated to MinIO):
-  echo ${TMP_CLOUDSEND_LOGS_URL} > ${DPP_credential_file}
-  echo ${TMP_CLOUDSEND_DOWNLOAD_URL} >> ${DPP_credential_file}
-  echo ${TMP_CLOUDSEND_PASSWORD} >> ${DPP_credential_file}
+  echo ${TMP_CLOUDSEND_LOGS_URL} >${DPP_credential_file}
+  echo ${TMP_CLOUDSEND_DOWNLOAD_URL} >>${DPP_credential_file}
+  echo ${TMP_CLOUDSEND_PASSWORD} >>${DPP_credential_file}
 
   print_ok "Dasharo DPP credentials have been saved"
 }
 
-login_to_dpp_server(){
+login_to_dpp_server() {
   # Check if the user is already logged in, log in if not:
   if [ -z "$(mc alias list | grep ${CLOUDSEND_DOWNLOAD_URL})" ]; then
     mc alias set $DPP_SERVER_USER_ALIAS $DPP_SERVER_ADDRESS $CLOUDSEND_DOWNLOAD_URL $CLOUDSEND_PASSWORD || return 1
@@ -100,7 +100,7 @@ login_to_dpp_server(){
   return 0
 }
 
-subscription_routine(){
+subscription_routine() {
   # This function contains Subscription-related code which needs to be executed
   # several times. Currently it is called only in /usr/sbin/dts script at every
   # start of menu rendering loop.
@@ -115,9 +115,9 @@ subscription_routine(){
   # Each time the main menu is rendered, check for DPP credentials and export
   # them, if file exists
   if [ -e "${DPP_credential_file}" ]; then
-    CLOUDSEND_LOGS_URL=$(sed -n '1p' < ${DPP_credential_file} | tr -d '\n')
-    CLOUDSEND_DOWNLOAD_URL=$(sed -n '2p' < ${DPP_credential_file} | tr -d '\n')
-    CLOUDSEND_PASSWORD=$(sed -n '3p' < ${DPP_credential_file} | tr -d '\n')
+    CLOUDSEND_LOGS_URL=$(sed -n '1p' <${DPP_credential_file} | tr -d '\n')
+    CLOUDSEND_DOWNLOAD_URL=$(sed -n '2p' <${DPP_credential_file} | tr -d '\n')
+    CLOUDSEND_PASSWORD=$(sed -n '3p' <${DPP_credential_file} | tr -d '\n')
     export USER_DETAILS="$CLOUDSEND_DOWNLOAD_URL:$CLOUDSEND_PASSWORD"
     export DPP_IS_LOGGED="true"
   else
@@ -134,17 +134,17 @@ subscription_routine(){
   return 0
 }
 
-check_dasharo_package_env(){
+check_dasharo_package_env() {
   [ -d $DPP_PACKAGE_MANAGER_DIR ] || mkdir -p $DPP_PACKAGE_MANAGER_DIR
   [ -d $DPP_PACKAGES_SCRIPTS_PATH ] || mkdir -p $DPP_PACKAGES_SCRIPTS_PATH
 
   return 0
 }
 
-update_package_list(){
+update_package_list() {
   check_dasharo_package_env
 
-  mc find --json --name "*.rpm" $DPP_SERVER_USER_ALIAS > $DPP_AVAIL_PACKAGES_LIST
+  mc find --json --name "*.rpm" $DPP_SERVER_USER_ALIAS >$DPP_AVAIL_PACKAGES_LIST
 
   if [ $? -ne 0 ]; then
     print_error "Unable to get package list!"
@@ -153,7 +153,7 @@ update_package_list(){
   return 0
 }
 
-download_dpp_package(){
+download_dpp_package() {
   local package_name=$1
 
   # Make sure all paths exist:
@@ -181,7 +181,7 @@ download_dpp_package(){
   return 0
 }
 
-install_dpp_package(){
+install_dpp_package() {
   local package_name=$1
 
   check_dasharo_package_env
@@ -208,7 +208,7 @@ install_dpp_package(){
   return 0
 }
 
-install_all_dpp_packages(){
+install_all_dpp_packages() {
   echo "Installing available DPP packages..."
 
   update_package_list || return 1
@@ -233,7 +233,7 @@ install_all_dpp_packages(){
   return 0
 }
 
-check_avail_dpp_packages(){
+check_avail_dpp_packages() {
   echo "Checking for available DPP packages..."
   AVAILABLE_PACKAGES=$(mc find --name "*.rpm" $DPP_SERVER_USER_ALIAS)
 
@@ -266,26 +266,26 @@ parse_for_premium_submenu() {
 
     # Create the JSON file only if any script have been found, this will be a
     # signal to render premium submenu:
-    [ -f "$DPP_SUBMENU_JSON" ] || echo '[]' > "$DPP_SUBMENU_JSON"
+    [ -f "$DPP_SUBMENU_JSON" ] || echo '[]' >"$DPP_SUBMENU_JSON"
 
     local script_name
     script_name=$(basename "$script")
 
     # Add a new entry to the JSON file
     json_data=$(jq --arg name "$script_name" --argjson pos "$position" \
-      '. += [{"file_name": $name, "file_menu_position": $pos}]' <<< "$json_data")
+      '. += [{"file_name": $name, "file_menu_position": $pos}]' <<<"$json_data")
 
     # Increment highest position for next script
     position=$((position + 1))
   done
 
   # Save updated JSON data
-  [ -f "$DPP_SUBMENU_JSON" ] && echo "$json_data" | jq '.' > "$DPP_SUBMENU_JSON"
+  [ -f "$DPP_SUBMENU_JSON" ] && echo "$json_data" | jq '.' >"$DPP_SUBMENU_JSON"
 
   return 0
 }
 
-show_dpp_submenu(){
+show_dpp_submenu() {
   # This menu is being rendered dynamically by parsing scripts from
   # DPP_PACKAGES_SCRIPTS_PATH. These scripts are being installed by DPP
   # packages.
@@ -306,21 +306,21 @@ show_dpp_submenu(){
   # Iterate over each JSON object:
   while IFS= read -r item; do
     local script_name
-    script_name=$(jq -r '.file_name' <<< "$item")
-    file_menu_position=$(jq -r '.file_menu_position' <<< "$item")
+    script_name=$(jq -r '.file_name' <<<"$item")
+    file_menu_position=$(jq -r '.file_menu_position' <<<"$item")
 
     local script_path="$DPP_PACKAGES_SCRIPTS_PATH/$script_name"
 
     bash "$script_path" menu_point "$file_menu_position"
 
-  done <<< "$json_data"
+  done <<<"$json_data"
 
   echo -e "${BLUE}**${YELLOW}     ${BACK_TO_MAIN_MENU_UP})${BLUE} Return to main menu${NORMAL}"
 
   return 0
 }
 
-dpp_submenu_options(){
+dpp_submenu_options() {
   local OPTION=$1
   local file_menu_position
   local script
@@ -342,7 +342,7 @@ dpp_submenu_options(){
   [ -z "$script" ] && return 1
 
   local script_name
-  script_name=$(jq -r '.file_name' <<< "$script")
+  script_name=$(jq -r '.file_name' <<<"$script")
 
   local script_path="$DPP_PACKAGES_SCRIPTS_PATH/$script_name"
 
