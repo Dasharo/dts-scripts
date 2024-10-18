@@ -17,25 +17,25 @@ CLOUD_PASS_FILE="/etc/cloud-pass"
 
 rm -f "${CLOUD_PASS_FILE}"
 if [ "$BOARD_VENDOR" = "Notebook" ] && [ "$DPP_TYPE" = "heads" ]; then
-  echo "$NCM_HEADS_LOGS_KEY" >> "${CLOUD_PASS_FILE}"
-  echo "$NCM_HEADS_DL_KEY" >> "${CLOUD_PASS_FILE}"
-  echo "$NCM_HEADS_PWD" >> "${CLOUD_PASS_FILE}"
+  echo "$NCM_HEADS_LOGS_KEY" >>"${CLOUD_PASS_FILE}"
+  echo "$NCM_HEADS_DL_KEY" >>"${CLOUD_PASS_FILE}"
+  echo "$NCM_HEADS_PWD" >>"${CLOUD_PASS_FILE}"
 elif [ "$BOARD_VENDOR" = "Micro-Star International Co., Ltd." ] && [ "$DPP_TYPE" = "heads" ]; then
-  echo "$MSI_HEADS_LOGS_KEY" >> "${CLOUD_PASS_FILE}"
-  echo "$MSI_HEADS_DL_KEY" >> "${CLOUD_PASS_FILE}"
-  echo "$MSI_HEADS_PWD" >> "${CLOUD_PASS_FILE}"
+  echo "$MSI_HEADS_LOGS_KEY" >>"${CLOUD_PASS_FILE}"
+  echo "$MSI_HEADS_DL_KEY" >>"${CLOUD_PASS_FILE}"
+  echo "$MSI_HEADS_PWD" >>"${CLOUD_PASS_FILE}"
 elif [ "$BOARD_VENDOR" = "Micro-Star International Co., Ltd." ] && [ "$DPP_TYPE" = "UEFI" ]; then
-  echo "$MSI_UEFI_LOGS_KEY" >> "${CLOUD_PASS_FILE}"
-  echo "$MSI_UEFI_DL_KEY" >> "${CLOUD_PASS_FILE}"
-  echo "$MSI_UEFI_PWD" >> "${CLOUD_PASS_FILE}"
+  echo "$MSI_UEFI_LOGS_KEY" >>"${CLOUD_PASS_FILE}"
+  echo "$MSI_UEFI_DL_KEY" >>"${CLOUD_PASS_FILE}"
+  echo "$MSI_UEFI_PWD" >>"${CLOUD_PASS_FILE}"
 elif [ "$BOARD_VENDOR" = "PC Engines" ] && [ "$DPP_TYPE" = "UEFI" ]; then
-  echo "$PCE_UEFI_LOGS_KEY" >> "${CLOUD_PASS_FILE}"
-  echo "$PCE_UEFI_DL_KEY" >> "${CLOUD_PASS_FILE}"
-  echo "$PCE_UEFI_PWD" >> "${CLOUD_PASS_FILE}"
+  echo "$PCE_UEFI_LOGS_KEY" >>"${CLOUD_PASS_FILE}"
+  echo "$PCE_UEFI_DL_KEY" >>"${CLOUD_PASS_FILE}"
+  echo "$PCE_UEFI_PWD" >>"${CLOUD_PASS_FILE}"
 elif [ "$BOARD_VENDOR" = "PC Engines" ] && [ "$DPP_TYPE" = "seabios" ]; then
-  echo "$PCE_SEABIOS_LOGS_KEY" >> "${CLOUD_PASS_FILE}"
-  echo "$PCE_SEABIOS_DL_KEY" >> "${CLOUD_PASS_FILE}"
-  echo "$PCE_SEABIOS_PWD" >> "${CLOUD_PASS_FILE}"
+  echo "$PCE_SEABIOS_LOGS_KEY" >>"${CLOUD_PASS_FILE}"
+  echo "$PCE_SEABIOS_DL_KEY" >>"${CLOUD_PASS_FILE}"
+  echo "$PCE_SEABIOS_PWD" >>"${CLOUD_PASS_FILE}"
 fi
 
 if [ -f /tmp/bios.bin ]; then

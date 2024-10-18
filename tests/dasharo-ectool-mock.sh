@@ -2,13 +2,13 @@
 
 # Function to print usage
 usage() {
-    echo "Usage: $0 info"
-    exit 1
+  echo "Usage: $0 info"
+  exit 1
 }
 
 # Check if the first argument is 'info'
 if [[ "$1" != "info" ]]; then
-    usage
+  usage
 fi
 
 # Mock info command output
