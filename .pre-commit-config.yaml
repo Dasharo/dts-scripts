@@ -50,3 +50,9 @@ repos:
     hooks:
       - id: shellcheck
         args: ["--severity=warning"]
+
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.9.0-1
+    hooks:
+      - id: shfmt
+        args: ["-i", "2", "-w"]
