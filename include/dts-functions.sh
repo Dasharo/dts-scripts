@@ -1768,8 +1768,7 @@ check_if_fused() {
   done <"$file_path"
 
   if [[ -z $hfsts6_value ]]; then
-    echo "Failed to read HFSTS6 value"
-    exit 1
+    return 0
   fi
 
   hfsts6_binary=$(echo "ibase=16; obase=2; $hfsts6_value" | bc)
