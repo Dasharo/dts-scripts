@@ -90,7 +90,7 @@ get_dpp_creds() {
 login_to_dpp_server(){
   # Check if the user is already logged in, log in if not:
   if [ -z "$(mc alias list | grep ${CLOUDSEND_DOWNLOAD_URL})" ]; then
-    mc alias set $DPP_SERVER_USER_ALIAS $DPP_SERVER_ADDRESS $CLOUDSEND_DOWNLOAD_URL $CLOUDSEND_PASSWORD || return 1
+    mc alias set $DPP_SERVER_USER_ALIAS $DPP_SERVER_ADDRESS $CLOUDSEND_DOWNLOAD_URL $CLOUDSEND_PASSWORD 2> /dev/null || return 1
     if [ $? -ne 0 ]; then
       print_error "Error while logging in to DPP server!"
       return 1
