@@ -348,12 +348,19 @@ board_config() {
             "V560TU")
               DASHARO_REL_NAME="novacustom_v56x_mtl"
               FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
+              HAVE_HEADS_FW="true"
+              HEADS_REL_VER_DPP="0.9.0"
+              COMPATIBLE_HEADS_EC_FW_VERSION="2024-12-20_368e08e"
+              HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
               ;;
             *)
               print_error "Board model $BOARD_MODEL is currently not supported"
               return 1
               ;;
           esac
+
+          HEADS_LINK_DPP="${FW_STORE_URL_DPP}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_heads.rom"
+          HEADS_EC_LINK_DPP="${FW_STORE_URL_DPP}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_ec_v${HEADS_REL_VER_DPP}.rom"
           ;;
         "V5xTNC_TND_TNE")
           if check_if_dasharo; then
@@ -665,6 +672,8 @@ board_config() {
   [ -z "$EC_SIGN_LINK_COMM" ] && EC_SIGN_LINK_COMM="${EC_HASH_LINK_COMM}.sig"
   [ -z "$EC_HASH_LINK_DPP" ] && EC_HASH_LINK_DPP="${EC_LINK_DPP}.sha256"
   [ -z "$EC_SIGN_LINK_DPP" ] && EC_SIGN_LINK_DPP="${EC_HASH_LINK_DPP}.sig"
+  [ -z "$HEADS_EC_HASH_LINK_DPP" ] && HEADS_EC_HASH_LINK_DPP="${HEADS_EC_LINK_DPP}.sha256"
+  [ -z "$HEADS_EC_SIGN_LINK_DPP" ] && HEADS_EC_SIGN_LINK_DPP="${HEADS_EC_HASH_LINK_DPP}.sig"
 
   # And for capsules as well:
   [ -z "$BIOS_HASH_LINK_COMM_CAP" ] && BIOS_HASH_LINK_COMM_CAP="${BIOS_LINK_COMM_CAP}.sha256"
@@ -1088,7 +1097,14 @@ handle_fw_switching() {
           BIOS_LINK="$HEADS_LINK_DPP"
 
           # Check EC link additionally, not all platforms have Embedded Controllers:
-          if [ -n "$EC_LINK_DPP" ]; then
+          if [ -n "$HEADS_EC_LINK_DPP" ]; then
+            EC_LINK=$HEADS_EC_LINK_DPP
+            EC_HASH_LINK=$HEADS_EC_HASH_LINK_DPP
+            EC_SIGN_LINK=$HEADS_EC_SIGN_LINK_DPP
+            if [ -n "$COMPATIBLE_HEADS_EC_FW_VERSION" ]; then
+              COMPATIBLE_EC_FW_VERSION="$COMPATIBLE_HEADS_EC_FW_VERSION"
+            fi
+          elif [ -n "$EC_LINK_DPP" ]; then
             EC_LINK=$EC_LINK_DPP
             EC_HASH_LINK=$EC_HASH_LINK_DPP
             EC_SIGN_LINK=$EC_SIGN_LINK_DPP
