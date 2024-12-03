@@ -539,38 +539,6 @@ board_config() {
           ;;
       esac
       ;;
-    "ASUS")
-      case "$SYSTEM_MODEL" in
-        "KGPE-D16")
-          DASHARO_REL_NAME="asus_kgpe-d16"
-          DASHARO_REL_VER="0.4.0"
-          CAN_INSTALL_BIOS="true"
-          case "$FLASH_CHIP_SIZE" in
-          "2")
-            BIOS_HASH_LINK_COMM="65e5370e9ea6b8ae7cd6cc878a031a4ff3a8f5d36830ef39656b8e5a6e37e889  $BIOS_UPDATE_FILE"
-            BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_vboot_notpm.rom"
-            ;;
-          "8")
-            BIOS_HASH_LINK_COMM="da4e6217d50f2ac199dcb9a927a0bc02aa4e792ed73c8c9bac8ba74fc787dbef  $BIOS_UPDATE_FILE"
-            BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_${FLASH_CHIP_SIZE}M_vboot_notpm.rom"
-            ;;
-          "16")
-            BIOS_HASH_LINK_COMM="20055cf57185f149259706f58d5e9552a1589259c6617999c1ac7d8d3c960020  $BIOS_UPDATE_FILE"
-            BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_${FLASH_CHIP_SIZE}M_vboot_notpm.rom"
-            ;;
-          *)
-            print_error "Platform uses chipset with not supported size"
-            return 1
-            ;;
-          esac
-          NEED_SMBIOS_MIGRATION="true"
-          ;;
-        *)
-          print_error "Board model $SYSTEM_MODEL is currently not supported"
-          return 1
-          ;;
-      esac
-      ;;
     "PC Engines")
       # Common configuration for all PC Engines releases:
       DASHARO_REL_VER_DPP="0.9.0"

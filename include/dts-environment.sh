@@ -182,8 +182,8 @@ CAP_UPD_DEVICE="/dev/efi_capsule_loader"
 # Dasharo FW is already installed:
 DASHARO_VENDOR="3mdeb"
 DASHARO_NAME="Dasharo"
-# Most the time one flash chipset will be detected, for other cases (like for
-# ASUS KGPE-D16) we will test the following list in check_flash_chip function:
+# Most the time one flash chipset will be detected, for other cases
+# we will test the following list in check_flash_chip function:
 FLASH_CHIP_LIST="W25Q64BV/W25Q64CV/W25Q64FV W25Q64JV-.Q W25Q128.V..M"
 
 BASE_DTS_LOGS_URL="xjBCYbzFdyq3WLt"
