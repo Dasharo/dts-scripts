@@ -25,16 +25,11 @@ check_for_dasharo_firmware() {
   # Ignore "SC2154 (warning): DPP_CREDENTIAL_FILE is referenced but not assigned"
   # for external variable:
   # shellcheck disable=SC2154
-  CLOUDSEND_LOGS_URL=$(sed -n '1p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
-  CLOUDSEND_DOWNLOAD_URL=$(sed -n '2p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
-  CLOUDSEND_PASSWORD=$(sed -n '3p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
-  USER_DETAILS="$CLOUDSEND_DOWNLOAD_URL:$CLOUDSEND_PASSWORD"
+  DPP_EMAIL=$(sed -n '1p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
+  DPP_PASSWORD=$(sed -n '2p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
 
   # Check the board information:
   board_config
-
-  # Create links for logs to be sent to:
-  TEST_LOGS_URL="https://cloud.3mdeb.com/index.php/s/${CLOUDSEND_LOGS_URL}/authenticate/showShare"
 
   # If board_config function has not set firmware links - exit with warning:
   if [ -z "$BIOS_LINK_DPP" ] && [ -z "$HEADS_LINK_DPP" ] && [ -z "$BIOS_LINK_DPP_SEABIOS" ] && [ -z "$BIOS_LINK_DPP_CAP" ]; then
@@ -45,29 +40,29 @@ check_for_dasharo_firmware() {
   # Check for firmware binaries:
   if wait_for_network_connection; then
     if [ -n "$BIOS_LINK_DPP" ]; then
-      _check_dwn_req_resp_uefi=$(curl -L -I -s -S -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$BIOS_LINK_DPP" -o /dev/null -w "%{http_code}" 2>>"$ERR_LOG_FILE")
+      mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP}"  > /dev/null 2>&1
+      _check_dwn_req_resp_uefi=$?
     fi
 
     if [ -n "$BIOS_LINK_DPP_CAP" ]; then
-      _check_dwn_req_resp_uefi_cap=$(curl -L -I -s -S -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$BIOS_LINK_DPP_CAP" -o /dev/null -w "%{http_code}" 2>>"$ERR_LOG_FILE")
+      mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP_CAP}"  > /dev/null 2>&1
+      _check_dwn_req_resp_uefi_cap=$?
     fi
 
     if [ -n "$HEADS_LINK_DPP" ]; then
-      _check_dwn_req_resp_heads=$(curl -L -I -s -S -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$HEADS_LINK_DPP" -o /dev/null -w "%{http_code}" 2>>"$ERR_LOG_FILE")
+      mc find "${DPP_SERVER_USER_ALIAS}/${HEADS_LINK_DPP}" > /dev/null 2>&1
+      _check_dwn_req_resp_heads=$?
     fi
 
     if [ -n "$BIOS_LINK_DPP_SEABIOS" ]; then
-      _check_dwn_req_resp_seabios=$(curl -L -I -s -S -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$BIOS_LINK_DPP_SEABIOS" -o /dev/null -w "%{http_code}" 2>>"$ERR_LOG_FILE")
+      mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP_SEABIOS}" > /dev/null 2>&1
+      _check_dwn_req_resp_seabios=$?
     fi
 
-    _check_logs_req_resp=$(curl -L -I -s -S -f -H "$CLOUD_REQUEST" "$TEST_LOGS_URL" -o /dev/null -w "%{http_code}" 2>>"$ERR_LOG_FILE")
-
     # Return 0 if any of Dasharo Firmware binaries is available:
-    if [ ${_check_dwn_req_resp_uefi} -eq 200 ] || [ ${_check_dwn_req_resp_uefi_cap} -eq 200 ] || [ ${_check_dwn_req_resp_heads} -eq 200 ] || [ ${_check_dwn_req_resp_seabios} -eq 200 ]; then
-      if [ ${_check_logs_req_resp} -eq 200 ]; then
-        print_ok "A Dasharo Firmware binary has been found for your platform!"
-        return 0
-      fi
+    if [ ${_check_dwn_req_resp_uefi} -eq 0 ] || [ ${_check_dwn_req_resp_uefi_cap} -eq 0 ] || [ ${_check_dwn_req_resp_heads} -eq 0 ] || [ ${_check_dwn_req_resp_seabios} -eq 0 ]; then
+      print_ok "A Dasharo Firmware binary has been found for your platform!"
+      return 0
     fi
   fi
 
@@ -81,40 +76,23 @@ check_for_dasharo_firmware() {
 
 get_dpp_creds() {
   echo ""
-  read -p "Enter logs key:                " 'TMP_CLOUDSEND_LOGS_URL'
-  if [ -z "$TMP_CLOUDSEND_LOGS_URL" ]; then
-    print_warning "Logs key is empty, discarding credentials..."
-    return 1
-  fi
-
+  read -p "Enter DPP email:   " 'DPP_EMAIL'
   echo ""
-  read -p "Enter firmware download key:   " 'TMP_CLOUDSEND_DOWNLOAD_URL'
-  if [ -z "$TMP_CLOUDSEND_DOWNLOAD_URL" ]; then
-    print_warning "Download key is empty, discarding credentials..."
-    return 1
-  fi
-
-  echo ""
-  read -p "Enter password:                " 'TMP_CLOUDSEND_PASSWORD'
-  if [ -z "$TMP_CLOUDSEND_PASSWORD" ]; then
-    print_warning "Password is empty, discarding credentials..."
-    return 1
-  fi
+  read -p "Enter password:                " 'DPP_PASSWORD'
 
   # Export DPP creds to a file for future use. Currently these are being used
   # for both: MinIO (and its mc CLI) and cloudsend (deprecated, all DPP
   # sibscribtions will be megrated to MinIO):
-  echo ${TMP_CLOUDSEND_LOGS_URL} > ${DPP_CREDENTIAL_FILE}
-  echo ${TMP_CLOUDSEND_DOWNLOAD_URL} >> ${DPP_CREDENTIAL_FILE}
-  echo ${TMP_CLOUDSEND_PASSWORD} >> ${DPP_CREDENTIAL_FILE}
+  echo ${DPP_EMAIL} >> ${DPP_CREDENTIAL_FILE}
+  echo ${DPP_PASSWORD} >> ${DPP_CREDENTIAL_FILE}
 
   print_ok "Dasharo DPP credentials have been saved"
 }
 
 login_to_dpp_server(){
   # Check if the user is already logged in, log in if not:
-  if [ -z "$(mc alias list | grep ${CLOUDSEND_DOWNLOAD_URL})" ]; then
-    if ! mc alias set $DPP_SERVER_USER_ALIAS $DPP_SERVER_ADDRESS $CLOUDSEND_DOWNLOAD_URL $CLOUDSEND_PASSWORD >> $ERR_LOG_FILE 2>&1 ; then
+  if [ -z "$(mc alias list | grep ${DPP_EMAIL})" ]; then
+    if ! mc alias set $DPP_SERVER_USER_ALIAS $DPP_SERVER_ADDRESS $DPP_EMAIL $DPP_PASSWORD >> $ERR_LOG_FILE 2>&1 ; then
       return 1
     fi
   fi
@@ -130,22 +108,17 @@ subscription_routine(){
   # Currently it does the following:
   # Managing DPP creds., so the loop will detect them;
   # Connects to DPP server.
-  export CLOUDSEND_LOGS_URL
-  export CLOUDSEND_DOWNLOAD_URL
-  export CLOUDSEND_PASSWORD
+  export DPP_EMAIL
+  export DPP_PASSWORD
 
   # Each time the main menu is rendered, check for DPP credentials and export
   # them, if file exists
   if [ -e "${DPP_CREDENTIAL_FILE}" ]; then
-    CLOUDSEND_LOGS_URL=$(sed -n '1p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
-    CLOUDSEND_DOWNLOAD_URL=$(sed -n '2p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
-    CLOUDSEND_PASSWORD=$(sed -n '3p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
-    export USER_DETAILS="$CLOUDSEND_DOWNLOAD_URL:$CLOUDSEND_PASSWORD"
+    DPP_EMAIL=$(sed -n '1p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
+    DPP_PASSWORD=$(sed -n '2p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
     export DPP_IS_LOGGED="true"
   else
-    CLOUDSEND_LOGS_URL="$BASE_CLOUDSEND_LOGS_URL"
-    CLOUDSEND_PASSWORD="$BASE_CLOUDSEND_PASSWORD"
-    unset CLOUDSEND_DOWNLOAD_URL
+    unset DPP_EMAIL
     unset DPP_IS_LOGGED
     return 1
   fi
