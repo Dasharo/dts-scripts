@@ -82,7 +82,7 @@ check_for_firmware_access() {
       # This firmware type require user to provide creds:
       [ "$DPP_IS_LOGGED" == "true" ] || return 1
 
-      mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP}"  > /dev/null 2>&1
+      mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP}"  > /dev/null 2>>"$ERR_LOG_FILE"
 
       [ $? -ne 0 ] && return 1
       ;;
@@ -90,7 +90,7 @@ check_for_firmware_access() {
       # This firmware type require user to provide creds:
       [ "$DPP_IS_LOGGED" == "true" ] || return 1
 
-      mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP_CAP}"  > /dev/null 2>&1
+      mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP_CAP}"  > /dev/null 2>>"$ERR_LOG_FILE"
 
       [ $? -ne 0 ] && return 1
       ;;
@@ -98,7 +98,7 @@ check_for_firmware_access() {
       # This firmware type require user to provide creds:
       [ "$DPP_IS_LOGGED" == "true" ] || return 1
 
-      mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP_SEABIOS}" > /dev/null 2>&1
+      mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP_SEABIOS}" > /dev/null 2>>"$ERR_LOG_FILE"
 
       [ $? -ne 0 ] && return 1
       ;;
@@ -106,7 +106,7 @@ check_for_firmware_access() {
       # This firmware type require user to provide creds:
       [ "$DPP_IS_LOGGED" == "true" ] || return 1
 
-      mc find "${DPP_SERVER_USER_ALIAS}/${HEADS_LINK_DPP}" > /dev/null 2>&1
+      mc find "${DPP_SERVER_USER_ALIAS}/${HEADS_LINK_DPP}" > /dev/null 2>>"$ERR_LOG_FILE"
 
       [ $? -ne 0 ] && return 1
       ;;
