@@ -744,6 +744,7 @@ compare_versions() {
 }
 
 download_bios() {
+  echo "Downloading Dasharo firmware..."
   if [ "${BIOS_LINK}" == "${BIOS_LINK_COMM}" ] || [ "${BIOS_LINK}" == "${BIOS_LINK_COMM_CAP}" ]; then
     curl -s -L -f "$BIOS_LINK" -o $BIOS_UPDATE_FILE
     error_check "Cannot access $FW_STORE_URL while downloading binary. Please
@@ -755,13 +756,13 @@ download_bios() {
     error_check "Cannot access $FW_STORE_URL while downloading signature. Please
    check your internet connection"
   else
-    mc get "${DPP_SERVER_USER_ALIAS}/$BIOS_LINK" "$BIOS_UPDATE_FILE"
+    mc get "${DPP_SERVER_USER_ALIAS}/$BIOS_LINK" "$BIOS_UPDATE_FILE" > /dev/null
     error_check "Cannot access $FW_STORE_URL_DPP while downloading binary.
    Please check your internet connection and credentials"
-    mc get "${DPP_SERVER_USER_ALIAS}/$BIOS_HASH_LINK" "$BIOS_HASH_FILE"
+    mc get "${DPP_SERVER_USER_ALIAS}/$BIOS_HASH_LINK" "$BIOS_HASH_FILE" > /dev/null
     error_check "Cannot access $FW_STORE_URL_DPP while downloading signature.
    Please check your internet connection and credentials"
-   mc get "${DPP_SERVER_USER_ALIAS}/$BIOS_SIGN_LINK" "$BIOS_SIGN_FILE"
+   mc get "${DPP_SERVER_USER_ALIAS}/$BIOS_SIGN_LINK" "$BIOS_SIGN_FILE" > /dev/null
     error_check "Cannot access $FW_STORE_URL_DPP while downloading signature.
    Please check your internet connection and credentials"
   fi
