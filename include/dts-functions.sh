@@ -1404,7 +1404,9 @@ main_menu_options(){
         fi
 
         if [ -n "${LOGS_SENT}" ]; then
-          ${CMD_DASHARO_DEPLOY} install
+          if ! ${CMD_DASHARO_DEPLOY} install; then
+            send_dts_logs
+          fi
         fi
       else
         # TODO: This should be placed in dasharo-deploy:
@@ -1432,7 +1434,9 @@ main_menu_options(){
         fi
 
         # Use regular update process for everything else
-        ${CMD_DASHARO_DEPLOY} update
+        if ! ${CMD_DASHARO_DEPLOY} update; then
+          send_dts_logs
+        fi
       fi
       read -p "Press Enter to continue."
 
@@ -1444,7 +1448,9 @@ main_menu_options(){
       [ "${SYSTEM_VENDOR}" = "QEMU" ] || [ "${SYSTEM_VENDOR}" = "Emulation" ] && return 0
 
       if check_if_dasharo; then
-        ${CMD_DASHARO_DEPLOY} restore
+        if ! ${CMD_DASHARO_DEPLOY} restore; then
+          send_dts_logs
+        fi
       fi
       read -p "Press Enter to continue."
 
