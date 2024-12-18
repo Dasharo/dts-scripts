@@ -1405,7 +1405,7 @@ main_menu_options(){
 
         if [ -n "${LOGS_SENT}" ]; then
           if ! ${CMD_DASHARO_DEPLOY} install; then
-            send_dts_logs
+            send_dts_logs ask
           fi
         fi
       else
@@ -1435,7 +1435,7 @@ main_menu_options(){
 
         # Use regular update process for everything else
         if ! ${CMD_DASHARO_DEPLOY} update; then
-          send_dts_logs
+          send_dts_logs ask
         fi
       fi
       read -p "Press Enter to continue."
@@ -1449,7 +1449,7 @@ main_menu_options(){
 
       if check_if_dasharo; then
         if ! ${CMD_DASHARO_DEPLOY} restore; then
-          send_dts_logs
+          send_dts_logs ask
         fi
       fi
       read -p "Press Enter to continue."
@@ -1570,8 +1570,14 @@ footer_options(){
   return 1
 }
 
-send_dts_logs(){
-  if [ "${SEND_LOGS_ACTIVE}" == "true" ]; then
+send_dts_logs() {
+  local send_logs="false"
+  if [ "${SEND_LOGS_ACTIVE}" = "true" ]; then
+    send_logs="true"
+  elif [ "$1" = "ask" ] && ask_for_confirmation "Do you want to send console logs to 3mdeb?"; then
+    send_logs="true"
+  fi
+  if [ "$send_logs" = "true" ]; then
     echo "Sending logs..."
 
     log_dir=$(dmidecode -s system-manufacturer)_$(dmidecode -s system-product-name)_$(dmidecode -s bios-version)
@@ -1612,6 +1618,9 @@ send_dts_logs(){
       return 1
     fi
     unset SEND_LOGS_ACTIVE
+  fi
+  if [ "$1" = "ask" ]; then
+    read -p "Press Enter to continue."
   fi
 }
 
@@ -1719,4 +1728,18 @@ check_if_intel() {
   if [ $cpu_vendor == "GenuineIntel" ]; then
     return 0
   fi
+}
+
+ask_for_confirmation() {
+  local text="$1"
+
+  read -p "$1 [N/y]: "
+  case ${REPLY} in
+    yes|y|Y|Yes|YES)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
 }
