@@ -84,7 +84,7 @@ fum_exit() {
     if [ "$FUM" == "fum" ]; then
       print_error "Update cannot be performed"
       print_warning "Starting bash session - please make sure you get logs from\r
-      \r$ERR_LOG_FILE and $FLASHROM_LOG_FILE; then you can poweroff the platform"
+      \r$ERR_LOG_FILE_REALPATH and $FLASHROM_LOG_FILE; then you can poweroff the platform"
       /bin/bash
     fi
 }
@@ -889,7 +889,7 @@ check_blobs_in_binary() {
 
   # If there is no descriptor, there is no ME as well, so skip the check
   if [ $BOARD_HAS_FD_REGION -ne 0 ]; then
-    ME_OFFSET=$($IFDTOOL check_blobs_in_binary_mock -d $1 2> /dev/null | grep "Flash Region 2 (Intel ME):" | sed 's/Flash Region 2 (Intel ME)\://' | awk '{print $1;}')
+    ME_OFFSET=$($IFDTOOL check_blobs_in_binary_mock -d $1 2>>"$ERR_LOG_FILE" | grep "Flash Region 2 (Intel ME):" | sed 's/Flash Region 2 (Intel ME)\://' | awk '{print $1;}')
     # Check for IFD signature at offset 0 (old descriptors)
     if [ "$(tail -c +0 $1|head -c 4|xxd -ps)" == "5aa5f00f" ]; then
       BINARY_HAS_FD=1
@@ -1003,8 +1003,8 @@ set_flashrom_update_params() {
   echo "Checking flash layout."
   $FLASHROM read_flash_layout_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE} -r $BIOS_DUMP_FILE > /dev/null 2>&1
   if [ $? -eq 0 ] && [ -f "$BIOS_DUMP_FILE" ]; then
-    BOARD_FMAP_LAYOUT=$($CBFSTOOL layout_mock $BIOS_DUMP_FILE layout -w 2> /dev/null)
-    BINARY_FMAP_LAYOUT=$($CBFSTOOL layout_mock $1 layout -w 2> /dev/null)
+    BOARD_FMAP_LAYOUT=$($CBFSTOOL layout_mock $BIOS_DUMP_FILE layout -w 2>>"$ERR_LOG_FILE")
+    BINARY_FMAP_LAYOUT=$($CBFSTOOL layout_mock $1 layout -w 2>>"$ERR_LOG_FILE")
     diff <(echo "$BOARD_FMAP_LAYOUT") <(echo "$BINARY_FMAP_LAYOUT") > /dev/null 2>&1
     # If layout is identical, perform standard update using FMAP only
     if [ $? -eq 0 ]; then
@@ -1208,7 +1208,7 @@ handle_fw_switching() {
 
 sync_clocks() {
   echo "Waiting for system clock to be synced ..."
-  chronyc waitsync 10 0 0 5 &> /dev/null
+  chronyc waitsync 10 0 0 5 >/dev/null 2>>ERR_LOG_FILE
   if [[ $? -ne 0 ]]; then
     print_warning "Failed to sync system clock with NTP server!"
     print_warning "Some time critical tasks might fail!"
@@ -1231,6 +1231,8 @@ You can find more info about HCL in docs.dasharo.com/glossary\r"
 }
 
 show_ram_inf() {
+  # trace logging is quite slow due to timestamp (calls 'date')
+  stop_trace_logging
   # Get the data:
   local data=""
   data=$($DMIDECODE)
@@ -1273,6 +1275,7 @@ show_ram_inf() {
   for entry in "${memory_devices_array[@]}"; do
     echo -e "${BLUE}**${YELLOW}    RAM ${entry}"
   done
+  start_trace_logging
 }
 
 show_header() {
@@ -1402,7 +1405,9 @@ main_menu_options(){
         fi
 
         if [ -n "${LOGS_SENT}" ]; then
-          ${CMD_DASHARO_DEPLOY} install
+          if ! ${CMD_DASHARO_DEPLOY} install; then
+            send_dts_logs ask
+          fi
         fi
       else
         # TODO: This should be placed in dasharo-deploy:
@@ -1430,7 +1435,9 @@ main_menu_options(){
         fi
 
         # Use regular update process for everything else
-        ${CMD_DASHARO_DEPLOY} update
+        if ! ${CMD_DASHARO_DEPLOY} update; then
+          send_dts_logs ask
+        fi
       fi
       read -p "Press Enter to continue."
 
@@ -1442,7 +1449,9 @@ main_menu_options(){
       [ "${SYSTEM_VENDOR}" = "QEMU" ] || [ "${SYSTEM_VENDOR}" = "Emulation" ] && return 0
 
       if check_if_dasharo; then
-        ${CMD_DASHARO_DEPLOY} restore
+        if ! ${CMD_DASHARO_DEPLOY} restore; then
+          send_dts_logs ask
+        fi
       fi
       read -p "Press Enter to continue."
 
@@ -1505,11 +1514,6 @@ show_footer(){
   else
     echo -e "${RED}${SEND_LOGS_OPT}${NORMAL} to enable sending DTS logs ${NORMAL}"
   fi
-  if [ "${VERBOSE_ACTIVE}" == "true" ]; then
-    echo -ne "${RED}${VERBOSE_OPT}${NORMAL} to disable verbose mode ${NORMAL}"
-  else
-    echo -ne "${RED}${VERBOSE_OPT}${NORMAL} to enable verbose mode ${NORMAL}"
-  fi
   echo -ne "${YELLOW}\nEnter an option:${NORMAL}"
 }
 
@@ -1539,8 +1543,9 @@ footer_options(){
       echo "Entering shell, to leave type exit and press Enter or press LCtrl+D"
       echo ""
       send_dts_logs
-      set_verbose "false"
+      stop_logging
       ${CMD_SHELL}
+      start_logging
 
       # If in submenu before going to shell - return to main menu after exiting
       # shell:
@@ -1561,20 +1566,19 @@ footer_options(){
         SEND_LOGS_ACTIVE="true"
       fi
       ;;
-    "${VERBOSE_OPT}" | "${VERBOSE_OPT_LOW}")
-      if [ "${VERBOSE_ACTIVE}" == "true" ]; then
-        set_verbose "false"
-      else
-        set_verbose "true"
-      fi
-      ;;
   esac
 
   return 1
 }
 
-send_dts_logs(){
-  if [ "${SEND_LOGS_ACTIVE}" == "true" ]; then
+send_dts_logs() {
+  local send_logs="false"
+  if [ "${SEND_LOGS_ACTIVE}" = "true" ]; then
+    send_logs="true"
+  elif [ "$1" = "ask" ] && ask_for_confirmation "Do you want to send console logs to 3mdeb?"; then
+    send_logs="true"
+  fi
+  if [ "$send_logs" = "true" ]; then
     echo "Sending logs..."
 
     log_dir=$(dmidecode -s system-manufacturer)_$(dmidecode -s system-product-name)_$(dmidecode -s bios-version)
@@ -1592,9 +1596,10 @@ send_dts_logs(){
 
     mkdir $log_dir
     cp ${DTS_LOG_FILE} $log_dir
+    cp ${DTS_VERBOSE_LOG_FILE} $log_dir
 
-    if [ -f ${ERR_LOG_FILE} ]; then
-      cp ${ERR_LOG_FILE} $log_dir
+    if [ -f ${ERR_LOG_FILE_REALPATH} ]; then
+      cp ${ERR_LOG_FILE_REALPATH} $log_dir
     fi
 
     if [ -f ${FLASHROM_LOG_FILE} ]; then
@@ -1614,6 +1619,9 @@ send_dts_logs(){
       return 1
     fi
     unset SEND_LOGS_ACTIVE
+  fi
+  if [ "$1" = "ask" ]; then
+    read -p "Press Enter to continue."
   fi
 }
 
@@ -1723,21 +1731,16 @@ check_if_intel() {
   fi
 }
 
-set_verbose() {
-  if [ $1 == "true" ]; then
-    VERBOSE_ACTIVE="true"
-    CMD_DASHARO_DEPLOY="/usr/bin/env bash -x $CMD_DASHARO_DEPLOY"
-    CMD_DASHARO_HCL_REPORT="/usr/bin/env bash -x $CMD_DASHARO_HCL_REPORT"
-    CMD_EC_TRANSITION="/usr/bin/env bash -x $CMD_EC_TRANSITION"
-    CMD_CLOUD_LIST="/usr/bin/env bash -x $CMD_CLOUD_LIST"
-    set -x
-  elif [ $1 == "false" ]; then
-    unset VERBOSE_ACTIVE
-    # Remove the -x option
-    CMD_DASHARO_DEPLOY=$(echo $CMD_DASHARO_DEPLOY | sed 's|^/usr/bin/env bash -x ||')
-    CMD_DASHARO_HCL_REPORT=$(echo $CMD_DASHARO_HCL_REPORT | sed 's|^/usr/bin/env bash -x ||')
-    CMD_EC_TRANSITION=$(echo $CMD_EC_TRANSITION | sed 's|^/usr/bin/env bash -x ||')
-    CMD_CLOUD_LIST=$(echo $CMD_CLOUD_LIST | sed 's|^/usr/bin/env bash -x ||')
-    set +x
-  fi
+ask_for_confirmation() {
+  local text="$1"
+
+  read -p "$1 [N/y]: "
+  case ${REPLY} in
+    yes|y|Y|Yes|YES)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
 }
