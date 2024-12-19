@@ -1456,7 +1456,7 @@ main_menu_options(){
         read -p "Press Enter to continue."
         return 0
       fi
-  
+
 
       # Check for Dasharo Firmware for the current platform, continue to
       # packages after checking:

@@ -85,7 +85,7 @@ get_dpp_creds() {
     print_warning "Logs key is empty, discarding credentials..."
     return 1
   fi
-  
+
   echo ""
   read -p "Enter firmware download key:   " 'TMP_CLOUDSEND_DOWNLOAD_URL'
   if [ -z "$TMP_CLOUDSEND_DOWNLOAD_URL" ]; then
