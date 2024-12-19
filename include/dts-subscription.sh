@@ -19,9 +19,9 @@ check_for_dasharo_firmware() {
   # Ignore "SC2154 (warning): DPP_CREDENTIAL_FILE is referenced but not assigned"
   # for external variable:
   # shellcheck disable=SC2154
-  CLOUDSEND_LOGS_URL=$(sed -n '1p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
-  CLOUDSEND_DOWNLOAD_URL=$(sed -n '2p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
-  CLOUDSEND_PASSWORD=$(sed -n '3p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
+  CLOUDSEND_LOGS_URL=$(sed -n '1p' < "${DPP_CREDENTIAL_FILE}" | tr -d '\n')
+  CLOUDSEND_DOWNLOAD_URL=$(sed -n '2p' < "${DPP_CREDENTIAL_FILE}" | tr -d '\n')
+  CLOUDSEND_PASSWORD=$(sed -n '3p' < "${DPP_CREDENTIAL_FILE}" | tr -d '\n')
   USER_DETAILS="$CLOUDSEND_DOWNLOAD_URL:$CLOUDSEND_PASSWORD"
 
   # Check the board information:
@@ -57,8 +57,8 @@ check_for_dasharo_firmware() {
     _check_logs_req_resp=$(curl -L -I -s -f -H "$CLOUD_REQUEST" "$TEST_LOGS_URL" -o /dev/null -w "%{http_code}")
 
     # Return 0 if any of Dasharo Firmware binaries is available:
-    if [ ${_check_dwn_req_resp_uefi} -eq 200 ] || [ ${_check_dwn_req_resp_uefi_cap} -eq 200 ] || [ ${_check_dwn_req_resp_heads} -eq 200 ] || [ ${_check_dwn_req_resp_seabios} -eq 200 ]; then
-      if [ ${_check_logs_req_resp} -eq 200 ]; then
+    if [ "${_check_dwn_req_resp_uefi}" -eq 200 ] || [ "${_check_dwn_req_resp_uefi_cap}" -eq 200 ] || [ "${_check_dwn_req_resp_heads}" -eq 200 ] || [ "${_check_dwn_req_resp_seabios}" -eq 200 ]; then
+      if [ "${_check_logs_req_resp}" -eq 200 ]; then
         print_ok "A Dasharo Firmware binary has been found for your platform!"
         return 0
       fi
@@ -69,32 +69,32 @@ check_for_dasharo_firmware() {
   print_warning "have access to Dasharo Firmware. If so, consider getting Dasharo"
   print_warning "Subscription and improving security of your platform!"
 
-  read -p "Press Enter to continue."
+  read -rp "Press Enter to continue."
   return 1
 }
 
 get_dpp_creds() {
   echo ""
-  read -p "Enter logs key:                " 'TMP_CLOUDSEND_LOGS_URL'
+  read -rp "Enter logs key:                " 'TMP_CLOUDSEND_LOGS_URL'
   echo ""
-  read -p "Enter firmware download key:   " 'TMP_CLOUDSEND_DOWNLOAD_URL'
+  read -rp "Enter firmware download key:   " 'TMP_CLOUDSEND_DOWNLOAD_URL'
   echo ""
-  read -p "Enter password:                " 'TMP_CLOUDSEND_PASSWORD'
+  read -rp "Enter password:                " 'TMP_CLOUDSEND_PASSWORD'
 
   # Export DPP creds to a file for future use. Currently these are being used
   # for both: MinIO (and its mc CLI) and cloudsend (deprecated, all DPP
   # sibscribtions will be megrated to MinIO):
-  echo ${TMP_CLOUDSEND_LOGS_URL} > ${DPP_CREDENTIAL_FILE}
-  echo ${TMP_CLOUDSEND_DOWNLOAD_URL} >> ${DPP_CREDENTIAL_FILE}
-  echo ${TMP_CLOUDSEND_PASSWORD} >> ${DPP_CREDENTIAL_FILE}
+  echo "${TMP_CLOUDSEND_LOGS_URL}" > "${DPP_CREDENTIAL_FILE}"
+  echo "${TMP_CLOUDSEND_DOWNLOAD_URL}" >> "${DPP_CREDENTIAL_FILE}"
+  echo "${TMP_CLOUDSEND_PASSWORD}" >> "${DPP_CREDENTIAL_FILE}"
 
   print_ok "Dasharo DPP credentials have been saved"
 }
 
 login_to_dpp_server(){
   # Check if the user is already logged in, log in if not:
-  if [ -z "$(mc alias list | grep ${CLOUDSEND_DOWNLOAD_URL})" ]; then
-    if ! mc alias set $DPP_SERVER_USER_ALIAS $DPP_SERVER_ADDRESS $CLOUDSEND_DOWNLOAD_URL $CLOUDSEND_PASSWORD >> $ERR_LOG_FILE 2>&1 ; then
+  if ! mc alias list | grep -q "${CLOUDSEND_DOWNLOAD_URL}"; then
+    if ! mc alias set "$DPP_SERVER_USER_ALIAS" "$DPP_SERVER_ADDRESS" "$CLOUDSEND_DOWNLOAD_URL" "$CLOUDSEND_PASSWORD" >> "$ERR_LOG_FILE" 2>&1 ; then
       return 1
     fi
   fi
@@ -117,9 +117,9 @@ subscription_routine(){
   # Each time the main menu is rendered, check for DPP credentials and export
   # them, if file exists
   if [ -e "${DPP_CREDENTIAL_FILE}" ]; then
-    CLOUDSEND_LOGS_URL=$(sed -n '1p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
-    CLOUDSEND_DOWNLOAD_URL=$(sed -n '2p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
-    CLOUDSEND_PASSWORD=$(sed -n '3p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
+    CLOUDSEND_LOGS_URL=$(sed -n '1p' < "${DPP_CREDENTIAL_FILE}" | tr -d '\n')
+    CLOUDSEND_DOWNLOAD_URL=$(sed -n '2p' < "${DPP_CREDENTIAL_FILE}" | tr -d '\n')
+    CLOUDSEND_PASSWORD=$(sed -n '3p' < "${DPP_CREDENTIAL_FILE}" | tr -d '\n')
     export USER_DETAILS="$CLOUDSEND_DOWNLOAD_URL:$CLOUDSEND_PASSWORD"
     export DPP_IS_LOGGED="true"
   else
@@ -137,8 +137,8 @@ subscription_routine(){
 }
 
 check_dasharo_package_env(){
-  [ -d $DPP_PACKAGE_MANAGER_DIR ] || mkdir -p $DPP_PACKAGE_MANAGER_DIR
-  [ -d $DPP_PACKAGES_SCRIPTS_PATH ] || mkdir -p $DPP_PACKAGES_SCRIPTS_PATH
+  [ -d "$DPP_PACKAGE_MANAGER_DIR" ] || mkdir -p "$DPP_PACKAGE_MANAGER_DIR"
+  [ -d "$DPP_PACKAGES_SCRIPTS_PATH" ] || mkdir -p "$DPP_PACKAGES_SCRIPTS_PATH"
 
   return 0
 }
@@ -146,7 +146,7 @@ check_dasharo_package_env(){
 update_package_list(){
   check_dasharo_package_env
 
-  mc find --json --name "*.rpm" $DPP_SERVER_USER_ALIAS > $DPP_AVAIL_PACKAGES_LIST
+  mc find --json --name "*.rpm" "$DPP_SERVER_USER_ALIAS" > "$DPP_AVAIL_PACKAGES_LIST"
 
   if [ $? -ne 0 ]; then
     print_error "Unable to get package list!"
@@ -193,18 +193,18 @@ install_dpp_package(){
   update_package_list || return 1
 
   if [ ! -f "$DPP_PACKAGE_MANAGER_DIR/$package_name" ]; then
-    download_dpp_package $package_name || return 1
+    download_dpp_package "$package_name" || return 1
   fi
 
-  dnf --assumeyes install $DPP_PACKAGE_MANAGER_DIR/$package_name
+  dnf --assumeyes install "$DPP_PACKAGE_MANAGER_DIR/$package_name"
 
   if [ $? -ne 0 ]; then
-    rm -f $DPP_PACKAGE_MANAGER_DIR/$package_name
+    rm -f "$DPP_PACKAGE_MANAGER_DIR/$package_name"
     print_error "Could not install package $package_name!"
     return 1
   fi
 
-  rm -f $DPP_PACKAGE_MANAGER_DIR/$package_name
+  rm -f "$DPP_PACKAGE_MANAGER_DIR/$package_name"
 
   print_ok "Package $package_name have been installed successfully!"
   return 0
@@ -229,7 +229,7 @@ install_all_dpp_packages(){
     local package_name
     package_name=$(basename "$download_link")
 
-    install_dpp_package $package_name
+    install_dpp_package "$package_name"
   done
 
   return 0
@@ -237,7 +237,7 @@ install_all_dpp_packages(){
 
 check_avail_dpp_packages(){
   echo "Checking for available DPP packages..."
-  AVAILABLE_PACKAGES=$(mc find --name "*.rpm" $DPP_SERVER_USER_ALIAS)
+  AVAILABLE_PACKAGES=$(mc find --name "*.rpm" "$DPP_SERVER_USER_ALIAS")
 
   if [ -z "$AVAILABLE_PACKAGES" ]; then
     return 1
@@ -247,7 +247,7 @@ check_avail_dpp_packages(){
 }
 
 parse_for_premium_submenu() {
-  [ -d $DPP_PACKAGES_SCRIPTS_PATH ] || return 0
+  [ -d "$DPP_PACKAGES_SCRIPTS_PATH" ] || return 0
 
   # Check if the JSON file exists, delete if so. The reason for it is that three
   # operations can be performed on this file: add new script inf., delete a
@@ -264,7 +264,9 @@ parse_for_premium_submenu() {
   # Iterate over bash scripts in the directory:
   for script in "$DPP_PACKAGES_SCRIPTS_PATH"/*; do
     # Skip if not a script:
-    [ -n "$(file $script | grep 'script, ASCII text executable')" ] || continue
+    if file "$script" | grep -q 'script, ASCII text executable'; then
+      continue
+    fi
 
     # Create the JSON file only if any script have been found, this will be a
     # signal to render premium submenu:
