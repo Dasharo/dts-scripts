@@ -336,6 +336,11 @@ board_config() {
           COMPATIBLE_EC_FW_VERSION="2024-07-17_4ae73b9"
           NEED_BOOTSPLASH_MIGRATION="true"
 
+          # heads
+          HAVE_HEADS_FW="true"
+          HEADS_REL_VER_DPP="0.9.0"
+          HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
+
           case $BOARD_MODEL in
             "V540TU")
               DASHARO_REL_NAME="novacustom_v54x_mtl"
@@ -350,6 +355,8 @@ board_config() {
               return 1
               ;;
           esac
+
+          HEADS_LINK_DPP="${FW_STORE_URL_DPP}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_heads.rom"
           ;;
         "V5xTNC_TND_TNE")
           if check_if_dasharo; then
