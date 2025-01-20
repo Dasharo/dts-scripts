@@ -977,6 +977,7 @@ force_me_update() {
     print_warning "Recovering from such state may require removal of AC power supply and resetting CMOS battery."
     print_warning "Keeping an older version of ME may cause a CPU to perform less efficient, e.g. if upgraded the CPU to a newer generation."
     print_warning "You have been warned."
+    print_warning "To find out more, visit our firmware update guide: https://docs.dasharo.com/guides/firmware-update/#known-issues"
   while : ; do
     echo
     read -r -p "Skip ME flashing and proceed with BIOS/firmware flashing/updating? (Y|n) " OPTION
@@ -1060,6 +1061,7 @@ set_intel_regions_update_params() {
         else
           echo "The firmware binary to be flashed contains Management Engine (ME), but ME is not disabled!"  >> $ERR_LOG_FILE
           print_error "The firmware binary contains Management Engine (ME), but ME is not disabled!"
+
           force_me_update
         fi
       else
