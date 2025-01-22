@@ -19,6 +19,8 @@ source $DTS_HAL
 [ -z "$SYSTEM_VENDOR" ] && error_exit "SYSTEM_VENDOR not given"
 [ -z "$SYSTEM_MODEL" ] && error_exit "SYSTEM_MODEL not given"
 
+trap 'exit 1' SIGINT
+
 # Variables used in this script:
 # Currently following firmware versions are available: community, community_cap,
 # dpp, dpp_cap, seabios, and heads:
