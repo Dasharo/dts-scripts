@@ -52,9 +52,9 @@ print_firm_access_warning() {
       ;;
   esac
 
-  print_warning "  DPP version (${_firm_type_print}) available but you don't have access"
-  print_warning "  to it, if you are interested, please visit"
-  print_warning "  https://shop.3mdeb.com/product-category/dasharo-pro-package/"
+  echo " Thank you for choosing Dasharo Pro Package. DPP version (${_firm_type_print})"
+  echo " is also available. If you are interested, please visit"
+  echo " https://shop.3mdeb.com/product-category/dasharo-pro-package/"
   # Just a new line:
   echo
 
