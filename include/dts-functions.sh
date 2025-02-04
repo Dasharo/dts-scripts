@@ -1041,6 +1041,7 @@ set_flashrom_update_params() {
 }
 
 set_intel_regions_update_params() {
+  local fd_me_locked="no"
   if [ $BOARD_HAS_FD_REGION -eq 0 ]; then
     # No FD on board, so no further flashing
     FLASHROM_ADD_OPT_REGIONS=""
@@ -1055,6 +1056,7 @@ set_intel_regions_update_params() {
         # FD writable and the binary provides FD, safe to flash
         FLASHROM_ADD_OPT_REGIONS+=" -i fd"
       else
+        fd_me_locked="yes"
         print_error "The firmware binary to be flashed contains Flash Descriptor (FD), but FD is not writable!"
         print_warning "Proceeding without FD flashing, as it is not critical."
         echo "The firmware binary contains Flash Descriptor (FD), but FD is not writable!"  >> $ERR_LOG_FILE
@@ -1072,10 +1074,16 @@ set_intel_regions_update_params() {
           force_me_update
         fi
       else
+        fd_me_locked="yes"
         echo "The firmware binary to be flashed contains Management Engine (ME), but ME is not writable!"  >> $ERR_LOG_FILE
         print_error "The firmware binary contains Management Engine (ME), but ME is not writable!"
       fi
     fi
+  fi
+  if [ "$fd_me_locked" = "yes" ]; then
+    FLASHROM_ADD_OPT_REGIONS+=" -N"
+    print_warning "You can read more about issues with FD or ME on"
+    print_warning "https://docs.dasharo.com/guides/firmware-update/#known-issues"
   fi
 }
 
