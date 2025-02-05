@@ -1235,7 +1235,14 @@ case "$CMD" in
       error_exit "Dasharo Firmware is already installed. This script is only for\r
         initial deployment of Dasharo Firmware. Aborting..."
     fi
-    install_workflow
+    if [ "$CAN_INSTALL_BIOS" == "false" ] && [ "$HAVE_EC" == "false" ]; then
+      print_warning "Initial deployment via DTS isn't supported for this platform."
+      print_warning "Visit https://docs.dasharo.com/variants/overview/ to see supported"
+      print_warning "platforms and how to deploy Dasharo firmware."
+      exit 2
+    else
+      install_workflow
+    fi
     ;;
   update)
     if [ "$FUM" == "fum" ]; then
