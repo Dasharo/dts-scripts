@@ -620,6 +620,7 @@ board_config() {
       ;;
     "HARDKERNEL")
       NEED_SMBIOS_MIGRATION="true"
+      CAN_INSTALL_BIOS="true"
 
       case "$SYSTEM_MODEL" in
         "ODROID-H4")
@@ -633,7 +634,7 @@ board_config() {
           ;;
       esac
 
-      BIOS_LINK_DPP="$FW_STORE_URL_DPP/$DASHARO_REL_NAME/v$DASHARO_REL_VER_DPP/${DASHARO_REL_NAME}_v$DASHARO_REL_VER_DPP.rom"
+      BIOS_LINK_DPP="$FW_STORE_URL_DPP/odroid_h4/v$DASHARO_REL_VER_DPP/${DASHARO_REL_NAME}_v$DASHARO_REL_VER_DPP.rom"
       ;;
     "QEMU"|"Emulation")
       case "$SYSTEM_MODEL" in
