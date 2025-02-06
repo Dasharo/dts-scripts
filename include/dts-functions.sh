@@ -625,7 +625,7 @@ board_config() {
       case "$SYSTEM_MODEL" in
         "ODROID-H4")
           PLATFORM_SIGN_KEY="dasharo/hardkernel_odroid_h4/dasharo-release-0.x-compatible-with-hardkernel-odroid-h4-family-signing-key.asc"
-          DASHARO_REL_NAME="hardkernel_odroid_h4"
+          DASHARO_REL_NAME="odroid_h4"
           DASHARO_REL_VER_DPP="0.9.0"
           ;;
         *)
@@ -634,7 +634,7 @@ board_config() {
           ;;
       esac
 
-      BIOS_LINK_DPP="$FW_STORE_URL_DPP/odroid_h4/v$DASHARO_REL_VER_DPP/${DASHARO_REL_NAME}_v$DASHARO_REL_VER_DPP.rom"
+      BIOS_LINK_DPP="$FW_STORE_URL_DPP/$DASHARO_REL_NAME/v$DASHARO_REL_VER_DPP/hardkernel_${DASHARO_REL_NAME}_v$DASHARO_REL_VER_DPP.rom"
       ;;
     "QEMU"|"Emulation")
       case "$SYSTEM_MODEL" in
