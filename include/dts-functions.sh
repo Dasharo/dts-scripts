@@ -1341,9 +1341,15 @@ show_dpp_credentials() {
   if [ -n "${DPP_IS_LOGGED}" ]; then
     echo -e "${BLUE}**${NORMAL}                DPP credentials ${NORMAL}"
     echo -e "${BLUE}*********************************************************${NORMAL}"
-    echo -e "${BLUE}**${YELLOW}       Logs key: ${NORMAL}${CLOUDSEND_LOGS_URL}"
-    echo -e "${BLUE}**${YELLOW}   Download key: ${NORMAL}${CLOUDSEND_DOWNLOAD_URL}"
-    echo -e "${BLUE}**${YELLOW}       Password: ${NORMAL}${CLOUDSEND_PASSWORD}"
+    if [ "${DISPLAY_CREDENTIALS}" == "true" ]; then
+      echo -e "${BLUE}**${YELLOW}       Logs key: ${NORMAL}${CLOUDSEND_LOGS_URL}"
+      echo -e "${BLUE}**${YELLOW}   Download key: ${NORMAL}${CLOUDSEND_DOWNLOAD_URL}"
+      echo -e "${BLUE}**${YELLOW}       Password: ${NORMAL}${CLOUDSEND_PASSWORD}"
+    else
+      echo -e "${BLUE}**${YELLOW}       Logs key: ${NORMAL}***************"
+      echo -e "${BLUE}**${YELLOW}   Download key: ${NORMAL}***************"
+      echo -e "${BLUE}**${YELLOW}       Password: ${NORMAL}***************"
+    fi
     echo -e "${BLUE}*********************************************************${NORMAL}"
   fi
 }
@@ -1576,6 +1582,13 @@ show_footer(){
   else
     echo -e "${RED}${SEND_LOGS_OPT}${NORMAL} to enable sending DTS logs ${NORMAL}"
   fi
+  if [ -n "${DPP_IS_LOGGED}" ]; then
+    if [ "${DISPLAY_CREDENTIALS}" == "true" ]; then
+      echo -e "${RED}${TOGGLE_DISP_CRED_OPT_UP}${NORMAL} to hide DPP credentials ${NORMAL}"
+    else
+      echo -e "${RED}${TOGGLE_DISP_CRED_OPT_UP}${NORMAL} to display DPP credentials ${NORMAL}"
+    fi
+  fi
   echo -ne "${YELLOW}\nEnter an option:${NORMAL}"
 }
 
@@ -1626,6 +1639,13 @@ footer_options(){
         unset SEND_LOGS_ACTIVE
       else
         export SEND_LOGS_ACTIVE="true"
+      fi
+      ;;
+    "${TOGGLE_DISP_CRED_OPT_UP}" | "${TOGGLE_DISP_CRED_OPT_LOW}")
+      if [ "${DISPLAY_CREDENTIALS}" == "true" ]; then
+        unset DISPLAY_CREDENTIALS
+      else
+        export DISPLAY_CREDENTIALS="true"
       fi
       ;;
   esac
