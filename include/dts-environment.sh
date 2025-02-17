@@ -190,7 +190,7 @@ DTS_LOGS_PASSWORD="/w\J&<y1"
 
 # set custom localization for PGP keys
 if [ -d /home/root/.dasharo-gnupg ]; then
-    GNUPGHOME=/home/root/.dasharo-gnupg
+  GNUPGHOME=/home/root/.dasharo-gnupg
 
-    export GNUPGHOME
+  export GNUPGHOME
 fi
