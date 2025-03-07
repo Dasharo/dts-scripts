@@ -18,6 +18,7 @@ check_for_dasharo_firmware() {
   fi
 
   local _check_dwn_req_resp_uefi="0"
+  local _check_dwn_req_resp_uefi_cap="0"
   local _check_dwn_req_resp_heads="0"
   local _check_dwn_req_resp_seabios="0"
   local _check_logs_req_resp="0"
