@@ -1523,6 +1523,18 @@ main_menu_options(){
         return 0
       fi
 
+      echo -n "DTS Extensions: "
+
+      # Try to log in using available DPP credentials, start loop over if login
+      # was not successful:
+      login_to_dpp_server
+      if [ $? -ne 0 ]; then
+        echo "NO"
+	      read -p "Press Enter to continue"
+        return 0
+      fi
+
+      print_ok "YES"
 
       # Check for Dasharo Firmware for the current platform, continue to
       # packages after checking:
@@ -1541,19 +1553,6 @@ main_menu_options(){
       else
         echo "NO"
       fi
-
-      echo -n "DTS Extensions: "
-
-      # Try to log in using available DPP credentials, start loop over if login
-      # was not successful:
-      login_to_dpp_server
-      if [ $? -ne 0 ]; then
-        echo "NO"
-	      read -p "Press Enter to continue"
-        return 0
-      fi
-
-      print_ok "YES"
 
       # Check if there is some packages available to install, start loop over if
       # no packages is available:
