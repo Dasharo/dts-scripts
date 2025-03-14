@@ -1144,11 +1144,8 @@ handle_fw_switching() {
           break
           ;;
         n|N)
-          if test -z  "$UPDATE_VERSION" || compare_versions $DASHARO_VERSION $UPDATE_VERSION; then
-            error_exit "No update available for your machine"
-          fi
           echo "Will not install Dasharo heads firmware. Proceeding with regular Dasharo firmware update."
-          break
+          return 2
           ;;
         *)
           ;;
