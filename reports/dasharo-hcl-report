@@ -61,7 +61,6 @@ if [ -d logs ]; then
   rm -rf logs
 fi
 
-FULL_UPLOAD_URL="https://cloud.3mdeb.com/index.php/s/"${CLOUDSEND_LOGS_URL}
 
 mkdir logs
 if [ $DEPLOY_REPORT = "false" ]; then
@@ -335,17 +334,16 @@ fi
 
 if [ "$SEND_LOGS" = "true" ]; then
   if [ $DEPLOY_REPORT = "false" ]; then
-    echo "Sending logs to 3mdeb cloud..."
-    CLOUDSEND_OPTS="-e"
-  else
-    CLOUDSEND_OPTS="-e -q"
+    echo "Sending logs to 3mdeb MinIO"
   fi
-  cloudsend.sh \
-    ${CLOUDSEND_OPTS} \
-    "$(readlink -f $filename.tar.gz)" \
-    ${FULL_UPLOAD_URL}
+
+  DPP_EMAIL=$(sed -n '1p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
+  DPP_HCL_BUCKET="dasharo-hcl-reports"
+  DPP_HCL_LINK="${DPP_HCL_BUCKET}/${DPP_EMAIL}"
+
+  mc cp "$(readlink -f $filename.tar.gz)" "${DPP_SERVER_USER_ALIAS}/${DPP_HCL_LINK}/"
   if [ "$?" -ne "0" ]; then
-    echo "Failed to send logs to the cloud"
+    echo "Failed to send logs to MinIO"
     if [ -a "${CMD_DASHARO_DEPLOY}" ]; then
       echo -e "Something may be wrong with credentials. Please use option 4 to change DPP keys
                \rand make sure that there is no typo."
