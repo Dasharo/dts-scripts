@@ -804,15 +804,14 @@ download_ec() {
     error_check "Cannot access $FW_STORE_URL while downloading signature. Please
      check your internet connection"
   else
-    # TODO: Do we need EC in MinIO?
-    curl -s -S -L -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$EC_LINK" -o $EC_UPDATE_FILE 2>>"$ERR_LOG_FILE"
-    error_check "Cannot access $FW_STORE_URL while downloading binary. Please
+    mc get "${DPP_SERVER_USER_ALIAS}/${EC_LINK}" "$EC_UPDATE_FILE" > /dev/null 2>>"$ERR_LOG_FILE"
+    error_check "Cannot access $FW_STORE_URL_DPP while downloading binary. Please
      check your internet connection and credentials"
-    curl -s -S -L -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$EC_HASH_LINK" -o $EC_HASH_FILE 2>>"$ERR_LOG_FILE"
-    error_check "Cannot access $FW_STORE_URL while downloading signature. Please
+    mc get "${DPP_SERVER_USER_ALIAS}/${EC_HASH_LINK}" "$EC_HASH_FILE" > /dev/null 2>>"$ERR_LOG_FILE"
+    error_check "Cannot access $FW_STORE_URL_DPP while downloading signature. Please
      check your internet connection and credentials"
-    curl -s -S -L -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$EC_SIGN_LINK" -o $EC_SIGN_FILE 2>>"$ERR_LOG_FILE"
-    error_check "Cannot access $FW_STORE_URL while downloading signature. Please
+    mc get "${DPP_SERVER_USER_ALIAS}/${EC_SIGN_LINK}" "$EC_SIGN_FILE" > /dev/null 2>>"$ERR_LOG_FILE"
+    error_check "Cannot access $FW_STORE_URL_DPP while downloading signature. Please
      check your internet connection and credentials"
   fi
 }
