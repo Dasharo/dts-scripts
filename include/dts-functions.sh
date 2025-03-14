@@ -227,6 +227,7 @@ board_config() {
 
   # We download firmwares via network. At this point, the network connection
   # must be up already.
+
   wait_for_network_connection
 
   echo "Checking if board is Dasharo compatible."
@@ -303,7 +304,7 @@ board_config() {
           DASHARO_REL_NAME="novacustom_nv4x_adl"
           DASHARO_REL_VER="1.7.2"
           HEADS_REL_VER_DPP="0.9.1"
-          HEADS_LINK_DPP="${DPP_SERVER_USER_ALIAS}/${BUCKET_DPP_HEADS}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_heads.rom"
+          HEADS_LINK_DPP="${BUCKET_DPP_HEADS}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_heads.rom"
           HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
           COMPATIBLE_EC_FW_VERSION="2022-08-31_cbff21b"
           if check_if_dasharo; then
