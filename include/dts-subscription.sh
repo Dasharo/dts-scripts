@@ -31,9 +31,6 @@ check_for_dasharo_firmware() {
   # Check the board information:
   board_config
 
-  # Create links for logs to be sent to:
-  TEST_LOGS_URL="https://cloud.3mdeb.com/index.php/s/${CLOUDSEND_LOGS_URL}/authenticate/showShare"
-
   # If board_config function has not set firmware links - exit with warning:
   if [ -z "$BIOS_LINK_DPP" ] && [ -z "$HEADS_LINK_DPP" ] && [ -z "$BIOS_LINK_DPP_SEABIOS" ] && [ -z "$BIOS_LINK_DPP_CAP" ]; then
     print_warning "There is no Dasharo Firmware available for your platform."
@@ -61,12 +58,14 @@ check_for_dasharo_firmware() {
       mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP_SEABIOS}" > /dev/null 2>>"$ERR_LOG_FILE"
       _check_dwn_req_resp_seabios=$?
     fi
-    # TODO: Use minio?
-    _check_logs_req_resp=$(curl -L -I -s -S -f -H "$CLOUD_REQUEST" "$TEST_LOGS_URL" -o /dev/null -w "%{http_code}" 2>>"$ERR_LOG_FILE")
+    if [ -n "${DPP_EMAIL}" ]; then
+      mc find "${DPP_SERVER_USER_ALIAS}/${DPP_BUCKET}" > /dev/null 2>>"$ERR_LOG_FILE"
+      _check_logs_req_resp=$?
+    fi
   fi
     # Return 0 if any of Dasharo Firmware binaries is available:
  if [ ${_check_dwn_req_resp_uefi} -eq 0 ] || [ ${_check_dwn_req_resp_uefi_cap} -eq 0 ] || [ ${_check_dwn_req_resp_heads} -eq 0 ] || [ ${_check_dwn_req_resp_seabios} -eq 0 ]; then
-      if [ ${_check_logs_req_resp} -eq 200 ]; then
+      if [ ${_check_logs_req_resp} -eq 0 ]; then
         print_ok "A Dasharo Firmware binary has been found for your platform!"
         return 0
       fi
