@@ -367,7 +367,15 @@ prepare_env() {
     return 0
   elif [ "$FIRMWARE_VERSION" == "heads" ]; then
     handle_fw_switching "$CAN_SWITCH_TO_HEADS"
-    return
+    # If the user chose not to update to heads, allow them to try another
+    # version
+    ret_code=$?
+    if [ $ret_code -eq 2 ]; then
+      HAVE_HEADS_FW="false"
+      prepare_env $_prepare_for
+    elif [ $ret_code -eq 0 ]; then
+      return 0
+    fi
   fi
 
   # Must not get here. If it gets here - the above variables are empty and
