@@ -784,7 +784,7 @@ download_bios() {
 }
 
 download_ec() {
-  if [ "${BIOS_LINK}" = "${BIOS_LINK_COMM}" ] || [ "${BIOS_LINK}" = "${BIOS_LINK_COMM_CAP}" ]; then
+  if [ "${EC_LINK}" == "${EC_LINK_COMM}" ]; then
     curl -s -S -L -f "$EC_LINK" -o "$EC_UPDATE_FILE" 2>>"$ERR_LOG_FILE"
     error_check "Cannot access $FW_STORE_URL while downloading binary. Please
      check your internet connection"
