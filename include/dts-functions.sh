@@ -344,6 +344,10 @@ board_config() {
             "V540TU")
               DASHARO_REL_NAME="novacustom_v54x_mtl"
               FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
+              HAVE_HEADS_FW="true"
+              HEADS_REL_VER_DPP="0.9.0"
+              COMPATIBLE_HEADS_EC_FW_VERSION="2024-07-17_4ae73b9"
+              HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
               ;;
             "V560TU")
               DASHARO_REL_NAME="novacustom_v56x_mtl"
@@ -352,6 +356,7 @@ board_config() {
               HEADS_REL_VER_DPP="0.9.0"
               COMPATIBLE_HEADS_EC_FW_VERSION="2024-12-20_368e08e"
               HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
+              HEADS_EC_LINK_DPP="${FW_STORE_URL_DPP}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_ec_v${HEADS_REL_VER_DPP}.rom"
               ;;
             *)
               print_error "Board model $BOARD_MODEL is currently not supported"
@@ -360,7 +365,7 @@ board_config() {
           esac
 
           HEADS_LINK_DPP="${FW_STORE_URL_DPP}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_heads.rom"
-          HEADS_EC_LINK_DPP="${FW_STORE_URL_DPP}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_ec_v${HEADS_REL_VER_DPP}.rom"
+
           ;;
         "V5xTNC_TND_TNE")
           if check_if_dasharo; then
@@ -779,7 +784,7 @@ download_bios() {
 }
 
 download_ec() {
-  if [ "${BIOS_LINK}" = "${BIOS_LINK_COMM}" ] || [ "${BIOS_LINK}" = "${BIOS_LINK_COMM_CAP}" ]; then
+  if [ "${EC_LINK}" == "${EC_LINK_COMM}" ]; then
     curl -s -S -L -f "$EC_LINK" -o "$EC_UPDATE_FILE" 2>>"$ERR_LOG_FILE"
     error_check "Cannot access $FW_STORE_URL while downloading binary. Please
      check your internet connection"
