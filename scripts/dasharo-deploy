@@ -640,8 +640,7 @@ blob_transmission() {
     sha256sum --check <(echo "$SINIT_ACM_HASH")
     error_check "Failed SHA-256 sum check on the downloaded Intel SINIT ACM."
 
-    unzip -o "$SINIT_ACM_FILENAME" -d /tmp >> $ERR_LOG_FILE 2>&1
-    error_check "Failed to decompress Intel SINIT ACM package."
+    cp "$SINIT_ACM_FILENAME" "$SINIT_ACM"
   fi
 
   echo "Beginning Dasharo Blobs Transmission process..."
