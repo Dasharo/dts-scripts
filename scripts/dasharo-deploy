@@ -636,8 +636,11 @@ blob_transmission() {
     wget -O "$SINIT_ACM_FILENAME" "$SINIT_ACM_URL" >> $ERR_LOG_FILE 2>&1
     error_file_check "$SINIT_ACM_FILENAME" "Failed to download Intel SINIT ACM. Please make sure Ethernet cable is connected and try again."
 
-    # Intel does not provide hash of the package, use SHA256 we know is good
-    sha256sum --check <(echo "$SINIT_ACM_HASH")
+    echo "Downloading the Intel SINIT ACM checksum"
+    wget -O "$SINIT_ACM_HASH_FILENAME" "$SINIT_ACM_HASH_URL" >> $ERR_LOG_FILE 2>&1
+    error_file_check "$SINIT_ACM_HASH_FILENAME" "Failed to download Intel SINIT ACM checksum. Please make sure Ethernet cable is connected and try again."
+
+    sha256sum --check "$SINIT_ACM_HASH_FILENAME"
     error_check "Failed SHA-256 sum check on the downloaded Intel SINIT ACM."
 
     cp "$SINIT_ACM_FILENAME" "$SINIT_ACM"
