@@ -337,11 +337,31 @@ if [ "$SEND_LOGS" = "true" ]; then
     echo "Sending logs to 3mdeb MinIO"
   fi
 
-  DPP_EMAIL=$(sed -n '1p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
   DPP_HCL_BUCKET="dasharo-hcl-reports"
-  DPP_HCL_LINK="${DPP_HCL_BUCKET}/${DPP_EMAIL}"
+  PUBLIC_HCL_BUCKET="dasharo-hcl-reports-public"
 
-  mc cp "$(readlink -f $filename.tar.gz)" "${DPP_SERVER_USER_ALIAS}/${DPP_HCL_LINK}/"
+  if [ -f "${DPP_CREDENTIAL_FILE}" ]; then
+    DPP_EMAIL=$(sed -n '1p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
+    DPP_PASSWORD=$(sed -n '2p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
+
+    if [ -z "$(mc alias list | grep ${DPP_EMAIL})" ]; then
+      if ! mc alias set $DPP_SERVER_USER_ALIAS $DPP_SERVER_ADDRESS $DPP_EMAIL $DPP_PASSWORD >> $ERR_LOG_FILE 2>&1 ; then
+        exit 1
+      fi
+    fi
+    DPP_HCL_LINK="${DPP_HCL_BUCKET}/${DPP_EMAIL}"
+    ALIAS=$DPP_SERVER_USER_ALIAS
+  else
+    ALIAS="public-hcl"
+    if [ -z "$(mc alias list | grep ${ALIAS})" ]; then
+      if ! mc alias set $ALIAS $DPP_SERVER_ADDRESS $BASE_HCL_USERNAME $BASE_HCL_PASSWORD >> $ERR_LOG_FILE 2>&1; then
+        exit 1
+      fi
+    fi
+      DPP_HCL_LINK="${PUBLIC_HCL_BUCKET}"
+  fi
+
+  mc cp "$(readlink -f $filename.tar.gz)" "${ALIAS}/${DPP_HCL_LINK}/"
   if [ "$?" -ne "0" ]; then
     echo "Failed to send logs to MinIO"
     if [ -a "${CMD_DASHARO_DEPLOY}" ]; then
