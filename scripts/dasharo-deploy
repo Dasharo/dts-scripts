@@ -82,7 +82,7 @@ check_for_firmware_access() {
       # This firmware type require user to provide creds:
       [ "$DPP_IS_LOGGED" == "true" ] || return 1
 
-      curl -sfI -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$BIOS_LINK_DPP" -o /dev/null 2>>"$ERR_LOG_FILE"
+      mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP}"  > /dev/null 2>>"$ERR_LOG_FILE"
 
       [ $? -ne 0 ] && return 1
       ;;
@@ -90,7 +90,7 @@ check_for_firmware_access() {
       # This firmware type require user to provide creds:
       [ "$DPP_IS_LOGGED" == "true" ] || return 1
 
-      curl -sfI -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$BIOS_LINK_DPP_CAP" -o /dev/null 2>>"$ERR_LOG_FILE"
+      mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP_CAP}"  > /dev/null 2>>"$ERR_LOG_FILE"
 
       [ $? -ne 0 ] && return 1
       ;;
@@ -98,7 +98,7 @@ check_for_firmware_access() {
       # This firmware type require user to provide creds:
       [ "$DPP_IS_LOGGED" == "true" ] || return 1
 
-      curl -sfI -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$BIOS_LINK_DPP_SEABIOS" -o /dev/null 2>>"$ERR_LOG_FILE"
+      mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP_SEABIOS}" > /dev/null 2>>"$ERR_LOG_FILE"
 
       [ $? -ne 0 ] && return 1
       ;;
@@ -106,7 +106,7 @@ check_for_firmware_access() {
       # This firmware type require user to provide creds:
       [ "$DPP_IS_LOGGED" == "true" ] || return 1
 
-      curl -sfI -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$HEADS_LINK_DPP" -o /dev/null 2>>"$ERR_LOG_FILE"
+      mc find "${DPP_SERVER_USER_ALIAS}/${HEADS_LINK_DPP}" > /dev/null 2>>"$ERR_LOG_FILE"
 
       [ $? -ne 0 ] && return 1
       ;;
@@ -367,7 +367,15 @@ prepare_env() {
     return 0
   elif [ "$FIRMWARE_VERSION" == "heads" ]; then
     handle_fw_switching "$CAN_SWITCH_TO_HEADS"
-    return
+    # If the user chose not to update to heads, allow them to try another
+    # version
+    ret_code=$?
+    if [ $ret_code -eq 2 ]; then
+      HAVE_HEADS_FW="false"
+      prepare_env $_prepare_for
+    elif [ $ret_code -eq 0 ]; then
+      return 0
+    fi
   fi
 
   # Must not get here. If it gets here - the above variables are empty and

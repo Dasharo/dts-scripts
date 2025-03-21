@@ -26,10 +26,10 @@ DPP_PACKAGES_SCRIPTS_PATH="$DPP_PACKAGE_MANAGER_DIR/packages-scripts"
 DPP_SUBMENU_JSON="$DPP_PACKAGES_SCRIPTS_PATH/submenu.json"
 DPP_CREDENTIAL_FILE="/etc/cloud-pass"
 FW_STORE_URL="${FW_STORE_URL_DEV:-https://dl.3mdeb.com/open-source-firmware/Dasharo}"
-FW_STORE_URL_DPP="https://cloud.3mdeb.com/public.php/webdav"
+FW_STORE_URL_DPP="dl.dasharo.com"
 CLOUD_REQUEST="X-Requested-With: XMLHttpRequest"
-BASE_CLOUDSEND_LOGS_URL="39d4biH4SkXD8Zm"
-BASE_CLOUDSEND_PASSWORD="1{\[\k6G"
+BASE_HCL_USERNAME="public-hcl"
+BASE_HCL_PASSWORD="Vintage-Yearly-Vaporizer-Cubicle"
 DEPLOY_REPORT="false"
 
 # DTS menu options:

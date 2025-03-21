@@ -227,6 +227,7 @@ board_config() {
 
   # We download firmwares via network. At this point, the network connection
   # must be up already.
+
   wait_for_network_connection
 
   echo "Checking if board is Dasharo compatible."
@@ -239,6 +240,7 @@ board_config() {
       PLATFORM_SIGN_KEY="customer-keys/novacustom/novacustom-open-source-firmware-release-1.x-key.asc \
         customer-keys/novacustom/dasharo-release-0.9.x-for-novacustom-signing-key.asc"
       NEED_SMMSTORE_MIGRATION="true"
+      BUCKET_DPP_HEADS="dasharo-novacustom-heads"
 
       case "$SYSTEM_MODEL" in
         "NV4XMB,ME,MZ")
@@ -302,7 +304,7 @@ board_config() {
           DASHARO_REL_NAME="novacustom_nv4x_adl"
           DASHARO_REL_VER="1.7.2"
           HEADS_REL_VER_DPP="0.9.1"
-          HEADS_LINK_DPP="${FW_STORE_URL_DPP}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_heads.rom"
+          HEADS_LINK_DPP="${BUCKET_DPP_HEADS}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_heads.rom"
           HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
           COMPATIBLE_EC_FW_VERSION="2022-08-31_cbff21b"
           if check_if_dasharo; then
@@ -356,7 +358,7 @@ board_config() {
               HEADS_REL_VER_DPP="0.9.0"
               COMPATIBLE_HEADS_EC_FW_VERSION="2024-12-20_368e08e"
               HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
-              HEADS_EC_LINK_DPP="${FW_STORE_URL_DPP}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_ec_v${HEADS_REL_VER_DPP}.rom"
+              HEADS_EC_LINK_DPP="${BUCKET_DPP_HEADS}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_ec_v${HEADS_REL_VER_DPP}.rom"
               ;;
             *)
               print_error "Board model $BOARD_MODEL is currently not supported"
@@ -364,8 +366,7 @@ board_config() {
               ;;
           esac
 
-          HEADS_LINK_DPP="${FW_STORE_URL_DPP}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_heads.rom"
-
+          HEADS_LINK_DPP="${BUCKET_DPP_HEADS}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_heads.rom"
           ;;
         "V5xTNC_TND_TNE")
           if check_if_dasharo; then
@@ -404,6 +405,8 @@ board_config() {
       EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
       ;;
     "Micro-Star International Co., Ltd.")
+      BUCKET_DPP="dasharo-msi"
+      BUCKET_DPP_HEADS="dasharo-msi-heads"
       case "$SYSTEM_MODEL" in
         "MS-7D25")
           # Common configuration for all MS-7D25:
@@ -436,15 +439,15 @@ board_config() {
           case "$BOARD_MODEL" in
             "PRO Z690-A WIFI DDR4(MS-7D25)" | "PRO Z690-A DDR4(MS-7D25)")
               BIOS_LINK_COMM="${FW_STORE_URL}/${DASHARO_REL_NAME}/v${DASHARO_REL_VER}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_ddr4.rom"
-              BIOS_LINK_DPP="${FW_STORE_URL_DPP}/MS-7D25/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}_ddr4.rom"
-              BIOS_LINK_DPP_CAP="${FW_STORE_URL_DPP}/MS-7D25/v${DASHARO_REL_VER_DPP_CAP}/${DASHARO_REL_NAME_CAP}_v${DASHARO_REL_VER_DPP_CAP}_ddr4.cap"
-              HEADS_LINK_DPP="${FW_STORE_URL_DPP}/MS-7D25/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_ddr4_heads.rom"
+              BIOS_LINK_DPP="${BUCKET_DPP}/MS-7D25/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}_ddr4.rom"
+              BIOS_LINK_DPP_CAP="${BUCKET_DPP_HEADS}/MS-7D25/v${DASHARO_REL_VER_DPP_CAP}/${DASHARO_REL_NAME_CAP}_v${DASHARO_REL_VER_DPP_CAP}_ddr4.cap"
+              HEADS_LINK_DPP="${BUCKET_DPP_HEADS}/MS-7D25/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_ddr4_heads.rom"
               ;;
             "PRO Z690-A WIFI (MS-7D25)" | "PRO Z690-A (MS-7D25)")
               BIOS_LINK_COMM="${FW_STORE_URL}/${DASHARO_REL_NAME}/v${DASHARO_REL_VER}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_ddr5.rom"
-              BIOS_LINK_DPP="${FW_STORE_URL_DPP}/MS-7D25/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}_ddr5.rom"
-              BIOS_LINK_DPP_CAP="${FW_STORE_URL_DPP}/MS-7D25/v${DASHARO_REL_VER_DPP_CAP}/${DASHARO_REL_NAME_CAP}_v${DASHARO_REL_VER_DPP_CAP}_ddr5.cap"
-              HEADS_LINK_DPP="${FW_STORE_URL_DPP}/MS-7D25/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_ddr5_heads.rom"
+              BIOS_LINK_DPP="${BUCKET_DPP}/MS-7D25/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}_ddr5.rom"
+              BIOS_LINK_DPP_CAP="${BUCKET_DPP}/MS-7D25/v${DASHARO_REL_VER_DPP_CAP}/${DASHARO_REL_NAME_CAP}_v${DASHARO_REL_VER_DPP_CAP}_ddr5.cap"
+              HEADS_LINK_DPP="${BUCKET_DPP_HEADS}/MS-7D25/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_ddr5_heads.rom"
               ;;
             *)
               print_error "Board model $BOARD_MODEL is currently not supported"
@@ -481,16 +484,16 @@ board_config() {
           case "$BOARD_MODEL" in
             "PRO Z790-P WIFI DDR4(MS-7E06)" | "PRO Z790-P DDR4(MS-7E06)" | "PRO Z790-P WIFI DDR4 (MS-7E06)" | "PRO Z790-P DDR4 (MS-7E06)")
               #BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_ddr4.rom"
-              BIOS_LINK_DPP="${FW_STORE_URL_DPP}/MS-7E06/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}_ddr4.rom"
-              BIOS_LINK_DPP_CAP="${FW_STORE_URL_DPP}/MS-7E06/v${DASHARO_REL_VER_DPP_CAP}/${DASHARO_REL_NAME_CAP}_v${DASHARO_REL_VER_DPP_CAP}_ddr4.cap"
-              HEADS_LINK_DPP="${FW_STORE_URL_DPP}/MS-7E06/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_ddr4_heads.rom"
+              BIOS_LINK_DPP="${BUCKET_DPP}/MS-7E06/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}_ddr4.rom"
+              BIOS_LINK_DPP_CAP="${BUCKET_DPP}/MS-7E06/v${DASHARO_REL_VER_DPP_CAP}/${DASHARO_REL_NAME_CAP}_v${DASHARO_REL_VER_DPP_CAP}_ddr4.cap"
+              HEADS_LINK_DPP="${BUCKET_DPP_HEADS}/MS-7E06/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_ddr4_heads.rom"
               PROGRAMMER_BIOS="internal:boardmismatch=force"
               ;;
             "PRO Z790-P WIFI (MS-7E06)" | "PRO Z790-P (MS-7E06)")
               #BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_ddr5.rom"
-              BIOS_LINK_DPP="${FW_STORE_URL_DPP}/MS-7E06/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}_ddr5.rom"
-              BIOS_LINK_DPP_CAP="${FW_STORE_URL_DPP}/MS-7E06/v${DASHARO_REL_VER_DPP_CAP}/${DASHARO_REL_NAME_CAP}_v${DASHARO_REL_VER_DPP_CAP}_ddr5.cap"
-              HEADS_LINK_DPP="${FW_STORE_URL_DPP}/MS-7E06/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_ddr5_heads.rom"
+              BIOS_LINK_DPP="${BUCKET_DPP}/MS-7E06/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}_ddr5.rom"
+              BIOS_LINK_DPP_CAP="${BUCKET_DPP}/MS-7E06/v${DASHARO_REL_VER_DPP_CAP}/${DASHARO_REL_NAME_CAP}_v${DASHARO_REL_VER_DPP_CAP}_ddr5.cap"
+              HEADS_LINK_DPP="${BUCKET_DPP_HEADS}/MS-7E06/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_ddr5_heads.rom"
               ;;
             *)
               print_error "Board model $BOARD_MODEL is currently not supported"
@@ -506,9 +509,10 @@ board_config() {
       ;;
     "Dell Inc.")
       # Common configuration for all Dell releases:
+      BUCKET_DPP="dasharo-optiplex-uefi"
       DASHARO_REL_NAME="dell_optiplex_7010_9010"
       DASHARO_REL_VER_DPP="0.1.1"
-      BIOS_LINK_DPP="$FW_STORE_URL_DPP/v$DASHARO_REL_VER_DPP/${DASHARO_REL_NAME}_v$DASHARO_REL_VER_DPP.rom"
+      BIOS_LINK_DPP="$BUCKET_DPP/v$DASHARO_REL_VER_DPP/${DASHARO_REL_NAME}_v$DASHARO_REL_VER_DPP.rom"
       CAN_INSTALL_BIOS="true"
       NEED_SMBIOS_MIGRATION="true"
       NEED_BLOB_TRANSMISSION="true"
@@ -592,6 +596,8 @@ board_config() {
       ;;
     "PC Engines")
       # Common configuration for all PC Engines releases:
+      BUCKET_DPP="dasharo-pcengines"
+      BUCKET_DPP_SEABIOS="dasharo-pcengines-seabios"
       DASHARO_REL_VER_DPP="0.9.0"
       CAN_INSTALL_BIOS="true"
       DASHARO_REL_VER_DPP_SEABIOS="24.05.00.01"
@@ -620,8 +626,8 @@ board_config() {
           ;;
       esac
 
-      BIOS_LINK_DPP="${FW_STORE_URL_DPP}/pcengines_apu2/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}.rom"
-      BIOS_LINK_DPP_SEABIOS="${FW_STORE_URL_DPP}/pcengines_apu2/v${DASHARO_REL_VER_DPP_SEABIOS}/${DASHARO_REL_NAME}_seabios_v${DASHARO_REL_VER_DPP_SEABIOS}.rom"
+      BIOS_LINK_DPP="${BUCKET_DPP}/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}.rom"
+      BIOS_LINK_DPP_SEABIOS="${BUCKET_DPP_SEABIOS}/pcengines_apu2/v${DASHARO_REL_VER_DPP_SEABIOS}/${DASHARO_REL_NAME}_seabios_v${DASHARO_REL_VER_DPP_SEABIOS}.rom"
 
       shopt -u nocasematch
       ;;
@@ -632,7 +638,8 @@ board_config() {
       case "$SYSTEM_MODEL" in
         "ODROID-H4")
           PLATFORM_SIGN_KEY="dasharo/hardkernel_odroid_h4/dasharo-release-0.x-compatible-with-hardkernel-odroid-h4-family-signing-key.asc"
-          DASHARO_REL_NAME="odroid_h4"
+          BUCKET_DPP="dasharo-odroid-h4-plus"
+          DASHARO_REL_NAME="hardkernel_odroid_h4"
           DASHARO_REL_VER_DPP="0.9.0"
           ;;
         *)
@@ -641,7 +648,7 @@ board_config() {
           ;;
       esac
 
-      BIOS_LINK_DPP="$FW_STORE_URL_DPP/$DASHARO_REL_NAME/v$DASHARO_REL_VER_DPP/hardkernel_${DASHARO_REL_NAME}_v$DASHARO_REL_VER_DPP.rom"
+      BIOS_LINK_DPP="$BUCKET_DPP/$DASHARO_REL_NAME/v$DASHARO_REL_VER_DPP/${DASHARO_REL_NAME}_v$DASHARO_REL_VER_DPP.rom"
       ;;
     "QEMU"|"Emulation")
       case "$SYSTEM_MODEL" in
@@ -761,6 +768,7 @@ compare_versions() {
 }
 
 download_bios() {
+  echo "Downloading Dasharo firmware..."
   if [ "${BIOS_LINK}" == "${BIOS_LINK_COMM}" ] || [ "${BIOS_LINK}" == "${BIOS_LINK_COMM_CAP}" ]; then
     curl -s -S -L -f "$BIOS_LINK" -o $BIOS_UPDATE_FILE 2>>"$ERR_LOG_FILE"
     error_check "Cannot access $FW_STORE_URL while downloading binary. Please
@@ -772,14 +780,13 @@ download_bios() {
     error_check "Cannot access $FW_STORE_URL while downloading signature. Please
    check your internet connection"
   else
-    USER_DETAILS="$CLOUDSEND_DOWNLOAD_URL:$CLOUDSEND_PASSWORD"
-    curl -s -S -L -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$BIOS_LINK" -o $BIOS_UPDATE_FILE 2>>"$ERR_LOG_FILE"
+    mc get "${DPP_SERVER_USER_ALIAS}/$BIOS_LINK" "$BIOS_UPDATE_FILE" > /dev/null 2>>"$ERR_LOG_FILE"
     error_check "Cannot access $FW_STORE_URL_DPP while downloading binary.
    Please check your internet connection and credentials"
-    curl -s -S -L -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$BIOS_HASH_LINK" -o $BIOS_HASH_FILE 2>>"$ERR_LOG_FILE"
+    mc get "${DPP_SERVER_USER_ALIAS}/$BIOS_HASH_LINK" "$BIOS_HASH_FILE" > /dev/null 2>>"$ERR_LOG_FILE"
     error_check "Cannot access $FW_STORE_URL_DPP while downloading signature.
    Please check your internet connection and credentials"
-    curl -s -S -L -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$BIOS_SIGN_LINK" -o $BIOS_SIGN_FILE 2>>"$ERR_LOG_FILE"
+   mc get "${DPP_SERVER_USER_ALIAS}/$BIOS_SIGN_LINK" "$BIOS_SIGN_FILE" > /dev/null 2>>"$ERR_LOG_FILE"
     error_check "Cannot access $FW_STORE_URL_DPP while downloading signature.
    Please check your internet connection and credentials"
   fi
@@ -797,14 +804,14 @@ download_ec() {
     error_check "Cannot access $FW_STORE_URL while downloading signature. Please
      check your internet connection"
   else
-    curl -s -S -L -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$EC_LINK" -o $EC_UPDATE_FILE 2>>"$ERR_LOG_FILE"
-    error_check "Cannot access $FW_STORE_URL while downloading binary. Please
+    mc get "${DPP_SERVER_USER_ALIAS}/${EC_LINK}" "$EC_UPDATE_FILE" > /dev/null 2>>"$ERR_LOG_FILE"
+    error_check "Cannot access $FW_STORE_URL_DPP while downloading binary. Please
      check your internet connection and credentials"
-    curl -s -S -L -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$EC_HASH_LINK" -o $EC_HASH_FILE 2>>"$ERR_LOG_FILE"
-    error_check "Cannot access $FW_STORE_URL while downloading signature. Please
+    mc get "${DPP_SERVER_USER_ALIAS}/${EC_HASH_LINK}" "$EC_HASH_FILE" > /dev/null 2>>"$ERR_LOG_FILE"
+    error_check "Cannot access $FW_STORE_URL_DPP while downloading signature. Please
      check your internet connection and credentials"
-    curl -s -S -L -f -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$EC_SIGN_LINK" -o $EC_SIGN_FILE 2>>"$ERR_LOG_FILE"
-    error_check "Cannot access $FW_STORE_URL while downloading signature. Please
+    mc get "${DPP_SERVER_USER_ALIAS}/${EC_SIGN_LINK}" "$EC_SIGN_FILE" > /dev/null 2>>"$ERR_LOG_FILE"
+    error_check "Cannot access $FW_STORE_URL_DPP while downloading signature. Please
      check your internet connection and credentials"
   fi
 }
@@ -1136,11 +1143,8 @@ handle_fw_switching() {
           break
           ;;
         n|N)
-          if test -z  "$UPDATE_VERSION" || compare_versions $DASHARO_VERSION $UPDATE_VERSION; then
-            error_exit "No update available for your machine"
-          fi
           echo "Will not install Dasharo heads firmware. Proceeding with regular Dasharo firmware update."
-          break
+          return 2
           ;;
         *)
           ;;
@@ -1349,13 +1353,11 @@ show_dpp_credentials() {
     echo -e "${BLUE}**${NORMAL}                DPP credentials ${NORMAL}"
     echo -e "${BLUE}*********************************************************${NORMAL}"
     if [ "${DISPLAY_CREDENTIALS}" == "true" ]; then
-      echo -e "${BLUE}**${YELLOW}       Logs key: ${NORMAL}${CLOUDSEND_LOGS_URL}"
-      echo -e "${BLUE}**${YELLOW}   Download key: ${NORMAL}${CLOUDSEND_DOWNLOAD_URL}"
-      echo -e "${BLUE}**${YELLOW}       Password: ${NORMAL}${CLOUDSEND_PASSWORD}"
+      echo -e "${BLUE}**${YELLOW}      Email: ${NORMAL}${DPP_EMAIL}"
+      echo -e "${BLUE}**${YELLOW}   Password: ${NORMAL}${DPP_PASSWORD}"
     else
-      echo -e "${BLUE}**${YELLOW}       Logs key: ${NORMAL}***************"
-      echo -e "${BLUE}**${YELLOW}   Download key: ${NORMAL}***************"
-      echo -e "${BLUE}**${YELLOW}       Password: ${NORMAL}***************"
+      echo -e "${BLUE}**${YELLOW}      Email: ***************"
+      echo -e "${BLUE}**${YELLOW}   Password: ***************"
     fi
     echo -e "${BLUE}*********************************************************${NORMAL}"
   fi
@@ -1518,6 +1520,18 @@ main_menu_options(){
         return 0
       fi
 
+      echo -n "DTS Extensions: "
+
+      # Try to log in using available DPP credentials, start loop over if login
+      # was not successful:
+      login_to_dpp_server
+      if [ $? -ne 0 ]; then
+        echo "NO"
+	      read -p "Press Enter to continue"
+        return 0
+      fi
+
+      print_ok "YES"
 
       # Check for Dasharo Firmware for the current platform, continue to
       # packages after checking:
@@ -1536,19 +1550,6 @@ main_menu_options(){
       else
         echo "NO"
       fi
-
-      echo -n "DTS Extensions: "
-
-      # Try to log in using available DPP credentials, start loop over if login
-      # was not successful:
-      login_to_dpp_server
-      if [ $? -ne 0 ]; then
-        echo "NO"
-	read -p "Press Enter to continue"
-        return 0
-      fi
-
-      print_ok "YES"
 
       # Check if there is some packages available to install, start loop over if
       # no packages is available:
