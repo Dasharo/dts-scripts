@@ -786,13 +786,14 @@ download_bios() {
     mc get "${DPP_SERVER_USER_ALIAS}/$BIOS_HASH_LINK" "$BIOS_HASH_FILE" > /dev/null 2>>"$ERR_LOG_FILE"
     error_check "Cannot access $FW_STORE_URL_DPP while downloading signature.
    Please check your internet connection and credentials"
-   mc get "${DPP_SERVER_USER_ALIAS}/$BIOS_SIGN_LINK" "$BIOS_SIGN_FILE" > /dev/null 2>>"$ERR_LOG_FILE"
+    mc get "${DPP_SERVER_USER_ALIAS}/$BIOS_SIGN_LINK" "$BIOS_SIGN_FILE" > /dev/null 2>>"$ERR_LOG_FILE"
     error_check "Cannot access $FW_STORE_URL_DPP while downloading signature.
    Please check your internet connection and credentials"
   fi
 }
 
 download_ec() {
+  echo "Downloading Dasharo EC firmware..."
   if [ "${EC_LINK}" == "${EC_LINK_COMM}" ]; then
     curl -s -S -L -f "$EC_LINK" -o "$EC_UPDATE_FILE" 2>>"$ERR_LOG_FILE"
     error_check "Cannot access $FW_STORE_URL while downloading binary. Please
@@ -1524,7 +1525,7 @@ main_menu_options(){
       # was not successful:
       if ! login_to_dpp_server; then
         echo "Cannot log in to DPP server."
-	      read -p "Press Enter to continue"
+        read -p "Press Enter to continue"
         return 0
       fi
 
