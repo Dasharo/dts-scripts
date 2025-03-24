@@ -1688,15 +1688,35 @@ send_dts_logs() {
     fi
     tar czf "${log_dir}.tar.gz" -C "$(dirname "$log_dir")" "$(basename "$log_dir")"
 
+    DPP_LOGS_BUCKET="dts-logs"
+    PUBLIC_LOGS_BUCKET="dts-logs-public"
+    if [ -f "${DPP_CREDENTIAL_FILE}" ]; then
+      DPP_EMAIL=$(sed -n '1p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
+      DPP_PASSWORD=$(sed -n '2p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
+
+      if [ -z "$(mc alias list | grep ${DPP_EMAIL})" ]; then
+        if ! mc alias set $DPP_SERVER_USER_ALIAS $DPP_SERVER_ADDRESS $DPP_EMAIL $DPP_PASSWORD >> $ERR_LOG_FILE 2>&1 ; then
+          error_exit "Cannot create MinIO alias for your DPP credentials"
+        fi
+      fi
+      LOGS_LINK="${DPP_LOGS_BUCKET}/${DPP_EMAIL}"
+      ALIAS=$DPP_SERVER_USER_ALIAS
+    else
+      ALIAS="public-hcl"
+      if [ -z "$(mc alias list | grep ${ALIAS})" ]; then
+        if ! mc alias set $ALIAS $DPP_SERVER_ADDRESS $BASE_HCL_USERNAME $BASE_HCL_PASSWORD >> $ERR_LOG_FILE 2>&1; then
+          error_exit "Cannot create MinIO alias"
+        fi
+      fi
+        LOGS_LINK="${PUBLIC_LOGS_BUCKET}"
+    fi
+
     FULL_DTS_URL="https://cloud.3mdeb.com/index.php/s/"${BASE_DTS_LOGS_URL}
 
-    CLOUDSEND_PASSWORD=${DTS_LOGS_PASSWORD} cloudsend.sh \
-      "-e" \
-      "${log_dir}.tar.gz" \
-      "${FULL_DTS_URL}"
+    mc cp "$log_dir.tar.gz" "${ALIAS}/${LOGS_LINK}/"
 
     if [ "$?" -ne "0" ]; then
-      echo "Failed to send logs to the cloud"
+      echo "Failed to send logs to MinIO"
       return 1
     fi
   fi
