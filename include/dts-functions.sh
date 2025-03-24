@@ -1694,6 +1694,9 @@ send_dts_logs() {
       DPP_EMAIL=$(sed -n '1p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
       DPP_PASSWORD=$(sed -n '2p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
 
+      if [ -z "$DPP_EMAIL" ]; then
+        error_exit "DPP e-mail is empty"
+      fi
       if [ -z "$(mc alias list | grep ${DPP_EMAIL})" ]; then
         if ! mc alias set $DPP_SERVER_USER_ALIAS $DPP_SERVER_ADDRESS $DPP_EMAIL $DPP_PASSWORD >> $ERR_LOG_FILE 2>&1 ; then
           error_exit "Cannot create MinIO alias for your DPP credentials"
