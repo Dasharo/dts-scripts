@@ -79,6 +79,21 @@ fi
   return 1
 }
 
+check_dts_extensions_access() {
+  if ! [ -f "$DPP_CREDENTIAL_FILE" ]; then
+    print_warning "No credentials provided, cannot check for DTS Extensions access."
+    return 1
+  fi
+
+  DPP_EMAIL=$(sed -n '1p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
+  DPP_PASSWORD=$(sed -n '2p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
+
+  if ! mc ls "${DPP_SERVER_USER_ALIAS}/des-packages/" > /dev/null 2>>"$ERR_LOG_FILE"; then
+    return 1
+  fi
+  return 0
+}
+
 get_dpp_creds() {
   echo ""
   read -p "Enter DPP email:   " 'DPP_EMAIL'
@@ -97,7 +112,7 @@ get_dpp_creds() {
 login_to_dpp_server(){
   # Check if the user is already logged in, log in if not:
   if [ -z "$(mc alias list | grep ${DPP_EMAIL})" ]; then
-    if ! mc alias set $DPP_SERVER_USER_ALIAS $DPP_SERVER_ADDRESS $DPP_EMAIL $DPP_PASSWORD >> $ERR_LOG_FILE 2>&1 ; then
+    if ! mc alias set $DPP_SERVER_USER_ALIAS $DPP_SERVER_ADDRESS $DPP_EMAIL $DPP_PASSWORD  > /dev/null 2>>"$ERR_LOG_FILE" ; then
       return 1
     fi
   fi
