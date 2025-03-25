@@ -405,7 +405,7 @@ board_config() {
       EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
       ;;
     "Micro-Star International Co., Ltd.")
-      BUCKET_DPP="dasharo-msi"
+      BUCKET_DPP="dasharo-msi-uefi"
       BUCKET_DPP_HEADS="dasharo-msi-heads"
       case "$SYSTEM_MODEL" in
         "MS-7D25")
