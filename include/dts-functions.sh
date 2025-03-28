@@ -596,7 +596,7 @@ board_config() {
       ;;
     "PC Engines")
       # Common configuration for all PC Engines releases:
-      BUCKET_DPP="dasharo-pcengines"
+      BUCKET_DPP="dasharo-pcengines-uefi"
       BUCKET_DPP_SEABIOS="dasharo-pcengines-seabios"
       DASHARO_REL_VER_DPP="0.9.0"
       CAN_INSTALL_BIOS="true"
@@ -638,7 +638,7 @@ board_config() {
       case "$SYSTEM_MODEL" in
         "ODROID-H4")
           PLATFORM_SIGN_KEY="dasharo/hardkernel_odroid_h4/dasharo-release-0.x-compatible-with-hardkernel-odroid-h4-family-signing-key.asc"
-          BUCKET_DPP="dasharo-odroid-h4-plus"
+          BUCKET_DPP="dasharo-odroid-h4-plus-uefi"
           DASHARO_REL_NAME="hardkernel_odroid_h4"
           DASHARO_REL_VER_DPP="0.9.0"
           ;;
