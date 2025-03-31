@@ -1448,7 +1448,7 @@ main_menu_options(){
             export SEND_LOGS="true"
             export DEPLOY_REPORT="true"
             if ! ${CMD_DASHARO_HCL_REPORT}; then
-              echo -e "Unable to connect to cloud.3mdeb.com for submitting the
+              echo -e "Unable to connect to dl.dasharo.com for submitting the
                         \rHCL report. Please recheck your internet connection."
             else
               LOGS_SENT="1"
