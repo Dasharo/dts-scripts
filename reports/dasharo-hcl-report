@@ -61,7 +61,6 @@ if [ -d logs ]; then
   rm -rf logs
 fi
 
-FULL_UPLOAD_URL="https://cloud.3mdeb.com/index.php/s/"${CLOUDSEND_LOGS_URL}
 
 mkdir logs
 if [ $DEPLOY_REPORT = "false" ]; then
@@ -335,21 +334,40 @@ fi
 
 if [ "$SEND_LOGS" = "true" ]; then
   if [ $DEPLOY_REPORT = "false" ]; then
-    echo "Sending logs to 3mdeb cloud..."
-    CLOUDSEND_OPTS="-e"
-  else
-    CLOUDSEND_OPTS="-e -q"
+    echo "Sending logs to 3mdeb MinIO"
   fi
-  cloudsend.sh \
-    ${CLOUDSEND_OPTS} \
-    "$(readlink -f $filename.tar.gz)" \
-    ${FULL_UPLOAD_URL}
-  if [ "$?" -ne "0" ]; then
-    echo "Failed to send logs to the cloud"
-    if [ -a "${CMD_DASHARO_DEPLOY}" ]; then
-      echo -e "Something may be wrong with credentials. Please use option 4 to change DPP keys
-               \rand make sure that there is no typo."
+
+  DPP_HCL_BUCKET="dasharo-hcl-reports"
+  PUBLIC_HCL_BUCKET="dasharo-hcl-reports-public"
+
+  if [ -f "${DPP_CREDENTIAL_FILE}" ]; then
+    DPP_EMAIL=$(sed -n '1p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
+    DPP_PASSWORD=$(sed -n '2p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
+
+    if [ -z "$DPP_EMAIL" ]; then
+      echo "DPP e-mail is empty"
+      exit 1
     fi
+    if [ -z "$(mc alias list | grep ${DPP_EMAIL})" ]; then
+      if ! mc alias set $DPP_SERVER_USER_ALIAS $DPP_SERVER_ADDRESS $DPP_EMAIL $DPP_PASSWORD >> $ERR_LOG_FILE 2>&1 ; then
+        exit 1
+      fi
+    fi
+    DPP_HCL_LINK="${DPP_HCL_BUCKET}/${DPP_EMAIL}"
+    ALIAS=$DPP_SERVER_USER_ALIAS
+  else
+    ALIAS="public-hcl"
+    if [ -z "$(mc alias list | grep ${ALIAS})" ]; then
+      if ! mc alias set $ALIAS $DPP_SERVER_ADDRESS $BASE_HCL_USERNAME $BASE_HCL_PASSWORD >> $ERR_LOG_FILE 2>&1; then
+        exit 1
+      fi
+    fi
+      DPP_HCL_LINK="${PUBLIC_HCL_BUCKET}"
+  fi
+
+  mc cp "$(readlink -f $filename.tar.gz)" "${ALIAS}/${DPP_HCL_LINK}/"
+  if [ "$?" -ne "0" ]; then
+    echo "Failed to send logs to MinIO"
     exit 1
   fi
   if [ $DEPLOY_REPORT = "false" ]; then
