@@ -40,7 +40,7 @@ sed -i 's/<dresponse>/&\n&\n<dresponse>/g' "$TMP_RESPONSE"
 sed -i 's#<&/dresponse>#<&/dresponse>&\n#g' "$TMP_RESPONSE"
 
 # create line per record
-grep "public.php/webdav/" "$TMP_RESPONSE" > "$TMP_LIST"
+grep "public.php/webdav/" "$TMP_RESPONSE" >"$TMP_LIST"
 # remove xml tags
 sed -i 's#/dhref.*#\/dhref>#' "$TMP_LIST"
 sed -i 's#<*dresponse>##g' "$TMP_LIST"

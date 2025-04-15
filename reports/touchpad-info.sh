@@ -10,7 +10,7 @@
 # shellcheck source=../include/hal/dts-hal.sh
 source $DTS_HAL
 
-if ! $DMESG i2c_hid_detect_mock | grep hid-multitouch | grep "I2C HID" > /dev/null; then
+if ! $DMESG i2c_hid_detect_mock | grep hid-multitouch | grep "I2C HID" >/dev/null; then
   echo "No I2C touchpads detected. Exiting"
   exit 2
 fi
@@ -22,19 +22,18 @@ path=$($FSREAD_TOOL cat "/sys/bus/i2c/devices/$devname/firmware_node/path")
 ACPI_CALL_PATH="/proc/acpi/call"
 
 if [ ! -f "$ACPI_CALL_PATH" ]; then
-   echo "File ${ACPI_CALL_PATH} doesn\'t exist..."
-   return 3
+  echo "File ${ACPI_CALL_PATH} doesn\'t exist..."
+  return 3
 fi
 
-echo "$path._DSM bF7F6DF3C67425545AD05B30A3D8938DE 1 1" > ${ACPI_CALL_PATH}
-descriptor_offset=$(tr -d '\0' < ${ACPI_CALL_PATH} | cut -d 'c' -f 1)
+echo "$path._DSM bF7F6DF3C67425545AD05B30A3D8938DE 1 1" >${ACPI_CALL_PATH}
+descriptor_offset=$(tr -d '\0' <${ACPI_CALL_PATH} | cut -d 'c' -f 1)
 
 i2c_row=$(i2cdetect -y -r 0 | grep UU)
 i2c_col=0
-for x in $i2c_row
-do
+for x in $i2c_row; do
   if [ "$x" = 'UU' ]; then
-  	break;
+    break
   fi
   i2c_col=$(($i2c_col + 1))
 done

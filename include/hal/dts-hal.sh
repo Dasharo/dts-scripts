@@ -60,42 +60,42 @@ RDMSR="tool_wrapper rdmsr"
 ################################################################################
 # Tools wrapper.
 ################################################################################
-tool_wrapper(){
-# Usage: tool_wrapper TOOL_NAME MOCK_FUNC_NAME TOOL_ARGS
-#
-#    TOOL_NAME: the name of the tool being wrapped
-#    MOCK_FUNC_NAME: the name of mocking function (optional, check comments
-#    below for more inf.)
-#    TOOL_ARGS: the arguments that the tool gets if being called, for example
-#    for dmidecode -s system-vendor it will be "-s system-vendor".
-#
-# This function is a bridge between common DTS logic and hardware-specific DTS
-# logic or functions. There is two paths a call to this function can be
-# redirected to: real HAL for running on real platform and Tests HAL for testing
-# on QEMU (depends on whether the var. DTS_TESTING is set or not).
-#
-# The real HAL are the real tools e.g. cbfstool, etc.. The testing HAL are the
-# mocking functions. There are several types of mocking functions, with every
-# type having a specific name syntax:
-#
-# FUNCTIONNAME_mock(){...}: mocking functions specific for every platform, those
-# are stored in $DTS_MOCK_PLATFORM file which is sourced at the beginning of
-# this file.
-# TOOLNAME_FUNCTIONNAME_mock(){...}: mocking functions common for all platforms
-# but specific for some tool, those are stored in $DTS_MOCK_COMMON file, which
-# is being sourced at the beginning of this file.
-# TOOLNAME_common_mock(){...}: standard mocking functions for every tool that
-# are common for all platforms, those are stored in $DTS_MOCK_COMMON file, which
-# is being sourced at the beginning of this file.
-# common_mock(){...}: common mocking function, in case we need to use mocking
-# function for a tool but we do not care about its output.
-#
-# This tool wrapper should only be used with tools which communicate with
-# hardware or firmware (read or write, etc.).
-#
-# TODO: this wrapper deals with arguments as well as with stdout, stderr, and $?
-# redirection, but it does not read and redirect stdin (this is not used in any
-# mocking functions or tools right now).
+tool_wrapper() {
+  # Usage: tool_wrapper TOOL_NAME MOCK_FUNC_NAME TOOL_ARGS
+  #
+  #    TOOL_NAME: the name of the tool being wrapped
+  #    MOCK_FUNC_NAME: the name of mocking function (optional, check comments
+  #    below for more inf.)
+  #    TOOL_ARGS: the arguments that the tool gets if being called, for example
+  #    for dmidecode -s system-vendor it will be "-s system-vendor".
+  #
+  # This function is a bridge between common DTS logic and hardware-specific DTS
+  # logic or functions. There is two paths a call to this function can be
+  # redirected to: real HAL for running on real platform and Tests HAL for testing
+  # on QEMU (depends on whether the var. DTS_TESTING is set or not).
+  #
+  # The real HAL are the real tools e.g. cbfstool, etc.. The testing HAL are the
+  # mocking functions. There are several types of mocking functions, with every
+  # type having a specific name syntax:
+  #
+  # FUNCTIONNAME_mock(){...}: mocking functions specific for every platform, those
+  # are stored in $DTS_MOCK_PLATFORM file which is sourced at the beginning of
+  # this file.
+  # TOOLNAME_FUNCTIONNAME_mock(){...}: mocking functions common for all platforms
+  # but specific for some tool, those are stored in $DTS_MOCK_COMMON file, which
+  # is being sourced at the beginning of this file.
+  # TOOLNAME_common_mock(){...}: standard mocking functions for every tool that
+  # are common for all platforms, those are stored in $DTS_MOCK_COMMON file, which
+  # is being sourced at the beginning of this file.
+  # common_mock(){...}: common mocking function, in case we need to use mocking
+  # function for a tool but we do not care about its output.
+  #
+  # This tool wrapper should only be used with tools which communicate with
+  # hardware or firmware (read or write, etc.).
+  #
+  # TODO: this wrapper deals with arguments as well as with stdout, stderr, and $?
+  # redirection, but it does not read and redirect stdin (this is not used in any
+  # mocking functions or tools right now).
   # Gets toolname, e.g. poweroff, dmidecode. etc.:
   local _tool="$1"
   # Gets mocking function name:
@@ -103,7 +103,7 @@ tool_wrapper(){
   # It checks if _mock_func contains smth with _mock at the end, if not -
   # mocking function is not provided and some common mocking func. will be used
   # instead:
-  if ! echo "$_mock_func" | grep "_mock" &> /dev/null; then
+  if ! echo "$_mock_func" | grep "_mock" &>/dev/null; then
     unset _mock_func
     shift 1
   else
@@ -111,7 +111,7 @@ tool_wrapper(){
   fi
   # Other arguments for this function are the arguments which are sent to a tool
   # e.g. -s system-vendor for dmidecode, etc.:
-  local _arguments=( "$@" )
+  local _arguments=("$@")
 
   if [ -n "$DTS_TESTING" ]; then
     # This is the order of calling mocking functions:
@@ -119,11 +119,11 @@ tool_wrapper(){
     # 2) TOOLNAME_FUNCTIONNAME_mock;
     # 3) TOOLNAME_common_mock;
     # 4) common_mock - last resort.
-    if [ -n "$_mock_func" ] && type $_mock_func &> /dev/null; then
+    if [ -n "$_mock_func" ] && type $_mock_func &>/dev/null; then
       $_mock_func "${_arguments[@]}"
-    elif type ${_tool}_${_mock_func} &> /dev/null; then
+    elif type ${_tool}_${_mock_func} &>/dev/null; then
       ${_tool}_${_mock_func} "${_arguments[@]}"
-    elif type ${_tool}_common_mock &> /dev/null; then
+    elif type ${_tool}_common_mock &>/dev/null; then
       ${_tool}_common_mock "${_arguments[@]}"
     else
       common_mock $_tool
@@ -141,24 +141,23 @@ tool_wrapper(){
 ################################################################################
 # Other funcs.
 ################################################################################
-check_for_opensource_firmware()
-{
+check_for_opensource_firmware() {
   echo "Checking for Open Source Embedded Controller firmware..."
-  $DASHARO_ECTOOL check_for_opensource_firm_mock info > /dev/null 2>>"$ERR_LOG_FILE"
+  $DASHARO_ECTOOL check_for_opensource_firm_mock info >/dev/null 2>>"$ERR_LOG_FILE"
 
   return $?
 }
 
-fsread_tool(){
-# This func is an abstraction for proper handling of fs hardware-specific (e.g.
-# checking devtmpfs, or sysfs, or some other fs that changes its state due to
-# changes in hardware and/or firmware) reads by tool_wrapper.
-#
-# This function does not have arguments in common understanding, it takes a
-# command, that is reading smth from some fs, and its arguments as an only
-# argument. E.g. if you want to check tty1 device presence:
-#
-# fsread_tool test -f /dev/tty1
+fsread_tool() {
+  # This func is an abstraction for proper handling of fs hardware-specific (e.g.
+  # checking devtmpfs, or sysfs, or some other fs that changes its state due to
+  # changes in hardware and/or firmware) reads by tool_wrapper.
+  #
+  # This function does not have arguments in common understanding, it takes a
+  # command, that is reading smth from some fs, and its arguments as an only
+  # argument. E.g. if you want to check tty1 device presence:
+  #
+  # fsread_tool test -f /dev/tty1
   local _command="$1"
   shift
 
@@ -167,27 +166,27 @@ fsread_tool(){
   return $?
 }
 
-cap_upd_tool(){
-# This func is an abstraction for proper handling of UEFI Capsule Update driver
-# writing by the tool_wrapper. arguments: capsule update file path, e.g.:
-#
-# capsule_update_tool /tmp/firm.cap
+cap_upd_tool() {
+  # This func is an abstraction for proper handling of UEFI Capsule Update driver
+  # writing by the tool_wrapper. arguments: capsule update file path, e.g.:
+  #
+  # capsule_update_tool /tmp/firm.cap
   local _capsule="$1"
 
-  cat "$_capsule" > "$CAP_UPD_DEVICE"
+  cat "$_capsule" >"$CAP_UPD_DEVICE"
 
   return $?
 }
 
-check_if_heci_present(){
-# FIXME: what if HECI is not device 16.0?
+check_if_heci_present() {
+  # FIXME: what if HECI is not device 16.0?
   $FSREAD_TOOL test -d /sys/class/pci_bus/0000:00/device/0000:00:16.0
 
   return $?
 }
 
-check_me_op_mode(){
-# Checks ME Current Operation Mode at offset 0x40 bits 19:16:
+check_me_op_mode() {
+  # Checks ME Current Operation Mode at offset 0x40 bits 19:16:
   local _mode
 
   _mode="$($SETPCI check_me_op_mode_mock -s 00:16.0 42.B 2>>"$ERR_LOG_FILE" | cut -c2-)"

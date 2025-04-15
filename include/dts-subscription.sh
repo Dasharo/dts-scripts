@@ -25,8 +25,8 @@ check_for_dasharo_firmware() {
   # Ignore "SC2154 (warning): DPP_CREDENTIAL_FILE is referenced but not assigned"
   # for external variable:
   # shellcheck disable=SC2154
-  DPP_EMAIL=$(sed -n '1p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
-  DPP_PASSWORD=$(sed -n '2p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
+  DPP_EMAIL=$(sed -n '1p' <${DPP_CREDENTIAL_FILE} | tr -d '\n')
+  DPP_PASSWORD=$(sed -n '2p' <${DPP_CREDENTIAL_FILE} | tr -d '\n')
 
   # Check the board information:
   board_config
@@ -40,36 +40,36 @@ check_for_dasharo_firmware() {
   # Check for firmware binaries:
   if wait_for_network_connection; then
     if [ -n "$BIOS_LINK_DPP" ]; then
-      mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP}"  > /dev/null 2>>"$ERR_LOG_FILE"
+      mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP}" >/dev/null 2>>"$ERR_LOG_FILE"
       _check_dwn_req_resp_uefi=$?
     fi
 
     if [ -n "$BIOS_LINK_DPP_CAP" ]; then
-      mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP_CAP}"  > /dev/null 2>>"$ERR_LOG_FILE"
+      mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP_CAP}" >/dev/null 2>>"$ERR_LOG_FILE"
       _check_dwn_req_resp_uefi_cap=$?
     fi
 
     if [ -n "$HEADS_LINK_DPP" ]; then
-      mc find "${DPP_SERVER_USER_ALIAS}/${HEADS_LINK_DPP}" > /dev/null 2>>"$ERR_LOG_FILE"
+      mc find "${DPP_SERVER_USER_ALIAS}/${HEADS_LINK_DPP}" >/dev/null 2>>"$ERR_LOG_FILE"
       _check_dwn_req_resp_heads=$?
     fi
 
     if [ -n "$BIOS_LINK_DPP_SEABIOS" ]; then
-      mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP_SEABIOS}" > /dev/null 2>>"$ERR_LOG_FILE"
+      mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP_SEABIOS}" >/dev/null 2>>"$ERR_LOG_FILE"
       _check_dwn_req_resp_seabios=$?
     fi
     if [ -n "${DPP_EMAIL}" ]; then
-      mc find "${DPP_SERVER_USER_ALIAS}/${DPP_BUCKET}" > /dev/null 2>>"$ERR_LOG_FILE"
+      mc find "${DPP_SERVER_USER_ALIAS}/${DPP_BUCKET}" >/dev/null 2>>"$ERR_LOG_FILE"
       _check_logs_req_resp=$?
     fi
   fi
-    # Return 0 if any of Dasharo Firmware binaries is available:
- if [ ${_check_dwn_req_resp_uefi} -eq 0 ] || [ ${_check_dwn_req_resp_uefi_cap} -eq 0 ] || [ ${_check_dwn_req_resp_heads} -eq 0 ] || [ ${_check_dwn_req_resp_seabios} -eq 0 ]; then
-      if [ ${_check_logs_req_resp} -eq 0 ]; then
-        print_ok "A Dasharo Firmware binary has been found for your platform!"
-        return 0
-      fi
-fi
+  # Return 0 if any of Dasharo Firmware binaries is available:
+  if [ ${_check_dwn_req_resp_uefi} -eq 0 ] || [ ${_check_dwn_req_resp_uefi_cap} -eq 0 ] || [ ${_check_dwn_req_resp_heads} -eq 0 ] || [ ${_check_dwn_req_resp_seabios} -eq 0 ]; then
+    if [ ${_check_logs_req_resp} -eq 0 ]; then
+      print_ok "A Dasharo Firmware binary has been found for your platform!"
+      return 0
+    fi
+  fi
 
   print_warning "Something may be wrong with the DPP credentials or you may not"
   print_warning "have access to Dasharo Firmware. If so, consider getting Dasharo"
@@ -85,10 +85,10 @@ check_dts_extensions_access() {
     return 1
   fi
 
-  DPP_EMAIL=$(sed -n '1p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
-  DPP_PASSWORD=$(sed -n '2p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
+  DPP_EMAIL=$(sed -n '1p' <${DPP_CREDENTIAL_FILE} | tr -d '\n')
+  DPP_PASSWORD=$(sed -n '2p' <${DPP_CREDENTIAL_FILE} | tr -d '\n')
 
-  if ! mc ls "${DPP_SERVER_USER_ALIAS}/des-packages/" > /dev/null 2>>"$ERR_LOG_FILE"; then
+  if ! mc ls "${DPP_SERVER_USER_ALIAS}/des-packages/" >/dev/null 2>>"$ERR_LOG_FILE"; then
     return 1
   fi
   return 0
@@ -103,16 +103,16 @@ get_dpp_creds() {
   # Export DPP creds to a file for future use. Currently these are being used
   # for both: MinIO (and its mc CLI) and cloudsend (deprecated, all DPP
   # sibscribtions will be megrated to MinIO):
-  echo ${DPP_EMAIL} >> ${DPP_CREDENTIAL_FILE}
-  echo ${DPP_PASSWORD} >> ${DPP_CREDENTIAL_FILE}
+  echo ${DPP_EMAIL} >>${DPP_CREDENTIAL_FILE}
+  echo ${DPP_PASSWORD} >>${DPP_CREDENTIAL_FILE}
 
   print_ok "Dasharo DPP credentials have been saved"
 }
 
-login_to_dpp_server(){
+login_to_dpp_server() {
   # Check if the user is already logged in, log in if not:
   if [ -z "$(mc alias list | grep ${DPP_EMAIL})" ]; then
-    if ! mc alias set $DPP_SERVER_USER_ALIAS $DPP_SERVER_ADDRESS $DPP_EMAIL $DPP_PASSWORD  > /dev/null 2>>"$ERR_LOG_FILE" ; then
+    if ! mc alias set $DPP_SERVER_USER_ALIAS $DPP_SERVER_ADDRESS $DPP_EMAIL $DPP_PASSWORD >/dev/null 2>>"$ERR_LOG_FILE"; then
       return 1
     fi
   fi
@@ -120,7 +120,7 @@ login_to_dpp_server(){
   return 0
 }
 
-subscription_routine(){
+subscription_routine() {
   # This function contains Subscription-related code which needs to be executed
   # several times. Currently it is called only in /usr/sbin/dts script at every
   # start of menu rendering loop.
@@ -134,8 +134,8 @@ subscription_routine(){
   # Each time the main menu is rendered, check for DPP credentials and export
   # them, if file exists
   if [ -e "${DPP_CREDENTIAL_FILE}" ]; then
-    DPP_EMAIL=$(sed -n '1p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
-    DPP_PASSWORD=$(sed -n '2p' < ${DPP_CREDENTIAL_FILE} | tr -d '\n')
+    DPP_EMAIL=$(sed -n '1p' <${DPP_CREDENTIAL_FILE} | tr -d '\n')
+    DPP_PASSWORD=$(sed -n '2p' <${DPP_CREDENTIAL_FILE} | tr -d '\n')
     export DPP_IS_LOGGED="true"
   else
     unset DPP_EMAIL
@@ -149,17 +149,17 @@ subscription_routine(){
   return 0
 }
 
-check_dasharo_package_env(){
+check_dasharo_package_env() {
   [ -d $DPP_PACKAGE_MANAGER_DIR ] || mkdir -p $DPP_PACKAGE_MANAGER_DIR
   [ -d $DPP_PACKAGES_SCRIPTS_PATH ] || mkdir -p $DPP_PACKAGES_SCRIPTS_PATH
 
   return 0
 }
 
-update_package_list(){
+update_package_list() {
   check_dasharo_package_env
 
-  mc find --json --name "*.rpm" $DPP_SERVER_USER_ALIAS > $DPP_AVAIL_PACKAGES_LIST
+  mc find --json --name "*.rpm" $DPP_SERVER_USER_ALIAS >$DPP_AVAIL_PACKAGES_LIST
 
   if [ $? -ne 0 ]; then
     print_error "Unable to get package list!"
@@ -168,7 +168,7 @@ update_package_list(){
   return 0
 }
 
-download_dpp_package(){
+download_dpp_package() {
   local package_name=$1
 
   # Make sure all paths exist:
@@ -196,7 +196,7 @@ download_dpp_package(){
   return 0
 }
 
-install_dpp_package(){
+install_dpp_package() {
   local package_name=$1
 
   check_dasharo_package_env
@@ -223,7 +223,7 @@ install_dpp_package(){
   return 0
 }
 
-install_all_dpp_packages(){
+install_all_dpp_packages() {
   echo "Installing available DTS extensions..."
 
   update_package_list || return 1
@@ -248,7 +248,7 @@ install_all_dpp_packages(){
   return 0
 }
 
-check_avail_dpp_packages(){
+check_avail_dpp_packages() {
   echo "Checking for available DTS extensions..."
   AVAILABLE_PACKAGES=$(mc find --name "*.rpm" $DPP_SERVER_USER_ALIAS)
 
@@ -281,26 +281,26 @@ parse_for_premium_submenu() {
 
     # Create the JSON file only if any script have been found, this will be a
     # signal to render premium submenu:
-    [ -f "$DPP_SUBMENU_JSON" ] || echo '[]' > "$DPP_SUBMENU_JSON"
+    [ -f "$DPP_SUBMENU_JSON" ] || echo '[]' >"$DPP_SUBMENU_JSON"
 
     local script_name
     script_name=$(basename "$script")
 
     # Add a new entry to the JSON file
     json_data=$(jq --arg name "$script_name" --argjson pos "$position" \
-      '. += [{"file_name": $name, "file_menu_position": $pos}]' <<< "$json_data")
+      '. += [{"file_name": $name, "file_menu_position": $pos}]' <<<"$json_data")
 
     # Increment highest position for next script
     position=$((position + 1))
   done
 
   # Save updated JSON data
-  [ -f "$DPP_SUBMENU_JSON" ] && echo "$json_data" | jq '.' > "$DPP_SUBMENU_JSON"
+  [ -f "$DPP_SUBMENU_JSON" ] && echo "$json_data" | jq '.' >"$DPP_SUBMENU_JSON"
 
   return 0
 }
 
-show_dpp_submenu(){
+show_dpp_submenu() {
   # This menu is being rendered dynamically by parsing scripts from
   # DPP_PACKAGES_SCRIPTS_PATH. These scripts are being installed by DPP
   # packages.
@@ -321,21 +321,21 @@ show_dpp_submenu(){
   # Iterate over each JSON object:
   while IFS= read -r item; do
     local script_name
-    script_name=$(jq -r '.file_name' <<< "$item")
-    file_menu_position=$(jq -r '.file_menu_position' <<< "$item")
+    script_name=$(jq -r '.file_name' <<<"$item")
+    file_menu_position=$(jq -r '.file_menu_position' <<<"$item")
 
     local script_path="$DPP_PACKAGES_SCRIPTS_PATH/$script_name"
 
     bash "$script_path" menu_point "$file_menu_position"
 
-  done <<< "$json_data"
+  done <<<"$json_data"
 
   echo -e "${BLUE}**${YELLOW}     ${BACK_TO_MAIN_MENU_UP})${BLUE} Return to main menu${NORMAL}"
 
   return 0
 }
 
-dpp_submenu_options(){
+dpp_submenu_options() {
   local OPTION=$1
   local file_menu_position
   local script
@@ -357,7 +357,7 @@ dpp_submenu_options(){
   [ -z "$script" ] && return 1
 
   local script_name
-  script_name=$(jq -r '.file_name' <<< "$script")
+  script_name=$(jq -r '.file_name' <<<"$script")
 
   local script_path="$DPP_PACKAGES_SCRIPTS_PATH/$script_name"
 
