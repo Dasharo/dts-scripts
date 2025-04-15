@@ -4,8 +4,11 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+# shellcheck source=../include/dts-environment.sh
 source $DTS_ENV
+# shellcheck source=../include/dts-functions.sh
 source $DTS_FUNCS
+# shellcheck source=../include/dts-subscription.sh
 source $DTS_SUBS
 
 trap : 2
@@ -20,7 +23,7 @@ wait_for_input() {
   exit $code
 }
 
-while : ; do
+while :; do
   clear
   # Do some subscription routine each time menu is rendered:
   subscription_routine

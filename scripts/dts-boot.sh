@@ -32,10 +32,10 @@ source "$BASH_ENV"
 start_trace_logging
 start_logging
 if [ -z "$ERR_LOG_FILE" ]; then
-    # pass everything written to $ERR_LOG_FILE to logger function and save it's
-    # output to $ERR_LOG_FILE_REALPATH file
-    exec {ERR_LOG_FILE}> >(logger >> "$ERR_LOG_FILE_REALPATH")
-    ERR_LOG_FILE="/proc/$$/fd/$ERR_LOG_FILE"
+  # pass everything written to $ERR_LOG_FILE to logger function and save it's
+  # output to $ERR_LOG_FILE_REALPATH file
+  exec {ERR_LOG_FILE}> >(logger >>"$ERR_LOG_FILE_REALPATH")
+  ERR_LOG_FILE="/proc/$$/fd/$ERR_LOG_FILE"
 fi
 
 # shellcheck source=../include/dts-environment.sh
@@ -46,7 +46,7 @@ source $DTS_FUNCS
 source $DTS_HAL
 
 if [ -f $FUM_EFIVAR ]; then
-    $SBIN_DIR/dasharo-deploy update fum
+  $SBIN_DIR/dasharo-deploy update fum
 else
-    $SBIN_DIR/dts
+  $SBIN_DIR/dts
 fi

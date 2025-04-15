@@ -28,28 +28,28 @@ CMD="$1"
 FUM="$2"
 
 print_firm_access_warning() {
-# This function prints standard warning informing user that a specific DPP
-# firmware is available but he does not have access to it. Arguments: dpp,
-# dpp_cap, seabios, and heads:
+  # This function prints standard warning informing user that a specific DPP
+  # firmware is available but he does not have access to it. Arguments: dpp,
+  # dpp_cap, seabios, and heads:
   local _firm_type="$1"
   local _firm_type_print
 
   case $_firm_type in
-    dpp)
-      _firm_type_print="coreboot + UEFI"
-      ;;
-    dpp_cap)
-      _firm_type_print="coreboot + UEFI via Capsule Update"
-      ;;
-    seabios)
-      _firm_type_print="coreboot + SeaBIOS"
-      ;;
-    heads)
-      _firm_type_print="coreboot + Heads"
-      ;;
-    *)
-      return 1
-      ;;
+  dpp)
+    _firm_type_print="coreboot + UEFI"
+    ;;
+  dpp_cap)
+    _firm_type_print="coreboot + UEFI via Capsule Update"
+    ;;
+  seabios)
+    _firm_type_print="coreboot + SeaBIOS"
+    ;;
+  heads)
+    _firm_type_print="coreboot + Heads"
+    ;;
+  *)
+    return 1
+    ;;
   esac
 
   # Just a new line:
@@ -64,68 +64,68 @@ print_firm_access_warning() {
 }
 
 check_for_firmware_access() {
-# DPP credentials are being provided outside of this script, this script only
-# has to check whether the credentials give access to appropriate firmware. The
-# appropriate firmware are defined by FIRMWARE_VERSION variable.
+  # DPP credentials are being provided outside of this script, this script only
+  # has to check whether the credentials give access to appropriate firmware. The
+  # appropriate firmware are defined by FIRMWARE_VERSION variable.
 
   local _firm_ver_to_check
   _firm_ver_to_check=$1
 
   case ${_firm_ver_to_check} in
-    community)
-      # Always available.
-      ;;
-    community_cap)
-      # Always available.
-      ;;
-    dpp)
-      # This firmware type require user to provide creds:
-      [ "$DPP_IS_LOGGED" == "true" ] || return 1
+  community)
+    # Always available.
+    ;;
+  community_cap)
+    # Always available.
+    ;;
+  dpp)
+    # This firmware type require user to provide creds:
+    [ "$DPP_IS_LOGGED" == "true" ] || return 1
 
-      mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP}"  > /dev/null 2>>"$ERR_LOG_FILE"
+    mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP}" >/dev/null 2>>"$ERR_LOG_FILE"
 
-      [ $? -ne 0 ] && return 1
-      ;;
-    dpp_cap)
-      # This firmware type require user to provide creds:
-      [ "$DPP_IS_LOGGED" == "true" ] || return 1
+    [ $? -ne 0 ] && return 1
+    ;;
+  dpp_cap)
+    # This firmware type require user to provide creds:
+    [ "$DPP_IS_LOGGED" == "true" ] || return 1
 
-      mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP_CAP}"  > /dev/null 2>>"$ERR_LOG_FILE"
+    mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP_CAP}" >/dev/null 2>>"$ERR_LOG_FILE"
 
-      [ $? -ne 0 ] && return 1
-      ;;
-    seabios)
-      # This firmware type require user to provide creds:
-      [ "$DPP_IS_LOGGED" == "true" ] || return 1
+    [ $? -ne 0 ] && return 1
+    ;;
+  seabios)
+    # This firmware type require user to provide creds:
+    [ "$DPP_IS_LOGGED" == "true" ] || return 1
 
-      mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP_SEABIOS}" > /dev/null 2>>"$ERR_LOG_FILE"
+    mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP_SEABIOS}" >/dev/null 2>>"$ERR_LOG_FILE"
 
-      [ $? -ne 0 ] && return 1
-      ;;
-    heads)
-      # This firmware type require user to provide creds:
-      [ "$DPP_IS_LOGGED" == "true" ] || return 1
+    [ $? -ne 0 ] && return 1
+    ;;
+  heads)
+    # This firmware type require user to provide creds:
+    [ "$DPP_IS_LOGGED" == "true" ] || return 1
 
-      mc find "${DPP_SERVER_USER_ALIAS}/${HEADS_LINK_DPP}" > /dev/null 2>>"$ERR_LOG_FILE"
+    mc find "${DPP_SERVER_USER_ALIAS}/${HEADS_LINK_DPP}" >/dev/null 2>>"$ERR_LOG_FILE"
 
-      [ $? -ne 0 ] && return 1
-      ;;
+    [ $? -ne 0 ] && return 1
+    ;;
   esac
 
   return 0
 }
 
 ask_for_version() {
-# Available firmware versions are defined by FIRMWARE_VERSION variable. There
-# are community and DPP firmwares with UEFI Capsule Update support, but they are
-# for firmware updates only, but this function is being called during
-# installation, so no need to mention them here.
+  # Available firmware versions are defined by FIRMWARE_VERSION variable. There
+  # are community and DPP firmwares with UEFI Capsule Update support, but they are
+  # for firmware updates only, but this function is being called during
+  # installation, so no need to mention them here.
   local _option
   local _might_be_comm
   local _might_be_dpp
   local _might_be_seabios
 
-  while : ; do
+  while :; do
     echo
     echo "Please, select Dasharo firmware version to install:"
     echo
@@ -147,7 +147,7 @@ ask_for_version() {
     if [ -n "$BIOS_LINK_DPP" ]; then
       if check_for_firmware_access dpp; then
         echo "  d) DPP version (coreboot + UEFI)"
-	_might_be_dpp="true"
+        _might_be_dpp="true"
       else
         print_firm_access_warning dpp
       fi
@@ -156,7 +156,7 @@ ask_for_version() {
     if [ -n "$BIOS_LINK_DPP_SEABIOS" ]; then
       if check_for_firmware_access seabios; then
         echo "  s) DPP version (coreboot + SeaBIOS)"
-	_might_be_seabios="true"
+        _might_be_seabios="true"
       else
         print_firm_access_warning seabios
       fi
@@ -170,53 +170,52 @@ ask_for_version() {
     # In case of several Dasharo Firmware versions supported we leave the
     # decision to user:
     case ${_option} in
-      c|C|comm|community|COMMUNITY|COMM|Community)
-	if [ -n "$_might_be_comm" ]; then
-	  print_ok "Community (Coreboot + EDK2) version selected"
-	  FIRMWARE_VERSION="community"
-	  break
-	fi
-	;;
-      d|D|dpp|DPP|Dpp)
-	if [ -n "$_might_be_dpp" ]; then
-	  print_ok "Subscription version (cooreboot + EDK2) selected"
-          FIRMWARE_VERSION="dpp"
-	  break
-	fi
-	;;
-      s|S|sea|seabios|SeaBIOS)
-	if [ -n "$_might_be_seabios" ]; then
-          print_ok "Subscription version (coreboot + SeaBIOS) selected"
-	  FIRMWARE_VERSION="seabios"
-	  break
-	fi
-	;;
-      b|B)
-        echo "Returning to main menu..."
-        exit 0
-        ;;
-      *)
-        ;;
+    c | C | comm | community | COMMUNITY | COMM | Community)
+      if [ -n "$_might_be_comm" ]; then
+        print_ok "Community (Coreboot + EDK2) version selected"
+        FIRMWARE_VERSION="community"
+        break
+      fi
+      ;;
+    d | D | dpp | DPP | Dpp)
+      if [ -n "$_might_be_dpp" ]; then
+        print_ok "Subscription version (cooreboot + EDK2) selected"
+        FIRMWARE_VERSION="dpp"
+        break
+      fi
+      ;;
+    s | S | sea | seabios | SeaBIOS)
+      if [ -n "$_might_be_seabios" ]; then
+        print_ok "Subscription version (coreboot + SeaBIOS) selected"
+        FIRMWARE_VERSION="seabios"
+        break
+      fi
+      ;;
+    b | B)
+      echo "Returning to main menu..."
+      exit 0
+      ;;
+    *) ;;
     esac
   done
 
   return 0
 }
 
-choose_version(){
-# This function is used for determining Dasharo firmware update version and is
-# being used during updates only. We do not ask user to choose firmware update
-# versions compared to installation workflow (check ask_for_version function),
-# instead we have some priorities:
-# 1) Check if Dasharo Heads Firmware available, use it if yes;
-# 2) Check if Dasharo EDK2 Firmware available, use it if yes;
-# 3) Use Dasharo Community Firmware;
-#
-# Capsules have higher priority over simple binaries.
-#
-# TODO: Currently we do not have clear and concise update mechanisms (e.g. what
-# and when a specific firmware version can be used, how to handle revisions of
-# firmware).
+choose_version() {
+  # This function is used for determining Dasharo firmware update version and is
+  # being used during updates only. We do not ask user to choose firmware update
+  # versions compared to installation workflow (check ask_for_version function),
+  # instead we have some priorities:
+  # 1) Check if Dasharo Heads Firmware available, use it if yes;
+  # 2) Check if Dasharo EDK2 Firmware available, use it if yes;
+  # 3) Use Dasharo Community Firmware;
+  #
+  # Capsules have higher priority over simple binaries.
+  #
+  # TODO: Currently we do not have clear and concise update mechanisms (e.g. what
+  # and when a specific firmware version can be used, how to handle revisions of
+  # firmware).
 
   if [ "$HAVE_HEADS_FW" == "true" ]; then
     if check_for_firmware_access heads; then
@@ -235,7 +234,7 @@ choose_version(){
     # Check, whether currently installed firmware supports Capsule Update (
     # check comments for DASHARO_SUPPORT_CAP_FROM in dts-environment.sh for more
     # inf):
-    if compare_versions "$DASHARO_VERSION" "$DASHARO_SUPPORT_CAP_FROM" ; then
+    if compare_versions "$DASHARO_VERSION" "$DASHARO_SUPPORT_CAP_FROM"; then
       if check_for_firmware_access dpp_cap; then
         FIRMWARE_VERSION="dpp_cap"
 
@@ -262,7 +261,7 @@ choose_version(){
     # Check, whether currently installed firmware supports Capsule Update (
     # check comments for DASHARO_SUPPORT_CAP_FROM in dts-environment.sh for more
     # inf):
-    if compare_versions "$DASHARO_VERSION" "$DASHARO_SUPPORT_CAP_FROM" ; then
+    if compare_versions "$DASHARO_VERSION" "$DASHARO_SUPPORT_CAP_FROM"; then
       FIRMWARE_VERSION="community_cap"
 
       return 0
@@ -276,8 +275,8 @@ choose_version(){
 }
 
 prepare_env() {
-# This function sets all needed variables after user have answered all needed
-# questions and before this script does any work.
+  # This function sets all needed variables after user have answered all needed
+  # questions and before this script does any work.
   local _prepare_for
   _prepare_for="$1"
 
@@ -384,11 +383,11 @@ prepare_env() {
 }
 
 display_warning() {
-# This function shows user some inf. about platform and binaries and asks if the
-# deployment process should be continued.
+  # This function shows user some inf. about platform and binaries and asks if the
+  # deployment process should be continued.
   local _option
 
-  while : ; do
+  while :; do
     echo
     print_warning "Please verify detected hardware!"
     echo
@@ -408,19 +407,18 @@ display_warning() {
     echo
 
     case ${_option} in
-      ""|yes|y|Y|Yes|YES)
-        break
-        ;;
-      n|N|no|NO|No)
-        echo "Returning to main menu..."
-        exit 0
-        ;;
-      *)
-        ;;
+    "" | yes | y | Y | Yes | YES)
+      break
+      ;;
+    n | N | no | NO | No)
+      echo "Returning to main menu..."
+      exit 0
+      ;;
+    *) ;;
     esac
   done
 
-  while : ; do
+  while :; do
     echo "Following firmware will be used to deploy Dasharo:"
 
     if [ -n "$BIOS_LINK" ]; then
@@ -442,9 +440,9 @@ display_warning() {
     echo
     echo "You can learn more about this release on: https://docs.dasharo.com/"
 
-    if ! check_if_dasharo && \
-	    [ "$CAN_INSTALL_BIOS" = "false" ] && \
-	    [ "$HAVE_EC" = "true" ]; then
+    if ! check_if_dasharo &&
+      [ "$CAN_INSTALL_BIOS" = "false" ] &&
+      [ "$HAVE_EC" = "true" ]; then
       print_warning "$SYSTEM_VENDOR $SYSTEM_MODEL supports only EC firmware deployment!"
       print_warning "Dasharo BIOS will have to be flashed manually. More on:"
       print_warning "https://docs.dasharo.com/unified/novacustom/initial-deployment/"
@@ -455,15 +453,14 @@ display_warning() {
     echo
 
     case ${_option} in
-      ""|yes|y|Y|Yes|YES)
-        break
-        ;;
-      n|N|no|NO|No)
-        echo "Returning to main menu..."
-        exit 0
-        ;;
-      *)
-        ;;
+    "" | yes | y | Y | Yes | YES)
+      break
+      ;;
+    n | N | no | NO | No)
+      echo "Returning to main menu..."
+      exit 0
+      ;;
+    *) ;;
     esac
   done
 
@@ -492,10 +489,10 @@ backup() {
       FLASHROM_ADD_OPT_READ+=" -i gbe"
     fi
   else
-      # No descriptor, probably safe to read everything
-      FLASHROM_ADD_OPT_READ=""
+    # No descriptor, probably safe to read everything
+    FLASHROM_ADD_OPT_READ=""
   fi
-  $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r "${FW_BACKUP_DIR}"/rom.bin ${FLASHROM_ADD_OPT_READ} >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE
+  $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r "${FW_BACKUP_DIR}"/rom.bin ${FLASHROM_ADD_OPT_READ} >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
   error_check "Failed to read BIOS firmware backup"
 
   if [ "$HAVE_EC" == "true" ]; then
@@ -503,7 +500,7 @@ backup() {
       echo "Device has already Open Source Embedded Controller firmware, do not backup EC..."
     else
       echo "Backing up EC firmware..."
-      $FLASHROM read_firm_mock -p "$PROGRAMMER_EC" ${FLASH_CHIP_SELECT} -r "${FW_BACKUP_DIR}"/ec.bin >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE
+      $FLASHROM read_firm_mock -p "$PROGRAMMER_EC" ${FLASH_CHIP_SELECT} -r "${FW_BACKUP_DIR}"/ec.bin >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
       error_check "Failed to read EC firmware backup"
     fi
   fi
@@ -517,28 +514,28 @@ backup() {
 }
 
 romhole_migration() {
-    $CBFSTOOL layout_mock $BIOS_UPDATE_FILE layout -w | grep -q "ROMHOLE" || return
+  $CBFSTOOL layout_mock $BIOS_UPDATE_FILE layout -w | grep -q "ROMHOLE" || return
 
-    $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r /tmp/rom.bin --ifd -i bios >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE
-    error_check "Failed to read current firmware to migrate MSI ROMHOLE"
-    if check_if_dasharo; then
-      $CBFSTOOL layout_mock /tmp/rom.bin layout -w | grep -q "ROMHOLE" || return
-      # This one is rather unlikely to fail, but just in case print a warning
-      $CBFSTOOL read_romhole_mock /tmp/rom.bin read -r ROMHOLE -f /tmp/romhole.bin 2>>"$ERR_LOG_FILE"
-      if [ $? -ne 0 ]; then
-        print_warning "Failed to migrate MSI ROMHOLE, your platform's unique SMBIOS/DMI data may be lost"
-        return
-      fi
-    else
-      dd if=/tmp/rom.bin of=/tmp/romhole.bin skip=$((0x17C0000)) bs=128K count=1 iflag=skip_bytes >/dev/null 2>>"$ERR_LOG_FILE"
+  $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r /tmp/rom.bin --ifd -i bios >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
+  error_check "Failed to read current firmware to migrate MSI ROMHOLE"
+  if check_if_dasharo; then
+    $CBFSTOOL layout_mock /tmp/rom.bin layout -w | grep -q "ROMHOLE" || return
+    # This one is rather unlikely to fail, but just in case print a warning
+    $CBFSTOOL read_romhole_mock /tmp/rom.bin read -r ROMHOLE -f /tmp/romhole.bin 2>>"$ERR_LOG_FILE"
+    if [ $? -ne 0 ]; then
+      print_warning "Failed to migrate MSI ROMHOLE, your platform's unique SMBIOS/DMI data may be lost"
+      return
     fi
+  else
+    dd if=/tmp/rom.bin of=/tmp/romhole.bin skip=$((0x17C0000)) bs=128K count=1 iflag=skip_bytes >/dev/null 2>>"$ERR_LOG_FILE"
+  fi
 
-    $CBFSTOOL "$BIOS_UPDATE_FILE" write -r ROMHOLE -f /tmp/romhole.bin -u 2>>"$ERR_LOG_FILE"
+  $CBFSTOOL "$BIOS_UPDATE_FILE" write -r ROMHOLE -f /tmp/romhole.bin -u 2>>"$ERR_LOG_FILE"
 }
 
 smbios_migration() {
-  echo -n "$($DMIDECODE dump_var_mock -s system-uuid)" > $SYSTEM_UUID_FILE
-  echo -n "$($DMIDECODE dump_var_mock -s baseboard-serial-number)" > $SERIAL_NUMBER_FILE
+  echo -n "$($DMIDECODE dump_var_mock -s system-uuid)" >$SYSTEM_UUID_FILE
+  echo -n "$($DMIDECODE dump_var_mock -s baseboard-serial-number)" >$SERIAL_NUMBER_FILE
 
   COREBOOT_SEC=$($CBFSTOOL layout_mock $BIOS_UPDATE_FILE layout -w | grep "COREBOOT")
   FW_MAIN_A_SEC=$($CBFSTOOL layout_mock $BIOS_UPDATE_FILE layout -w | grep "FW_MAIN_A")
@@ -570,24 +567,24 @@ smbios_migration() {
 }
 
 smmstore_migration() {
-    echo -n "Backing up firmware configuration... "
-    $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r /tmp/dasharo_dump.rom ${FLASHROM_ADD_OPT_READ} --fmap -i FMAP -i SMMSTORE >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE
-    $CBFSTOOL read_smmstore_mock /tmp/dasharo_dump.rom read -r SMMSTORE -f /tmp/smmstore.bin >> $ERR_LOG_FILE 2>&1 || \
-      print_warning "Failed! Default settings will be used."
-    $CBFSTOOL "$BIOS_UPDATE_FILE" write -r SMMSTORE -f /tmp/smmstore.bin -u >> $ERR_LOG_FILE 2>&1 || \
-      print_warning "Failed! Default settings will be used."
-    print_ok Done.
+  echo -n "Backing up firmware configuration... "
+  $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r /tmp/dasharo_dump.rom ${FLASHROM_ADD_OPT_READ} --fmap -i FMAP -i SMMSTORE >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
+  $CBFSTOOL read_smmstore_mock /tmp/dasharo_dump.rom read -r SMMSTORE -f /tmp/smmstore.bin >>$ERR_LOG_FILE 2>&1 ||
+    print_warning "Failed! Default settings will be used."
+  $CBFSTOOL "$BIOS_UPDATE_FILE" write -r SMMSTORE -f /tmp/smmstore.bin -u >>$ERR_LOG_FILE 2>&1 ||
+    print_warning "Failed! Default settings will be used."
+  print_ok Done.
 }
 
 bootsplash_migration() {
-    $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r /tmp/dasharo_dump.rom ${FLASHROM_ADD_OPT_READ} --fmap -i FMAP -i BOOTSPLASH >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE
-    # If no custom logo, return from bootsplash_migration early and don't show
-    # unnecessary messages
-    $CBFSTOOL /tmp/dasharo_dump.rom extract -r BOOTSPLASH -n logo.bmp -f /tmp/logo.bmp >> $ERR_LOG_FILE 2>&1 || return 1
-    echo -n "Backing up custom boot logo... "
-    $DCU logo $BIOS_UPDATE_FILE -l /tmp/logo.bmp >> $ERR_LOG_FILE 2>&1 || \
-      print_warning "Failed! Default boot splash will be used." || return 1
-    print_ok Done.
+  $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r /tmp/dasharo_dump.rom ${FLASHROM_ADD_OPT_READ} --fmap -i FMAP -i BOOTSPLASH >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
+  # If no custom logo, return from bootsplash_migration early and don't show
+  # unnecessary messages
+  $CBFSTOOL /tmp/dasharo_dump.rom extract -r BOOTSPLASH -n logo.bmp -f /tmp/logo.bmp >>$ERR_LOG_FILE 2>&1 || return 1
+  echo -n "Backing up custom boot logo... "
+  $DCU logo $BIOS_UPDATE_FILE -l /tmp/logo.bmp >>$ERR_LOG_FILE 2>&1 ||
+    print_warning "Failed! Default boot splash will be used." || return 1
+  print_ok Done.
 }
 
 resign_binary() {
@@ -602,11 +599,11 @@ resign_binary() {
 check_vboot_keys() {
   if [ "$HAVE_VBOOT" -eq 0 ]; then
     # If we flash whole BIOS region, no need to check if keys match
-    grep -q "\--ifd" <<< "$FLASHROM_ADD_OPT_UPDATE" && grep -q "\-i bios" <<< "$FLASHROM_ADD_OPT_UPDATE" && return
+    grep -q "\--ifd" <<<"$FLASHROM_ADD_OPT_UPDATE" && grep -q "\-i bios" <<<"$FLASHROM_ADD_OPT_UPDATE" && return
     # No FMAP flashing? Also skip
-    grep -q "\--fmap" <<< "$FLASHROM_ADD_OPT_UPDATE" || return
+    grep -q "\--fmap" <<<"$FLASHROM_ADD_OPT_UPDATE" || return
 
-    BINARY_KEYS=$(CBFSTOOL=$(which cbfstool) $FUTILITY dump_vboot_keys show $BIOS_UPDATE_FILE| grep -i 'key sha1sum')
+    BINARY_KEYS=$(CBFSTOOL=$(which cbfstool) $FUTILITY dump_vboot_keys show $BIOS_UPDATE_FILE | grep -i 'key sha1sum')
 
     if [ $BOARD_HAS_FD_REGION -eq 0 ]; then
       FLASHROM_ADD_OPT_READ=""
@@ -628,24 +625,24 @@ check_vboot_keys() {
 
 blob_transmission() {
   echo "Extracting the UEFI image from BIOS update"
-  wget -O "$DBT_BIOS_UPDATE_FILENAME" --user-agent='Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)' "$DBT_BIOS_UPDATE_URL" >> $ERR_LOG_FILE 2>&1
+  wget -O "$DBT_BIOS_UPDATE_FILENAME" --user-agent='Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)' "$DBT_BIOS_UPDATE_URL" >>$ERR_LOG_FILE 2>&1
   error_file_check "$DBT_BIOS_UPDATE_FILENAME" "Failed to download BIOS for $SYSTEM_MODEL. Please make sure Ethernet cable is connected and try again."
 
   sha256sum --check <(echo "$DBT_BIOS_UPDATE_HASH")
   error_check "Failed SHA-256 sum check on the downloaded BIOS for $SYSTEM_MODEL"
 
-  binwalk --run-as=root -e "$DBT_BIOS_UPDATE_FILENAME" -C /tmp >> $ERR_LOG_FILE 2>&1
+  binwalk --run-as=root -e "$DBT_BIOS_UPDATE_FILENAME" -C /tmp >>$ERR_LOG_FILE 2>&1
   error_file_check "$DBT_UEFI_IMAGE" "Failed to extract UEFI image from BIOS update"
 
-  uefi-firmware-parser -e "$DBT_UEFI_IMAGE" -O >> $ERR_LOG_FILE 2>&1
+  uefi-firmware-parser -e "$DBT_UEFI_IMAGE" -O >>$ERR_LOG_FILE 2>&1
 
   if [ -n "$SINIT_ACM_FILENAME" ] && [ -n "$SINIT_ACM_URL" ]; then
     echo "Downloading the Intel SINIT ACM"
-    wget -O "$SINIT_ACM_FILENAME" "$SINIT_ACM_URL" >> $ERR_LOG_FILE 2>&1
+    wget -O "$SINIT_ACM_FILENAME" "$SINIT_ACM_URL" >>$ERR_LOG_FILE 2>&1
     error_file_check "$SINIT_ACM_FILENAME" "Failed to download Intel SINIT ACM. Please make sure Ethernet cable is connected and try again."
 
     echo "Downloading the Intel SINIT ACM checksum"
-    wget -O "$SINIT_ACM_HASH_FILENAME" "$SINIT_ACM_HASH_URL" >> $ERR_LOG_FILE 2>&1
+    wget -O "$SINIT_ACM_HASH_FILENAME" "$SINIT_ACM_HASH_URL" >>$ERR_LOG_FILE 2>&1
     error_file_check "$SINIT_ACM_HASH_FILENAME" "Failed to download Intel SINIT ACM checksum. Please make sure Ethernet cable is connected and try again."
 
     sha256sum --check "$SINIT_ACM_HASH_FILENAME"
@@ -679,14 +676,14 @@ blob_transmission() {
 }
 
 deploy_ec_firmware() {
-# This function deploys (installs or updates) downloaded EC firmware either UEFI
-# capsules (updates only) and binaries. Parameters: update, install.
-#
-# TODO: Currently we have here flashrom parameters configuration code, this
-# should be done before this function is called, so as to place here only
-# deployment-related code. Ideally the deploying calls would look like this:
-#
-# $DEPLOY_COMMAND $DEPLOY_ARGS &>> $LOGS_FILE
+  # This function deploys (installs or updates) downloaded EC firmware either UEFI
+  # capsules (updates only) and binaries. Parameters: update, install.
+  #
+  # TODO: Currently we have here flashrom parameters configuration code, this
+  # should be done before this function is called, so as to place here only
+  # deployment-related code. Ideally the deploying calls would look like this:
+  #
+  # $DEPLOY_COMMAND $DEPLOY_ARGS &>> $LOGS_FILE
   local _mode
   _mode="$1"
 
@@ -707,7 +704,7 @@ deploy_ec_firmware() {
     echo "Updating Embedded Controller firmware. Your computer will power off automatically when done."
 
     # Following command will reset device, so the function will not quit:
-    $DASHARO_ECTOOL flash "$EC_UPDATE_FILE" &>> $ERR_LOG_FILE
+    $DASHARO_ECTOOL flash "$EC_UPDATE_FILE" &>>$ERR_LOG_FILE
     error_check "Failed to update EC firmware"
 
     return 0
@@ -720,9 +717,9 @@ deploy_ec_firmware() {
 
       if [ "$_ec_fw_version" != "$COMPATIBLE_EC_FW_VERSION" ]; then
         echo "Installing EC..."
-        $FLASHROM -p "$PROGRAMMER_EC" ${FLASH_CHIP_SELECT} -w "$EC_UPDATE_FILE" >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE
+        $FLASHROM -p "$PROGRAMMER_EC" ${FLASH_CHIP_SELECT} -w "$EC_UPDATE_FILE" >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
         error_check "Failed to install Dasharo EC firmware"
-	print_ok "Successfully installed Dasharo EC firmware"
+        print_ok "Successfully installed Dasharo EC firmware"
       fi
     fi
 
@@ -733,9 +730,9 @@ deploy_ec_firmware() {
   return 1
 }
 
-firmware_pre_updating_routine(){
-# This function only separates some code from deployment code, so to make clear
-# where is deployment code, and what should be executed before it:
+firmware_pre_updating_routine() {
+  # This function only separates some code from deployment code, so to make clear
+  # where is deployment code, and what should be executed before it:
   check_flash_lock
 
   if [ "$HAVE_EC" == "true" ]; then
@@ -764,9 +761,9 @@ firmware_pre_updating_routine(){
   return 0
 }
 
-firmware_pre_installation_routine(){
-# This function only separates some code from deployment code, so to make clear
-# where is deployment code, and what should be executed before it:
+firmware_pre_installation_routine() {
+  # This function only separates some code from deployment code, so to make clear
+  # where is deployment code, and what should be executed before it:
   check_flash_lock
   check_intel_regions
   check_blobs_in_binary $BIOS_UPDATE_FILE
@@ -797,15 +794,15 @@ firmware_pre_installation_routine(){
   return 0
 }
 
-deploy_firmware(){
-# This function deploys (installs or updates) downloaded firmware either UEFI
-# capsules (updates only) or binaries. Parameters: update, install.
-#
-# TODO: Currently we have here flashrom parameters configuration code, this
-# should be done before this function is called, so as to place here only
-# deployment-related code. Ideally the deploying calls would look like this:
-#
-# $DEPLOY_COMMAND $DEPLOY_ARGS &>> $LOGS_FILE
+deploy_firmware() {
+  # This function deploys (installs or updates) downloaded firmware either UEFI
+  # capsules (updates only) or binaries. Parameters: update, install.
+  #
+  # TODO: Currently we have here flashrom parameters configuration code, this
+  # should be done before this function is called, so as to place here only
+  # deployment-related code. Ideally the deploying calls would look like this:
+  #
+  # $DEPLOY_COMMAND $DEPLOY_ARGS &>> $LOGS_FILE
   local _mode
   _mode="$1"
 
@@ -838,16 +835,16 @@ deploy_firmware(){
       # using the `check_blobs_in_binary` function.
       set_intel_regions_update_params "$FLASHROM_ADD_OPT_UPDATE_OVERRIDE"
       FLASHROM_ADD_OPT_UPDATE_OVERRIDE="$FLASHROM_ADD_OPT_REGIONS"
-      $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE_OVERRIDE} -w "$BIOS_UPDATE_FILE"  >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE
+      $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE_OVERRIDE} -w "$BIOS_UPDATE_FILE" >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
       error_check "Failed to update Dasharo firmware"
     else
       set_intel_regions_update_params "-N --ifd"
-      $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE} -w "$BIOS_UPDATE_FILE"  >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE
+      $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE} -w "$BIOS_UPDATE_FILE" >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
       error_check "Failed to update Dasharo firmware"
 
       if [ $BINARY_HAS_RW_B -eq 0 ]; then
         echo "Updating second firmware partition..."
-        $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} --fmap -N -i RW_SECTION_B -w "$BIOS_UPDATE_FILE"  >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE
+        $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} --fmap -N -i RW_SECTION_B -w "$BIOS_UPDATE_FILE" >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
         error_check "Failed to update second firmware partition"
       fi
     fi
@@ -859,9 +856,9 @@ deploy_firmware(){
     # or platform has no descriptor.
     if [ "$FLASHROM_ADD_OPT_REGIONS" != "-N --ifd" ] && [ "$FLASHROM_ADD_OPT_REGIONS" != "" ]; then
       UPDATE_STRING=""
-      grep -q "\-i fd" <<< "$FLASHROM_ADD_OPT_REGIONS"
+      grep -q "\-i fd" <<<"$FLASHROM_ADD_OPT_REGIONS"
       UPDATE_IFD=$?
-      grep -q "\-i me" <<< "$FLASHROM_ADD_OPT_REGIONS"
+      grep -q "\-i me" <<<"$FLASHROM_ADD_OPT_REGIONS"
       UPDATE_ME=$?
       if [ $UPDATE_IFD -eq 0 ]; then
         UPDATE_STRING+="Flash Descriptor"
@@ -873,7 +870,7 @@ deploy_firmware(){
         UPDATE_STRING+="Management Engine"
       fi
       echo "Updating $UPDATE_STRING"
-      $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "$BIOS_UPDATE_FILE" >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE
+      $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "$BIOS_UPDATE_FILE" >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
       error_check "Failed to update $UPDATE_STRING"
     fi
 
@@ -888,7 +885,7 @@ deploy_firmware(){
     if [ "${BIOS_LINK}" = "${BIOS_LINK_DPP_SEABIOS}" ]; then
       _flashrom_extra_args="--fmap -i COREBOOT"
     fi
-    $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "$BIOS_UPDATE_FILE" ${_flashrom_extra_args} >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE
+    $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "$BIOS_UPDATE_FILE" ${_flashrom_extra_args} >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
     error_check "Failed to install Dasharo firmware"
     print_ok "Successfully installed Dasharo firmware"
 
@@ -900,15 +897,15 @@ deploy_firmware(){
 }
 
 install_workflow() {
-# Installation workflow. The installation of firmware is possible only via
-# flashrom, capsules cannot do the installation because they need initial
-# support inside firmware. The workflow steps are:
-# 1) Prepare system for installation (e.g. check connection);
-# 2) Prepare environment for installation (e.g. set all needed vars);
-# 3) Ask user are the changes that will be done ok;
-# 4) Do backup;
-# 5) Do the installation;
-# 6) Do some after-installation routine.
+  # Installation workflow. The installation of firmware is possible only via
+  # flashrom, capsules cannot do the installation because they need initial
+  # support inside firmware. The workflow steps are:
+  # 1) Prepare system for installation (e.g. check connection);
+  # 2) Prepare environment for installation (e.g. set all needed vars);
+  # 3) Ask user are the changes that will be done ok;
+  # 4) Do backup;
+  # 5) Do the installation;
+  # 6) Do some after-installation routine.
   sync_clocks
 
   # Verify that the device is not using battery as a power source:
@@ -977,13 +974,13 @@ install_workflow() {
 }
 
 update_workflow() {
-# Update workflow. Supported firmware formats: binary, UEFI capsule. The
-# workflow steps are:
-# 1) Prepare system for update (e.g. check connection);
-# 2) Prepare environment for update (e.g. set all needed vars);
-# 3) Ask user are the changes that will be done ok;
-# 4) Do the updating;
-# 5) Do some after-updating routine.
+  # Update workflow. Supported firmware formats: binary, UEFI capsule. The
+  # workflow steps are:
+  # 1) Prepare system for update (e.g. check connection);
+  # 2) Prepare environment for update (e.g. set all needed vars);
+  # 3) Ask user are the changes that will be done ok;
+  # 4) Do the updating;
+  # 5) Do some after-updating routine.
   CAN_SWITCH_TO_HEADS="false"
   sync_clocks
 
@@ -1012,11 +1009,11 @@ update_workflow() {
 
   # TODO: It is not a good practice to do some target specific work in the code
   # of a scallable product, this should be handled in a more scallable way:
-  if [[ "$UPDATE_VERSION" == "1.1.1" && \
-    ( "$BOARD_MODEL" == "PRO Z690-A WIFI DDR4(MS-7D25)" || \
-      "$BOARD_MODEL" == "PRO Z690-A DDR4(MS-7D25)" || \
-      "$BOARD_MODEL" == "PRO Z690-A (MS-7D25)" || \
-      "$BOARD_MODEL" == "PRO Z690-A WIFI (MS-7D25)" ) ]]; then
+  if [[ "$UPDATE_VERSION" == "1.1.1" &&
+    ("$BOARD_MODEL" == "PRO Z690-A WIFI DDR4(MS-7D25)" ||
+    "$BOARD_MODEL" == "PRO Z690-A DDR4(MS-7D25)" ||
+    "$BOARD_MODEL" == "PRO Z690-A (MS-7D25)" ||
+    "$BOARD_MODEL" == "PRO Z690-A WIFI (MS-7D25)") ]]; then
 
     cpu_gen_check=$($LSCPU | grep -F "Model name" | grep -E "\-(13|14)[0-9]{3}" | wc -l)
 
@@ -1047,15 +1044,15 @@ update_workflow() {
   if [ ! -z "$SWITCHING_TO" ]; then
     # Any post-branch-switch messaging should go here
     case "$SWITCHING_TO" in
-      "uefi")
-        print_ok "Successfully switched to Dasharo UEFI firmware."
-        print_warning "You may need to re-create boot manager entries!"
-        ;;
-      "heads")
-        print_ok "Successfully switched to Dasharo Heads firmware."
-        print_warning "On first boot you will see a warning about unsealing TOTP secrets."
-        print_warning "This is expected. Run OEM Factory Reset / Re-Ownership to finish deploying Heads."
-        ;;
+    "uefi")
+      print_ok "Successfully switched to Dasharo UEFI firmware."
+      print_warning "You may need to re-create boot manager entries!"
+      ;;
+    "heads")
+      print_ok "Successfully switched to Dasharo Heads firmware."
+      print_warning "On first boot you will see a warning about unsealing TOTP secrets."
+      print_warning "This is expected. Run OEM Factory Reset / Re-Ownership to finish deploying Heads."
+      ;;
     esac
     read -p "Press Enter to continue."
   else
@@ -1092,7 +1089,7 @@ update_workflow() {
 }
 
 restore() {
-  while : ; do
+  while :; do
     echo
     echo "Restoring firmware from HCL report."
     echo "Take note that this will only restore BIOS firmware, no EC."
@@ -1127,81 +1124,80 @@ restore() {
     uuid="$(uuidgen -n @x500 -N $uuid_string -s)"
 
     case ${OPTION} in
-      1)
-        echo
-        echo "Searching for HCL report on device..."
+    1)
+      echo
+      echo "Searching for HCL report on device..."
 
-        HCL_REPORT_PACKAGE="$(find / -name "*$uuid*" | head -n1)"
-        if [ ! -z $HCL_REPORT_PACKAGE ]; then
-          tar -zxf "$HCL_REPORT_PACKAGE" -C /tmp
-          echo "Restoring BIOS firmware..."
-          if [ -f "/tmp/logs/rom.bin" ]; then
-            print_ok "Found $HCL_REPORT_PACKAGE"
-            read -p "Do you want to restore firmware from the given HCL report? [N/y] "
-            case ${REPLY} in
-                yes|y|Y|Yes|YES)
-                  # Ideally we would like to write the entire flash when restoring,
-                  # but in reality we may face locked or unaccessible regions.
-                  # To be on the safe side, flash whatever can be flashed by determining
-                  # what is writable.
-                  check_flash_lock
-                  check_intel_regions
-                  check_blobs_in_binary /tmp/logs/rom.bin
-                  check_if_me_disabled
-                  set_intel_regions_update_params "-N --ifd -i bios"
-                  $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "/tmp/logs/rom.bin" >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE
-                  error_check "Failed to restore BIOS firmware! You can try one more time."
-                  print_ok "Successfully restored firmware"
-                  echo "Returning to main menu..."
-                  exit 0
-                  ;;
-                *)
-                  echo "Returning to main menu..."
-                  exit 0
-                  ;;
-            esac
-          else
-            print_error "Report does not have firmware backup!"
-          fi
-        else
-          print_warning "No HCL report found, cannot restore firmware"
-          echo "Returning to main menu..."
-          exit 0
-        fi
-        ;;
-      2)
-        echo
-        echo "Searching for HCL report on cloud..."
-
-        ${CMD_CLOUD_LIST} $uuid
-        error_check "Could not download HCL report from cloud."
-
-        HCL_REPORT_PACKAGE="$(find / -name "*$uuid*" | head -n1)"
+      HCL_REPORT_PACKAGE="$(find / -name "*$uuid*" | head -n1)"
+      if [ ! -z $HCL_REPORT_PACKAGE ]; then
         tar -zxf "$HCL_REPORT_PACKAGE" -C /tmp
         echo "Restoring BIOS firmware..."
         if [ -f "/tmp/logs/rom.bin" ]; then
-          # Ideally we would like to write the entire flash when restoring,
-          # but in reality we may face locked or unaccessible regions.
-          # To be on the safe side, flash whatever can be flashed by determining
-          # what is writable.
-          check_flash_lock
-          check_intel_regions
-          check_blobs_in_binary /tmp/logs/rom.bin
-          check_if_me_disabled
-          set_intel_regions_update_params "-N --ifd -i bios"
-          $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "/tmp/logs/rom.bin" >> $FLASHROM_LOG_FILE 2>> $ERR_LOG_FILE
-          error_check "Failed to restore BIOS firmware! You can try one more time."
-          print_ok "Successfully restored firmware"
+          print_ok "Found $HCL_REPORT_PACKAGE"
+          read -p "Do you want to restore firmware from the given HCL report? [N/y] "
+          case ${REPLY} in
+          yes | y | Y | Yes | YES)
+            # Ideally we would like to write the entire flash when restoring,
+            # but in reality we may face locked or unaccessible regions.
+            # To be on the safe side, flash whatever can be flashed by determining
+            # what is writable.
+            check_flash_lock
+            check_intel_regions
+            check_blobs_in_binary /tmp/logs/rom.bin
+            check_if_me_disabled
+            set_intel_regions_update_params "-N --ifd -i bios"
+            $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "/tmp/logs/rom.bin" >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
+            error_check "Failed to restore BIOS firmware! You can try one more time."
+            print_ok "Successfully restored firmware"
+            echo "Returning to main menu..."
+            exit 0
+            ;;
+          *)
+            echo "Returning to main menu..."
+            exit 0
+            ;;
+          esac
         else
           print_error "Report does not have firmware backup!"
         fi
-        ;;
-      b|B)
+      else
+        print_warning "No HCL report found, cannot restore firmware"
         echo "Returning to main menu..."
         exit 0
-        ;;
-      *)
-        ;;
+      fi
+      ;;
+    2)
+      echo
+      echo "Searching for HCL report on cloud..."
+
+      ${CMD_CLOUD_LIST} $uuid
+      error_check "Could not download HCL report from cloud."
+
+      HCL_REPORT_PACKAGE="$(find / -name "*$uuid*" | head -n1)"
+      tar -zxf "$HCL_REPORT_PACKAGE" -C /tmp
+      echo "Restoring BIOS firmware..."
+      if [ -f "/tmp/logs/rom.bin" ]; then
+        # Ideally we would like to write the entire flash when restoring,
+        # but in reality we may face locked or unaccessible regions.
+        # To be on the safe side, flash whatever can be flashed by determining
+        # what is writable.
+        check_flash_lock
+        check_intel_regions
+        check_blobs_in_binary /tmp/logs/rom.bin
+        check_if_me_disabled
+        set_intel_regions_update_params "-N --ifd -i bios"
+        $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "/tmp/logs/rom.bin" >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
+        error_check "Failed to restore BIOS firmware! You can try one more time."
+        print_ok "Successfully restored firmware"
+      else
+        print_error "Report does not have firmware backup!"
+      fi
+      ;;
+    b | B)
+      echo "Returning to main menu..."
+      exit 0
+      ;;
+    *) ;;
     esac
   done
 }
@@ -1222,7 +1218,7 @@ fi
 # For FUM we start in dasharo-deploy so we need to verify that we have internet
 # connection to download shasums in board_config
 if [ "$FUM" == "fum" ]; then
-    wait_for_network_connection
+  wait_for_network_connection
 fi
 
 # flashrom does not support QEMU. TODO: this could be handled in a better way:
@@ -1236,49 +1232,49 @@ fi
 board_config
 
 if [ -n "$PLATFORM_SIGN_KEY" ]; then
-    get_signing_keys
+  get_signing_keys
 fi
 
 case "$CMD" in
-  install)
-    if check_if_dasharo; then
-      error_exit "Dasharo Firmware is already installed. This script is only for\r
+install)
+  if check_if_dasharo; then
+    error_exit "Dasharo Firmware is already installed. This script is only for\r
         initial deployment of Dasharo Firmware. Aborting..."
-    fi
-    if [ "$CAN_INSTALL_BIOS" == "false" ] && [ "$HAVE_EC" == "false" ]; then
-      print_warning "Initial deployment via DTS isn't supported for this platform."
-      print_warning "Visit https://docs.dasharo.com/variants/overview/ to see supported"
-      print_warning "platforms and how to deploy Dasharo firmware."
-      exit 2
-    else
-      install_workflow
-    fi
-    ;;
-  update)
-    if [ "$FUM" == "fum" ]; then
-        echo "Firmware Update Mode detected; proceed with automatic update in 5 seconds"
-        echo "Updating in 5s:"
-        echo "5..."
-        sleep 1
-        echo "4..."
-        sleep 1
-        echo "3..."
-        sleep 1
-        echo "2..."
-        sleep 1
-        echo "1..."
-        sleep 0.5
-    fi
-    update_workflow
-    ;;
-  restore)
-    if ! check_if_dasharo; then
-      error_exit "Dasharo Firmware is not installed. This script is only for\r
+  fi
+  if [ "$CAN_INSTALL_BIOS" == "false" ] && [ "$HAVE_EC" == "false" ]; then
+    print_warning "Initial deployment via DTS isn't supported for this platform."
+    print_warning "Visit https://docs.dasharo.com/variants/overview/ to see supported"
+    print_warning "platforms and how to deploy Dasharo firmware."
+    exit 2
+  else
+    install_workflow
+  fi
+  ;;
+update)
+  if [ "$FUM" == "fum" ]; then
+    echo "Firmware Update Mode detected; proceed with automatic update in 5 seconds"
+    echo "Updating in 5s:"
+    echo "5..."
+    sleep 1
+    echo "4..."
+    sleep 1
+    echo "3..."
+    sleep 1
+    echo "2..."
+    sleep 1
+    echo "1..."
+    sleep 0.5
+  fi
+  update_workflow
+  ;;
+restore)
+  if ! check_if_dasharo; then
+    error_exit "Dasharo Firmware is not installed. This script is only for\r
         restoring original firmware on platforms that runs Dasharo Firmware. Aborting..."
-    fi
-    restore
-    ;;
-  *)
-    usage
-    ;;
+  fi
+  restore
+  ;;
+*)
+  usage
+  ;;
 esac
