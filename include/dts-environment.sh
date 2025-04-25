@@ -80,6 +80,7 @@ RESIGNED_BIOS_UPDATE_FILE="/tmp/biosupdate_resigned.rom"
 SYSTEM_UUID_FILE="/tmp/system_uuid.txt"
 SERIAL_NUMBER_FILE="/tmp/serial_number.txt"
 
+LOCAL_FW_BINARIES="/etc/dasharo-nc"
 # dasharo-deploy backup cmd related variables, do we still use and need this as
 # backup is placed in HCL?
 ROOT_DIR="/"

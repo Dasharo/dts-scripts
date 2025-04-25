@@ -228,7 +228,7 @@ board_config() {
   # We download firmwares via network. At this point, the network connection
   # must be up already.
 
-  wait_for_network_connection
+  # wait_for_network_connection
 
   echo "Checking if board is Dasharo compatible."
   case "$SYSTEM_VENDOR" in
@@ -241,7 +241,7 @@ board_config() {
         customer-keys/novacustom/dasharo-release-0.9.x-for-novacustom-signing-key.asc"
     NEED_SMMSTORE_MIGRATION="true"
     BUCKET_DPP_HEADS="dasharo-novacustom-heads"
-
+    PROGRAMMER_BIOS="internal:boardmismatch=force"
     case "$SYSTEM_MODEL" in
     "NV4XMB,ME,MZ")
       DASHARO_REL_NAME="novacustom_nv4x_tgl"
@@ -345,6 +345,7 @@ board_config() {
       case $BOARD_MODEL in
       "V540TU")
         DASHARO_REL_NAME="novacustom_v54x_mtl"
+        EC_NAME="novacustom_v540tu_ec"
         FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
         HAVE_HEADS_FW="true"
         HEADS_REL_VER_DPP="0.9.0"
@@ -353,6 +354,7 @@ board_config() {
         ;;
       "V560TU")
         DASHARO_REL_NAME="novacustom_v56x_mtl"
+        EC_NAME="novacustom_v560tu_ec"
         FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
         HAVE_HEADS_FW="true"
         HEADS_REL_VER_DPP="0.9.0"
