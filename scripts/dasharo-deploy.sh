@@ -663,14 +663,14 @@ blob_transmission() {
   if [ -n "$ACM_BIN" ]; then
     error_file_check "$ACM_BIN" "Failed to find BIOS ACM binary."
     echo -n "Adding BIOS ACM..."
-    $CBFSTOOL "$BIOS_UPDATE_FILE" add -f "$ACM_BIN" -n txt_bios_acm.bin -t raw
+    $CBFSTOOL "$BIOS_UPDATE_FILE" add -f "$ACM_BIN" -n txt_bios_acm.bin -t raw -a 0x20000
     print_ok "Done"
   fi
 
   if [ -n "$SINIT_ACM" ]; then
     error_file_check "$SINIT_ACM" "Failed to find Intel SINIT ACM binary."
     echo -n "Adding SINIT ACM..."
-    $CBFSTOOL "$BIOS_UPDATE_FILE" add -f "$SINIT_ACM" -n txt_sinit_acm.bin -t raw
+    $CBFSTOOL "$BIOS_UPDATE_FILE" add -f "$SINIT_ACM" -n txt_sinit_acm.bin -t raw -c lzma
     print_ok "Done"
   fi
 }
