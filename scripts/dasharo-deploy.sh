@@ -988,22 +988,24 @@ update_workflow() {
   check_if_ac
   error_check "Firmware update process interrupted on user request."
 
-  # Set all global variables needed for installation:
-  prepare_env update
+  if [ "$SYSTEM_MODEL" != "V54x_6x_TU" ]; then
+    # Set all global variables needed for installation:
+    prepare_env update
 
-  if [ -z "$UPDATE_VERSION" ]; then
-    error_exit "No update available for your machine"
-  fi
+    if [ -z "$UPDATE_VERSION" ]; then
+      error_exit "No update available for your machine"
+    fi
 
-  print_ok "Current Dasharo version: $DASHARO_VERSION"
+    print_ok "Current Dasharo version: $DASHARO_VERSION"
 
-  if [ "$CAN_SWITCH_TO_HEADS" = "true" ] || [ "$DASHARO_FLAVOR" == "Dasharo (coreboot+heads)" ]; then
-    print_ok "Latest available Dasharo version for your subscription: $UPDATE_VERSION (coreboot+Heads)"
-  else
-    print_ok "Latest available Dasharo version for your subscription: $UPDATE_VERSION"
-    compare_versions $DASHARO_VERSION $UPDATE_VERSION
-    if [ $? -ne 1 ]; then
-      error_exit "No update available for your machine" 2
+    if [ "$CAN_SWITCH_TO_HEADS" = "true" ] || [ "$DASHARO_FLAVOR" == "Dasharo (coreboot+heads)" ]; then
+      print_ok "Latest available Dasharo version for your subscription: $UPDATE_VERSION (coreboot+Heads)"
+    else
+      print_ok "Latest available Dasharo version for your subscription: $UPDATE_VERSION"
+      compare_versions $DASHARO_VERSION $UPDATE_VERSION
+      if [ $? -ne 1 ]; then
+        error_exit "No update available for your machine" 2
+      fi
     fi
   fi
 
@@ -1024,18 +1026,25 @@ update_workflow() {
     fi
   fi
 
-  if [ "$HAVE_EC" == "true" ]; then
-    download_ec
-    verify_artifacts ec
-  fi
+  if [ "$SYSTEM_MODEL" == "V54x_6x_TU" ]; then
+    BIOS_FILE="$LOCAL_FW_BINARIES/${DASHARO_REL_NAME}_v1.0.0.rom"
+    EC_FILE="$LOCAL_FW_BINARIES/${EC_NAME}.rom"
+    cp "$BIOS_FILE" "$BIOS_UPDATE_FILE" 2>>"$ERR_LOG_FILE"
+    cp "$EC_FILE" "$EC_UPDATE_FILE" 2>>"$ERR_LOG_FILE"
+  else
+    if [ "$HAVE_EC" == "true" ]; then
+      download_ec
+      verify_artifacts ec
+    fi
 
-  download_bios
-  verify_artifacts bios
+    download_bios
+    verify_artifacts bios
 
-  # Warning must be displayed after the artifacts have been downloaded, because
-  # we check their hashes inside display_warning function:
-  if [ ! "$FUM" == "fum" ]; then
-    display_warning
+    # Warning must be displayed after the artifacts have been downloaded, because
+    # we check their hashes inside display_warning function:
+    if [ ! "$FUM" == "fum" ]; then
+      display_warning
+    fi
   fi
 
   deploy_firmware update
@@ -1060,7 +1069,9 @@ update_workflow() {
     print_ok "Successfully updated Dasharo firmware."
   fi
 
-  send_dts_logs
+  if [ "$SYSTEM_MODEL" != "V54x_6x_TU" ]; then
+    send_dts_logs
+  fi
 
   # Post update routine:
   if [ "$HAVE_EC" == "true" ]; then
@@ -1217,9 +1228,9 @@ fi
 
 # For FUM we start in dasharo-deploy so we need to verify that we have internet
 # connection to download shasums in board_config
-if [ "$FUM" == "fum" ]; then
-  wait_for_network_connection
-fi
+# if [ "$FUM" == "fum" ]; then
+#   wait_for_network_connection
+# fi
 
 # flashrom does not support QEMU. TODO: this could be handled in a better way:
 if [ "${SYSTEM_VENDOR}" != "QEMU" ] && [ "${SYSTEM_VENDOR}" != "Emulation" ]; then
@@ -1231,9 +1242,9 @@ fi
 
 board_config
 
-if [ -n "$PLATFORM_SIGN_KEY" ]; then
-  get_signing_keys
-fi
+# if [ -n "$PLATFORM_SIGN_KEY" ]; then
+#   get_signing_keys
+# fi
 
 case "$CMD" in
 install)
