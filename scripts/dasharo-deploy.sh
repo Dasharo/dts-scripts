@@ -945,8 +945,6 @@ install_workflow() {
   sync
   echo "Done."
 
-  send_dts_logs
-
   if [ "$NEED_EC_RESET" == "true" ]; then
     echo "The computer will shut down automatically in 5 seconds"
   else
@@ -1067,10 +1065,6 @@ update_workflow() {
   else
     # Regular update flow
     print_ok "Successfully updated Dasharo firmware."
-  fi
-
-  if [ "$SYSTEM_MODEL" != "V54x_6x_TU" ]; then
-    send_dts_logs
   fi
 
   # Post update routine:

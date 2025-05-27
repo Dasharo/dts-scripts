@@ -84,7 +84,6 @@ fum_exit() {
   if [ "$FUM" == "fum" ]; then
     print_error "Update cannot be performed"
     print_warning "Starting bash session"
-    send_dts_logs ask
     /bin/bash
   fi
 }
@@ -1406,25 +1405,14 @@ main_menu_options() {
   case ${OPTION} in
   "${HCL_REPORT_OPT}")
     print_disclaimer
-    read -p "Do you want to support Dasharo development by sending us logs with your hardware configuration? [N/y] "
-    case ${REPLY} in
-    yes | y | Y | Yes | YES)
-      export SEND_LOGS="true"
-      echo "Thank you for contributing to the Dasharo development!"
-      ;;
-    *)
-      export SEND_LOGS="false"
-      echo "Logs will be saved in root directory."
-      echo "Please consider supporting Dasharo by sending the logs next time."
-      ;;
-    esac
+    export SEND_LOGS="false"
     if [ "${SEND_LOGS}" == "true" ]; then
       # DEPLOY_REPORT variable is used in dasharo-hcl-report to determine
       # which logs should be printed in the terminal, in the future whole
       # dts scripting should get some LOGLEVEL and maybe dumping working
       # logs to file
       export DEPLOY_REPORT="false"
-      wait_for_network_connection && ${CMD_DASHARO_HCL_REPORT} && LOGS_SENT="1"
+      wait_for_network_connection && ${CMD_DASHARO_HCL_REPORT}
     else
       export DEPLOY_REPORT="false"
       ${CMD_DASHARO_HCL_REPORT}
@@ -1439,26 +1427,10 @@ main_menu_options() {
       # TODO: this could be handled in a better way:
       [ "${SYSTEM_VENDOR}" = "QEMU" ] || [ "${SYSTEM_VENDOR}" = "Emulation" ] && return 0
 
-      if wait_for_network_connection; then
-        echo "Preparing ..."
-        if [ -z "${LOGS_SENT}" ]; then
-          export SEND_LOGS="true"
-          export DEPLOY_REPORT="true"
-          if ! ${CMD_DASHARO_HCL_REPORT}; then
-            echo -e "Unable to connect to dl.dasharo.com for submitting the
-                        \rHCL report. Please recheck your internet connection."
-          else
-            LOGS_SENT="1"
-          fi
-        fi
-      fi
-
-      if [ -n "${LOGS_SENT}" ]; then
-        ${CMD_DASHARO_DEPLOY} install
-        result=$?
-        if [ "$result" -ne 0 ] && [ "$result" -ne 2 ]; then
-          send_dts_logs ask && return 0
-        fi
+      ${CMD_DASHARO_DEPLOY} install
+      result=$?
+      if [ "$result" -ne 0 ] && [ "$result" -ne 2 ]; then
+        return 0
       fi
     else
       # TODO: This should be placed in dasharo-deploy:
@@ -1489,7 +1461,7 @@ main_menu_options() {
       ${CMD_DASHARO_DEPLOY} update
       result=$?
       if [ "$result" -ne 0 ] && [ "$result" -ne 2 ]; then
-        send_dts_logs ask && return 0
+        return 0
       fi
     fi
     read -p "Press Enter to continue."
@@ -1503,7 +1475,7 @@ main_menu_options() {
 
     if check_if_dasharo; then
       if ! ${CMD_DASHARO_DEPLOY} restore; then
-        send_dts_logs ask && return 0
+        return 0
       fi
     fi
     read -p "Press Enter to continue."
@@ -1574,11 +1546,6 @@ show_footer() {
   else
     echo -ne "${RED}${SSH_OPT_UP}${NORMAL} to launch SSH server  ${NORMAL}"
   fi
-  if [ "${SEND_LOGS_ACTIVE}" == "true" ]; then
-    echo -e "${RED}${SEND_LOGS_OPT}${NORMAL} to disable sending DTS logs ${NORMAL}"
-  else
-    echo -e "${RED}${SEND_LOGS_OPT}${NORMAL} to enable sending DTS logs ${NORMAL}"
-  fi
   if [ -n "${DPP_IS_LOGGED}" ]; then
     if [ "${DISPLAY_CREDENTIALS}" == "true" ]; then
       echo -e "${RED}${TOGGLE_DISP_CRED_OPT_UP}${NORMAL} to hide DPP credentials ${NORMAL}"
@@ -1614,7 +1581,6 @@ footer_options() {
     clear
     echo "Entering shell, to leave type exit and press Enter or press LCtrl+D"
     echo ""
-    send_dts_logs
     stop_logging
     ${CMD_SHELL}
     start_logging
@@ -1624,19 +1590,10 @@ footer_options() {
     unset DPP_SUBMENU_ACTIVE
     ;;
   "${POWEROFF_OPT_UP}" | "${POWEROFF_OPT_LOW}")
-    send_dts_logs
     ${POWEROFF}
     ;;
   "${REBOOT_OPT_UP}" | "${REBOOT_OPT_LOW}")
-    send_dts_logs
     ${REBOOT}
-    ;;
-  "${SEND_LOGS_OPT}" | "${SEND_LOGS_OPT_LOW}")
-    if [ "${SEND_LOGS_ACTIVE}" == "true" ]; then
-      unset SEND_LOGS_ACTIVE
-    else
-      export SEND_LOGS_ACTIVE="true"
-    fi
     ;;
   "${TOGGLE_DISP_CRED_OPT_UP}" | "${TOGGLE_DISP_CRED_OPT_LOW}")
     if [ "${DISPLAY_CREDENTIALS}" == "true" ]; then
