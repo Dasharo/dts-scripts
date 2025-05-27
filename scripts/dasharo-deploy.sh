@@ -906,7 +906,6 @@ install_workflow() {
   # 4) Do backup;
   # 5) Do the installation;
   # 6) Do some after-installation routine.
-  sync_clocks
 
   # Verify that the device is not using battery as a power source:
   check_if_ac
@@ -980,7 +979,6 @@ update_workflow() {
   # 4) Do the updating;
   # 5) Do some after-updating routine.
   CAN_SWITCH_TO_HEADS="false"
-  sync_clocks
 
   # Verify that the device is not using battery as a power source:
   check_if_ac
