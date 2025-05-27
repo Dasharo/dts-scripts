@@ -1388,11 +1388,6 @@ show_main_menu() {
   if [ "${SYSTEM_VENDOR}" != "QEMU" ] && [ "${SYSTEM_VENDOR}" != "Emulation" ]; then
     echo -e "${BLUE}**${YELLOW}     ${REST_FIRM_OPT})${BLUE} Restore firmware from Dasharo HCL report${NORMAL}"
   fi
-  if [ -n "${DPP_IS_LOGGED}" ]; then
-    echo -e "${BLUE}**${YELLOW}     ${DPP_KEYS_OPT})${BLUE} Edit your DPP keys${NORMAL}"
-  else
-    echo -e "${BLUE}**${YELLOW}     ${DPP_KEYS_OPT})${BLUE} Load your DPP keys${NORMAL}"
-  fi
   if [ -f "${DPP_SUBMENU_JSON}" ]; then
     echo -e "${BLUE}**${YELLOW}     ${DPP_SUBMENU_OPT})${BLUE} DTS extensions${NORMAL}"
   fi
@@ -1482,50 +1477,6 @@ main_menu_options() {
 
     return 0
     ;;
-  "${DPP_KEYS_OPT}")
-    local _result
-    # Return if there was an issue when asking for credentials:
-    if ! get_dpp_creds; then
-      read -p "Press Enter to continue."
-      return 0
-    fi
-
-    # Try to log in using available DPP credentials, start loop over if login
-    # was not successful:
-    if ! login_to_dpp_server; then
-      echo "Cannot log in to DPP server."
-      read -p "Press Enter to continue"
-      return 0
-    fi
-
-    # Check for Dasharo Firmware for the current platform, continue to
-    # packages after checking:
-    check_for_dasharo_firmware
-    _result=$?
-    echo "Your credentials give access to:"
-    echo -n "Dasharo Pro Package (DPP): "
-    if [ $_result -eq 0 ]; then
-      # FIXME: what if credentials have access to
-      # firmware, but check_for_dasharo_firmware will not detect any platform?
-      # According to check_for_dasharo_firmware it will return 1 in both
-      # cases which means that we cannot detect such case.
-      print_ok "YES"
-    else
-      echo "NO"
-    fi
-
-    echo -n "DTS Extensions: "
-
-    if check_dts_extensions_access; then
-      print_ok "YES"
-      check_avail_dpp_packages && install_all_dpp_packages && parse_for_premium_submenu
-    else
-      echo "NO"
-    fi
-
-    read -p "Press Enter to continue."
-    return 0
-    ;;
   "${DPP_SUBMENU_OPT}")
     [ -f "$DPP_SUBMENU_JSON" ] || return 0
     export DPP_SUBMENU_ACTIVE="true"
@@ -1545,13 +1496,6 @@ show_footer() {
     echo -ne "${RED}${SSH_OPT_UP}${NORMAL} to stop SSH server  ${NORMAL}"
   else
     echo -ne "${RED}${SSH_OPT_UP}${NORMAL} to launch SSH server  ${NORMAL}"
-  fi
-  if [ -n "${DPP_IS_LOGGED}" ]; then
-    if [ "${DISPLAY_CREDENTIALS}" == "true" ]; then
-      echo -e "${RED}${TOGGLE_DISP_CRED_OPT_UP}${NORMAL} to hide DPP credentials ${NORMAL}"
-    else
-      echo -e "${RED}${TOGGLE_DISP_CRED_OPT_UP}${NORMAL} to display DPP credentials ${NORMAL}"
-    fi
   fi
   echo -ne "${YELLOW}\nEnter an option:${NORMAL}"
 }
@@ -1594,13 +1538,6 @@ footer_options() {
     ;;
   "${REBOOT_OPT_UP}" | "${REBOOT_OPT_LOW}")
     ${REBOOT}
-    ;;
-  "${TOGGLE_DISP_CRED_OPT_UP}" | "${TOGGLE_DISP_CRED_OPT_LOW}")
-    if [ "${DISPLAY_CREDENTIALS}" == "true" ]; then
-      unset DISPLAY_CREDENTIALS
-    else
-      export DISPLAY_CREDENTIALS="true"
-    fi
     ;;
   esac
 
