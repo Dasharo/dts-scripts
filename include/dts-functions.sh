@@ -230,6 +230,15 @@ board_config() {
 
   wait_for_network_connection
 
+  echo "Downloading board configs repository to $BOARD_CONFIG_PATH.tar.gz"
+  mkdir -p "$BOARD_CONFIG_PATH"
+  curl -L -o "$BOARD_CONFIG_PATH.tar.gz" https://github.com/Dasharo/dts-configs/archive/refs/heads/add-configs.tar.gz >/dev/null 2>>"$ERR_LOG_FILE"
+  if [ $? -ne 0 ]; then
+    print_error "Failed to download configs."
+    return 1
+  fi
+  tar xvf "$BOARD_CONFIG_PATH.tar.gz" -C "$BOARD_CONFIG_PATH" --strip-components=1
+
   echo "Checking if board is Dasharo compatible."
   case "$SYSTEM_VENDOR" in
   "Notebook")
@@ -301,12 +310,8 @@ board_config() {
       fi
       ;;
     "NV4xPZ")
-      DASHARO_REL_NAME="novacustom_nv4x_adl"
-      DASHARO_REL_VER="1.7.2"
-      HEADS_REL_VER_DPP="0.9.1"
+      parse_config $SYSTEM_VENDOR $SYSTEM_MODEL $BOARD_MODEL
       HEADS_LINK_DPP="${BUCKET_DPP_HEADS}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_heads.rom"
-      HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
-      COMPATIBLE_EC_FW_VERSION="2022-08-31_cbff21b"
       if check_if_dasharo; then
         # if v1.7.2 or older, flash the whole bios region
         # TODO: Let DTS determine which parameters are suitable.
@@ -595,52 +600,30 @@ board_config() {
     esac
     ;;
   "PC Engines")
-    # Common configuration for all PC Engines releases:
-    BUCKET_DPP="dasharo-pcengines-uefi"
-    BUCKET_DPP_SEABIOS="dasharo-pcengines-seabios"
-    DASHARO_REL_VER_DPP="0.9.0"
-    CAN_INSTALL_BIOS="true"
-    DASHARO_REL_VER_DPP_SEABIOS="24.05.00.01"
-    PROGRAMMER_BIOS="internal:boardmismatch=force"
-    NEED_SMMSTORE_MIGRATION="true"
-    NEED_BOOTSPLASH_MIGRATION="true"
-    FLASH_CHIP_LIST="W25Q64JV-.Q"
-
+    parse_config $SYSTEM_VENDOR $SYSTEM_MODEL $BOARD_MODEL
+    BIOS_LINK_DPP="${BUCKET_DPP}/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}.rom"
+    BIOS_LINK_DPP_SEABIOS="${BUCKET_DPP_SEABIOS}/pcengines_apu2/v${DASHARO_REL_VER_DPP_SEABIOS}/${DASHARO_REL_NAME}_seabios_v${DASHARO_REL_VER_DPP_SEABIOS}.rom"
     shopt -s nocasematch
     case "$SYSTEM_MODEL" in
     "APU2")
-      DASHARO_REL_NAME="pcengines_apu2"
       ;;
     "APU3")
-      DASHARO_REL_NAME="pcengines_apu3"
       ;;
     "APU4")
-      DASHARO_REL_NAME="pcengines_apu4"
       ;;
     "APU6")
-      DASHARO_REL_NAME="pcengines_apu6"
       ;;
     *)
       print_error "Board model $SYSTEM_MODEL is currently not supported"
       return 1
       ;;
     esac
-
-    BIOS_LINK_DPP="${BUCKET_DPP}/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}.rom"
-    BIOS_LINK_DPP_SEABIOS="${BUCKET_DPP_SEABIOS}/pcengines_apu2/v${DASHARO_REL_VER_DPP_SEABIOS}/${DASHARO_REL_NAME}_seabios_v${DASHARO_REL_VER_DPP_SEABIOS}.rom"
-
     shopt -u nocasematch
     ;;
   "HARDKERNEL")
-    NEED_SMBIOS_MIGRATION="true"
-    CAN_INSTALL_BIOS="true"
-
     case "$SYSTEM_MODEL" in
     "ODROID-H4")
-      PLATFORM_SIGN_KEY="dasharo/hardkernel_odroid_h4/dasharo-release-0.x-compatible-with-hardkernel-odroid-h4-family-signing-key.asc"
-      BUCKET_DPP="dasharo-odroid-h4-plus-uefi"
-      DASHARO_REL_NAME="hardkernel_odroid_h4"
-      DASHARO_REL_VER_DPP="0.9.0"
+      parse_config $SYSTEM_VENDOR $SYSTEM_MODEL $BOARD_MODEL
       ;;
     *)
       print_error "Board model $SYSTEM_MODEL is currently not supported"
@@ -699,6 +682,8 @@ board_config() {
   [ -z "$EC_SIGN_LINK_COMM_CAP" ] && EC_SIGN_LINK_COMM_CAP="${EC_HASH_LINK_COMM_CAP}.sig"
   [ -z "$EC_HASH_LINK_DPP_CAP" ] && EC_HASH_LINK_DPP_CAP="${EC_LINK_DPP_CAP}.sha256"
   [ -z "$EC_SIGN_LINK_DPP_CAP" ] && EC_SIGN_LINK_DPP_CAP="${EC_HASH_LINK_DPP_CAP}.sig"
+
+  rm -rf "$BOARD_CONFIG_PATH"
 }
 
 check_flash_lock() {
@@ -1844,4 +1829,30 @@ ask_for_confirmation() {
     *) ;;
     esac
   done
+}
+
+parse_config() {
+  local vendor="$1"
+  local system_model="$2"
+  local board_model="$3"
+  json_file="$BOARD_CONFIG_PATH/configs/$(echo "$vendor" | tr '[:upper:]' '[:lower:]' | sed 's/ /_/g').json"
+  # Parse common variables for vendor
+  eval $(jq -r 'to_entries[] | select(.key != "models") | "\(.key | ascii_upcase)=\"\(.value|tostring)\""' $json_file)
+  # Parse system model-specific variables
+  eval $(jq -r --arg m $(echo "$system_model" | tr '[:upper:]' '[:lower:]') '
+  .models[$m] 
+  | to_entries[] 
+  | select(.key != "board_models")
+  | "\(.key | ascii_upcase)=\"\(.value|tostring)\""
+' $json_file)
+  # If separate BOARD_MODEL values exist, parse the variables 
+  eval $(jq -r --arg m $(echo "$system_model" | tr '[:upper:]' '[:lower:]') --arg b $(echo "$board_model" | tr '[:upper:]' '[:lower:]') '
+  if .models[$m].board_models[$b] then
+    .models[$m].board_models[$b]
+    | to_entries[]
+    | "\(.key | ascii_upcase)=\"\(.value|tostring)\""
+  else
+    empty
+  end
+' $json_file)
 }
