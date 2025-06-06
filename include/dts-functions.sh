@@ -1835,17 +1835,48 @@ parse_config() {
   local vendor="$1"
   local system_model="$2"
   local board_model="$3"
+  # The JSONs names in configs directory the same as values in vendor variable
+  # but lowercase and spaces replaced with _
   json_file="$BOARD_CONFIG_PATH/configs/$(echo "$vendor" | tr '[:upper:]' '[:lower:]' | sed 's/ /_/g').json"
   # Parse common variables for vendor
+  # This finds all keys other than `models` and maps them to bash variables.
+  # The variable names are converted to lowercase.
+  #
+  # to_entries[] | select(.key != "models")
+  # Converts JSON input from:
+  # "key1": "value"
+  # "key2": "value"
+  # "models": {
+  #   "key3": "value"
+  #  }
+  # To:
+  # "key1": "value"
+  # "key2": "value"
+  #
+  # "\(.key | ascii_upcase)=\"\(.value|tostring)\"
+  # Changes: "key1": "value" to: KEY1="value"
   eval $(jq -r 'to_entries[] | select(.key != "models") | "\(.key | ascii_upcase)=\"\(.value|tostring)\""' $json_file)
+
   # Parse system model-specific variables
+  # This finds all keys in `models[$SYSTEM_MODEL]` other than `board_models`
+  # and assigns variables just like in the previous call
+  #
+  # --arg m $(echo "$system_model" ...) stores the lowercase value of
+  # $system_model in the "$m" jq variable. That variable is then used to access
+  # models[$system_model] (.models[$m])
   eval $(jq -r --arg m $(echo "$system_model" | tr '[:upper:]' '[:lower:]') '
   .models[$m] 
   | to_entries[] 
   | select(.key != "board_models")
   | "\(.key | ascii_upcase)=\"\(.value|tostring)\""
 ' $json_file)
+
   # If separate BOARD_MODEL values exist, parse the variables 
+  # This looks for `models[$SYSTEM_MODEL].board_models[$BOARD_MODEL]`. Some 
+  # boards have different variable values for different board models.
+  #
+  # If .models[$m].board_models[$b] does not exist, the eval will not
+  # create any new variables
   eval $(jq -r --arg m $(echo "$system_model" | tr '[:upper:]' '[:lower:]') --arg b $(echo "$board_model" | tr '[:upper:]' '[:lower:]') '
   if .models[$m].board_models[$b] then
     .models[$m].board_models[$b]
