@@ -197,7 +197,12 @@ ask_for_model() {
     echo
     read -r -p "Enter an option: " OPTION
     echo
-
+    # loop if not a number
+    case "$OPTION" in
+    '' | *[!0-9]*)
+      continue
+      ;;
+    esac
     if [ "$OPTION" -eq 0 ]; then
       BOARD_MODEL=""
       return
