@@ -310,7 +310,18 @@ board_config() {
       fi
       ;;
     "NV4xPZ")
-      parse_config $SYSTEM_VENDOR $SYSTEM_MODEL $BOARD_MODEL
+      parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"
+      if [ $? -eq 1 ]; then
+        print_error "Vendor $VENDOR is currently not supported!"
+        return 1
+      elif [ $? -eq 2 ]; then
+        print_error "System model $SYSTEM_MODEL is currently not supported!"
+        return 1
+      elif [ $? -eq 3 ]; then
+        print_error "Board model $BOARD_MODEL is currently now supported"
+        return 1
+      fi
+
       HEADS_LINK_DPP="${BUCKET_DPP_HEADS}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_heads.rom"
       if check_if_dasharo; then
         # if v1.7.2 or older, flash the whole bios region
@@ -600,30 +611,35 @@ board_config() {
     esac
     ;;
   "PC Engines")
-    parse_config $SYSTEM_VENDOR $SYSTEM_MODEL $BOARD_MODEL
+    parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"
+    if [ $? -eq 1 ]; then
+      print_error "Vendor $VENDOR is currently not supported!"
+      return 1
+    elif [ $? -eq 2 ]; then
+      print_error "System model $SYSTEM_MODEL is currently not supported!"
+      return 1
+    elif [ $? -eq 3 ]; then
+      print_error "Board model $BOARD_MODEL is currently now supported"
+      return 1
+    fi
+
     BIOS_LINK_DPP="${BUCKET_DPP}/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}.rom"
     BIOS_LINK_DPP_SEABIOS="${BUCKET_DPP_SEABIOS}/pcengines_apu2/v${DASHARO_REL_VER_DPP_SEABIOS}/${DASHARO_REL_NAME}_seabios_v${DASHARO_REL_VER_DPP_SEABIOS}.rom"
-    shopt -s nocasematch
-    case "$SYSTEM_MODEL" in
-    "APU2")
-      ;;
-    "APU3")
-      ;;
-    "APU4")
-      ;;
-    "APU6")
-      ;;
-    *)
-      print_error "Board model $SYSTEM_MODEL is currently not supported"
-      return 1
-      ;;
-    esac
-    shopt -u nocasematch
     ;;
   "HARDKERNEL")
     case "$SYSTEM_MODEL" in
     "ODROID-H4")
-      parse_config $SYSTEM_VENDOR $SYSTEM_MODEL $BOARD_MODEL
+      parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"
+      if [ $? -eq 1 ]; then
+        print_error "Vendor $VENDOR is currently not supported!"
+        return 1
+      elif [ $? -eq 2 ]; then
+        print_error "System model $SYSTEM_MODEL is currently not supported!"
+        return 1
+      elif [ $? -eq 3 ]; then
+        print_error "Board model $BOARD_MODEL is currently now supported"
+        return 1
+      fi
       ;;
     *)
       print_error "Board model $SYSTEM_MODEL is currently not supported"
@@ -1855,7 +1871,11 @@ parse_config() {
   #
   # "\(.key | ascii_upcase)=\"\(.value|tostring)\"
   # Changes: "key1": "value" to: KEY1="value"
-  eval $(jq -r 'to_entries[] | select(.key != "models") | "\(.key | ascii_upcase)=\"\(.value|tostring)\""' $json_file)
+  output=$(jq -r 'to_entries[] | select(.key != "models") | "\(.key | ascii_upcase)=\"\(.value|tostring)\""' $json_file 2>>"$ERR_LOG_FILE")
+  if [ -z "$output" ]; then
+    return 1
+  fi
+  eval "$output"
 
   # Parse system model-specific variables
   # This finds all keys in `models[$SYSTEM_MODEL]` other than `board_models`
@@ -1864,12 +1884,16 @@ parse_config() {
   # --arg m $(echo "$system_model" ...) stores the lowercase value of
   # $system_model in the "$m" jq variable. That variable is then used to access
   # models[$system_model] (.models[$m])
-  eval $(jq -r --arg m $(echo "$system_model" | tr '[:upper:]' '[:lower:]') '
+  output=$(jq -r --arg m $(echo "$system_model" | tr '[:upper:]' '[:lower:]') '
   .models[$m] 
   | to_entries[] 
   | select(.key != "board_models")
   | "\(.key | ascii_upcase)=\"\(.value|tostring)\""
-' $json_file)
+' $json_file 2>>"$ERR_LOG_FILE")
+  if [ -z "$output" ]; then
+    return 2
+  fi
+  eval "$output"
 
   # If separate BOARD_MODEL values exist, parse the variables 
   # This looks for `models[$SYSTEM_MODEL].board_models[$BOARD_MODEL]`. Some 
@@ -1877,13 +1901,23 @@ parse_config() {
   #
   # If .models[$m].board_models[$b] does not exist, the eval will not
   # create any new variables
-  eval $(jq -r --arg m $(echo "$system_model" | tr '[:upper:]' '[:lower:]') --arg b $(echo "$board_model" | tr '[:upper:]' '[:lower:]') '
-  if .models[$m].board_models[$b] then
+
+  has_key=$(jq -r --arg m $(echo "$system_model" | tr '[:upper:]' '[:lower:]') '
+  .models[$m] | has("board_models")
+  ' $json_file)
+
+  if [ "$has_key" == "true" ]; then
+    output=$(jq -r --arg m $(echo "$system_model" | tr '[:upper:]' '[:lower:]') --arg b $(echo "$board_model" | tr '[:upper:]' '[:lower:]') '
     .models[$m].board_models[$b]
     | to_entries[]
     | "\(.key | ascii_upcase)=\"\(.value|tostring)\""
-  else
-    empty
-  end
-' $json_file)
+  ' $json_file 2>>"$ERR_LOG_FILE")
+    if [ -z "$output" ]; then
+      return 3
+    fi
+    eval "$output"
+  fi
+  return 0
+
+
 }
