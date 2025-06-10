@@ -25,9 +25,6 @@ wait_for_input() {
 
 while :; do
   clear
-  # Do some subscription routine each time menu is rendered:
-  subscription_routine
-
   # Header should always be printed:
   show_header
   if [ -z "$DPP_SUBMENU_ACTIVE" ]; then
