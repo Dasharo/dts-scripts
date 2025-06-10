@@ -310,7 +310,8 @@ board_config() {
       fi
       ;;
     "NV4xPZ")
-      result=$(parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL")
+      parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"
+      result=$?
       if [ $result -eq 1 ]; then
         print_error "Vendor $VENDOR is currently not supported!"
         return 1
@@ -611,7 +612,8 @@ board_config() {
     esac
     ;;
   "PC Engines")
-    result=$(parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL")
+    parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"
+    result=$?
     if [ $result -eq 1 ]; then
       print_error "Vendor $VENDOR is currently not supported!"
       return 1
@@ -629,7 +631,8 @@ board_config() {
   "HARDKERNEL")
     case "$SYSTEM_MODEL" in
     "ODROID-H4")
-      result=$(parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL")
+      parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"
+      result=$?
       if [ $result -eq 1 ]; then
         print_error "Vendor $VENDOR is currently not supported!"
         return 1
@@ -1886,6 +1889,9 @@ parse_config() {
   # --arg m $(echo "$system_model" ...) stores the lowercase value of
   # $system_model in the "$m" jq variable. That variable is then used to access
   # models[$system_model] (.models[$m])
+
+  # Disabling warning "Quote this to prevent word splitting" to avoid mixing
+  # quotes
   # shellcheck disable=SC2046
   output=$(jq -r --arg m $(echo "$system_model" | tr '[:upper:]' '[:lower:]') '
   .models[$m]
