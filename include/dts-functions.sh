@@ -32,9 +32,7 @@ print_ok() {
 }
 
 check_if_dasharo() {
-  if [[ $BIOS_VENDOR == *$DASHARO_VENDOR* &&
-    $BIOS_VERSION == *$DASHARO_NAME* ||
-    "$SYSTEM_VENDOR" == "PC Engines" ]]; then
+  if [[ $BIOS_VENDOR == *$DASHARO_VENDOR* && $BIOS_VERSION == *$DASHARO_NAME* ]]; then
     return 0
   else
     return 1
@@ -1411,6 +1409,10 @@ show_main_menu() {
   fi
 }
 
+ask_for_uefi_transition() {
+# Ask user for decision, whether update or change firmware...
+}
+
 main_menu_options() {
   local OPTION=$1
   local result
@@ -1446,7 +1448,18 @@ main_menu_options() {
     return 0
     ;;
   "${DASHARO_FIRM_OPT}")
-    if ! check_if_dasharo; then
+    local _is_dasharo
+    local _uefi_transition
+    check_if_dasharo
+    _is_dasharo=$?
+
+    if [[ ! $_is_dasharo && "$SYSTEM_VENDOR" == "PC Engines" ]]; then
+      ask_for_uefi_transition
+      _pce_uefi_transition=$?
+    fi
+
+    if [[ ! "$_is_dasharo" == "0" && ! "$SYSTEM_VENDOR" == "PC Engines"
+	    || "$_uefi_transition" == "0" ]] ; then
       # flashrom does not support QEMU, but installation depends on flashrom.
       # TODO: this could be handled in a better way:
       [ "${SYSTEM_VENDOR}" = "QEMU" ] || [ "${SYSTEM_VENDOR}" = "Emulation" ] && return 0

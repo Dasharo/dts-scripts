@@ -153,14 +153,14 @@ ask_for_version() {
       fi
     fi
 
-    if [ -n "$BIOS_LINK_DPP_SEABIOS" ]; then
-      if check_for_firmware_access seabios; then
-        echo "  s) DPP version (coreboot + SeaBIOS)"
-        _might_be_seabios="true"
-      else
-        print_firm_access_warning seabios
-      fi
-    fi
+#    if [ -n "$BIOS_LINK_DPP_SEABIOS" ]; then
+#      if check_for_firmware_access seabios; then
+#        echo "  s) DPP version (coreboot + SeaBIOS)"
+#        _might_be_seabios="true"
+#      else
+#        print_firm_access_warning seabios
+#      fi
+#    fi
 
     echo "  b) Back to main menu"
     echo
@@ -184,13 +184,13 @@ ask_for_version() {
         break
       fi
       ;;
-    s | S | sea | seabios | SeaBIOS)
-      if [ -n "$_might_be_seabios" ]; then
-        print_ok "Subscription version (coreboot + SeaBIOS) selected"
-        FIRMWARE_VERSION="seabios"
-        break
-      fi
-      ;;
+#    s | S | sea | seabios | SeaBIOS)
+#      if [ -n "$_might_be_seabios" ]; then
+#        print_ok "Subscription version (coreboot + SeaBIOS) selected"
+#        FIRMWARE_VERSION="seabios"
+#        break
+#      fi
+#      ;;
     b | B)
       echo "Returning to main menu..."
       exit 0
