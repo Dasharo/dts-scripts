@@ -94,6 +94,9 @@ FLASH_INFO_FILE="/tmp/flash_info"
 OS_VERSION_FILE="/etc/os-release"
 KEYS_DIR="/tmp/devkeys"
 
+# Path to board configs
+BOARD_CONFIG_PATH="/tmp/dts-configs"
+
 # Paths to system commands:
 CMD_SHELL="bash"
 
