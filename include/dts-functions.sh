@@ -310,14 +310,14 @@ board_config() {
       fi
       ;;
     "NV4xPZ")
-      parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"
-      if [ $? -eq 1 ]; then
+      result=$(parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL")
+      if [ $result -eq 1 ]; then
         print_error "Vendor $VENDOR is currently not supported!"
         return 1
-      elif [ $? -eq 2 ]; then
+      elif [ $result -eq 2 ]; then
         print_error "System model $SYSTEM_MODEL is currently not supported!"
         return 1
-      elif [ $? -eq 3 ]; then
+      elif [ $result -eq 3 ]; then
         print_error "Board model $BOARD_MODEL is currently now supported"
         return 1
       fi
@@ -611,14 +611,14 @@ board_config() {
     esac
     ;;
   "PC Engines")
-    parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"
-    if [ $? -eq 1 ]; then
+    result=$(parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL")
+    if [ $result -eq 1 ]; then
       print_error "Vendor $VENDOR is currently not supported!"
       return 1
-    elif [ $? -eq 2 ]; then
+    elif [ $result -eq 2 ]; then
       print_error "System model $SYSTEM_MODEL is currently not supported!"
       return 1
-    elif [ $? -eq 3 ]; then
+    elif [ $result -eq 3 ]; then
       print_error "Board model $BOARD_MODEL is currently now supported"
       return 1
     fi
@@ -629,14 +629,14 @@ board_config() {
   "HARDKERNEL")
     case "$SYSTEM_MODEL" in
     "ODROID-H4")
-      parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"
-      if [ $? -eq 1 ]; then
+      result=$(parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL")
+      if [ $result -eq 1 ]; then
         print_error "Vendor $VENDOR is currently not supported!"
         return 1
-      elif [ $? -eq 2 ]; then
+      elif [ $result -eq 2 ]; then
         print_error "System model $SYSTEM_MODEL is currently not supported!"
         return 1
-      elif [ $? -eq 3 ]; then
+      elif [ $result -eq 3 ]; then
         print_error "Board model $BOARD_MODEL is currently now supported"
         return 1
       fi
@@ -1871,6 +1871,8 @@ parse_config() {
   #
   # "\(.key | ascii_upcase)=\"\(.value|tostring)\"
   # Changes: "key1": "value" to: KEY1="value"
+
+  # shellcheck disable=SC2046
   output=$(jq -r 'to_entries[] | select(.key != "models") | "\(.key | ascii_upcase)=\"\(.value|tostring)\""' $json_file 2>>"$ERR_LOG_FILE")
   if [ -z "$output" ]; then
     return 1
@@ -1884,9 +1886,10 @@ parse_config() {
   # --arg m $(echo "$system_model" ...) stores the lowercase value of
   # $system_model in the "$m" jq variable. That variable is then used to access
   # models[$system_model] (.models[$m])
+  # shellcheck disable=SC2046
   output=$(jq -r --arg m $(echo "$system_model" | tr '[:upper:]' '[:lower:]') '
-  .models[$m] 
-  | to_entries[] 
+  .models[$m]
+  | to_entries[]
   | select(.key != "board_models")
   | "\(.key | ascii_upcase)=\"\(.value|tostring)\""
 ' $json_file 2>>"$ERR_LOG_FILE")
@@ -1895,18 +1898,20 @@ parse_config() {
   fi
   eval "$output"
 
-  # If separate BOARD_MODEL values exist, parse the variables 
-  # This looks for `models[$SYSTEM_MODEL].board_models[$BOARD_MODEL]`. Some 
+  # If separate BOARD_MODEL values exist, parse the variables
+  # This looks for `models[$SYSTEM_MODEL].board_models[$BOARD_MODEL]`. Some
   # boards have different variable values for different board models.
   #
   # If .models[$m].board_models[$b] does not exist, the eval will not
   # create any new variables
 
+  # shellcheck disable=SC2046
   has_key=$(jq -r --arg m $(echo "$system_model" | tr '[:upper:]' '[:lower:]') '
   .models[$m] | has("board_models")
   ' $json_file)
 
   if [ "$has_key" == "true" ]; then
+    # shellcheck disable=SC2046
     output=$(jq -r --arg m $(echo "$system_model" | tr '[:upper:]' '[:lower:]') --arg b $(echo "$board_model" | tr '[:upper:]' '[:lower:]') '
     .models[$m].board_models[$b]
     | to_entries[]
@@ -1918,6 +1923,5 @@ parse_config() {
     eval "$output"
   fi
   return 0
-
 
 }
