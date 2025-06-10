@@ -232,7 +232,7 @@ board_config() {
 
   echo "Downloading board configs repository to $BOARD_CONFIG_PATH.tar.gz"
   mkdir -p "$BOARD_CONFIG_PATH"
-  curl -L -o "$BOARD_CONFIG_PATH.tar.gz" https://github.com/Dasharo/dts-configs/archive/refs/heads/add-configs.tar.gz >/dev/null 2>>"$ERR_LOG_FILE"
+  curl -L -o "$BOARD_CONFIG_PATH.tar.gz" https://github.com/Dasharo/dts-configs/archive/refs/heads/main.tar.gz >/dev/null 2>>"$ERR_LOG_FILE"
   if [ $? -ne 0 ]; then
     print_error "Failed to download configs."
     return 1
