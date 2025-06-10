@@ -32,7 +32,9 @@ print_ok() {
 }
 
 check_if_dasharo() {
-  if [[ $BIOS_VENDOR == *$DASHARO_VENDOR* && $BIOS_VERSION == *$DASHARO_NAME* ]]; then
+  if [[ $BIOS_VENDOR == *$DASHARO_VENDOR* &&
+    $BIOS_VERSION == *$DASHARO_NAME* ||
+    "$SYSTEM_VENDOR" == "PC Engines" ]]; then
     return 0
   else
     return 1
@@ -230,14 +232,14 @@ board_config() {
 
   wait_for_network_connection
 
-  echo "Downloading board configs repository to $BOARD_CONFIG_PATH.tar.gz"
+  echo "Downloading board configs repository"
   mkdir -p "$BOARD_CONFIG_PATH"
   curl -L -o "$BOARD_CONFIG_PATH.tar.gz" https://github.com/Dasharo/dts-configs/archive/refs/heads/main.tar.gz >/dev/null 2>>"$ERR_LOG_FILE"
   if [ $? -ne 0 ]; then
     print_error "Failed to download configs."
     return 1
   fi
-  tar xvf "$BOARD_CONFIG_PATH.tar.gz" -C "$BOARD_CONFIG_PATH" --strip-components=1
+  tar xf "$BOARD_CONFIG_PATH.tar.gz" -C "$BOARD_CONFIG_PATH" --strip-components=1
 
   echo "Checking if board is Dasharo compatible."
   case "$SYSTEM_VENDOR" in
@@ -758,6 +760,14 @@ compare_versions() {
   # which results in rc2 > rc12. More information at https://semver.org/
   ver1=$(sed -r "s/-rc([0-9]+)$/-rc.\1/" <<<"$1")
   ver2=$(sed -r "s/-rc([0-9]+)$/-rc.\1/" <<<"$2")
+
+  # convert SeaBIOS versioning x.x.x.x to x.x.x-x so it can be used with semver
+  # checker. Also remove leading zeroes as it's not allowed in semver
+  # specification. In case x are only zeroes then leave only one zero
+  dot_to_dash='s/([0-9]+\.[0-9]+\.[0-9]+)\.([0-9]+)/\1-\2/'
+  leading_zeroes='s/(^|\.)0+(0|[1-9])/\1\2/g'
+  ver1=$(sed -r -e "$leading_zeroes" -e "$dot_to_dash" <<<"$ver1")
+  ver2=$(sed -r -e "$leading_zeroes" -e "$dot_to_dash" <<<"$ver2")
 
   if ! python3 -m semver check "$ver1" || ! python3 -m semver check "$ver2"; then
     error_exit "Incorrect version format"

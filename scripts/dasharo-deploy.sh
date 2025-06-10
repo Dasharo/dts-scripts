@@ -245,6 +245,33 @@ choose_version() {
     fi
   fi
 
+  if [ -n "$DASHARO_REL_VER_DPP_SEABIOS" ]; then
+    tmp_rom=$(mktemp --dry-run)
+    config=/tmp/config
+    # get current firmware
+    for flash_name in $FLASH_CHIP_LIST; do
+      $FLASHROM -p "$PROGRAMMER_BIOS" -c "$flash_name" -r "$tmp_rom" >>"$FLASH_INFO_FILE" 2>>"$ERR_LOG_FILE"
+      if [ $? -eq 0 ]; then
+        break
+      fi
+    done
+    if [ -f "$tmp_rom" ]; then
+      # extract config
+      $CBFSTOOL "$tmp_rom" extract -n config -f "$config"
+      # check if current firmware is seabios, if yes then we can offer update
+      if grep -q "CONFIG_PAYLOAD_SEABIOS=y" "$config"; then
+        if check_for_firmware_access seabios; then
+          FIRMWARE_VERSION="seabios"
+          return 0
+        else
+          print_firm_access_warning seabios
+        fi
+      fi
+    else
+      return 1
+    fi
+  fi
+
   if [ -n "$DASHARO_REL_VER_DPP" ]; then
     if check_for_firmware_access dpp; then
       FIRMWARE_VERSION="dpp"
@@ -362,6 +389,7 @@ prepare_env() {
     BIOS_LINK=$BIOS_LINK_DPP_SEABIOS
     BIOS_HASH_LINK=$BIOS_HASH_LINK_DPP_SEABIOS
     BIOS_SIGN_LINK=$BIOS_SIGN_LINK_DPP_SEABIOS
+    UPDATE_VERSION="$DASHARO_REL_VER_DPP_SEABIOS"
 
     return 0
   elif [ "$FIRMWARE_VERSION" == "heads" ]; then
