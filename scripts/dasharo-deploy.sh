@@ -1227,7 +1227,7 @@ transition_firmware() {
   error_check "Failed to transition Dasharo firmware"
   print_ok "Successfully transitioned Dasharo firmware"
 
-  return 0
+  return $OK
 }
 
 transition_workflow() {
