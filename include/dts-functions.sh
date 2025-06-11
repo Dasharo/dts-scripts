@@ -1192,7 +1192,7 @@ handle_fw_switching() {
           UPDATE_VERSION=$HEADS_REL_VER_DPP
           compare_versions $DASHARO_VERSION $UPDATE_VERSION
           if [ $? -ne 1 ]; then
-            error_exit "No update available for your machine"
+            error_exit "No update available for your machine" $CANCEL
           fi
           echo "Will not switch back to regular Dasharo firmware. Proceeding with Dasharo heads firmware update to $UPDATE_VERSION."
           FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
@@ -1255,7 +1255,7 @@ handle_fw_switching() {
     fi
     compare_versions $DASHARO_VERSION $UPDATE_VERSION
     if [ $? -ne 1 ]; then
-      error_exit "No update available for your machine"
+      error_exit "No update available for your machine" $CANCEL
     fi
   fi
 }
