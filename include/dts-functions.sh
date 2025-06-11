@@ -1157,7 +1157,7 @@ handle_fw_switching() {
         ;;
       n | N)
         echo "Will not install Dasharo heads firmware. Proceeding with regular Dasharo firmware update."
-        return 2
+        return $CANCEL
         ;;
       *) ;;
       esac
@@ -1468,7 +1468,7 @@ main_menu_options() {
       if [ -n "${LOGS_SENT}" ]; then
         ${CMD_DASHARO_DEPLOY} install
         result=$?
-        if [ "$result" -ne 0 ] && [ "$result" -ne 2 ]; then
+        if [ "$result" -ne $OK ] && [ "$result" -ne $CANCEL ]; then
           send_dts_logs ask && return 0
         fi
       fi
@@ -1500,7 +1500,7 @@ main_menu_options() {
       # Use regular update process for everything else
       ${CMD_DASHARO_DEPLOY} update
       result=$?
-      if [ "$result" -ne 0 ] && [ "$result" -ne 2 ]; then
+      if [ "$result" -ne $OK ] && [ "$result" -ne $CANCEL ]; then
         send_dts_logs ask && return 0
       fi
     fi
@@ -1752,7 +1752,7 @@ check_if_fused() {
 
   if ! $FSREAD_TOOL test -f "$_file_path"; then
     print_error "File not found: $_file_path"
-    return 2
+    return $CANCEL
   fi
 
   _file_content="$($FSREAD_TOOL cat $_file_path)"

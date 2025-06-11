@@ -17,6 +17,11 @@ YELLOW='\033[0;33m'
 GREEN='\033[0;32m'
 BLUE='\033[0;36m'
 
+# Return values
+OK=0
+FAIL=1
+CANCEL=2
+
 # DPP variables:
 DPP_SERVER_ADDRESS="https://dl.dasharo.com"
 DPP_SERVER_USER_ALIAS="premium"

@@ -392,7 +392,7 @@ prepare_env() {
     # If the user chose not to update to heads, allow them to try another
     # version
     ret_code=$?
-    if [ $ret_code -eq 2 ]; then
+    if [ $ret_code -eq $CANCEL ]; then
       HAVE_HEADS_FW="false"
       prepare_env $_prepare_for
     elif [ $ret_code -eq 0 ]; then
@@ -1026,7 +1026,7 @@ update_workflow() {
     print_ok "Latest available Dasharo version for your subscription: $UPDATE_VERSION"
     compare_versions $DASHARO_VERSION $UPDATE_VERSION
     if [ $? -ne 1 ]; then
-      error_exit "No update available for your machine" 2
+      error_exit "No update available for your machine" $CANCEL
     fi
   fi
 
