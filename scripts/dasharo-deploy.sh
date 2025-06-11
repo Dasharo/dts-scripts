@@ -257,13 +257,13 @@ choose_version() {
       if grep -q "CONFIG_PAYLOAD_SEABIOS=y" "$config"; then
         if check_for_firmware_access seabios; then
           FIRMWARE_VERSION="seabios"
-          return 0
+          return $OK
         else
           print_firm_access_warning seabios
         fi
       fi
     else
-      return 1
+      return $FAIL
     fi
   fi
 
@@ -1169,7 +1169,7 @@ ask_for_version_transition() {
       ;;
     b | B)
       echo "Returning to main menu..."
-      exit 0
+      exit $OK
       ;;
     *) ;;
     esac

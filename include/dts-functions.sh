@@ -1582,7 +1582,7 @@ main_menu_options() {
     ${CMD_DASHARO_DEPLOY} transition
     result=$?
     if [ "$result" -ne $OK ] && [ "$result" -ne $CANCEL ]; then
-      send_dts_logs ask && return 0
+      send_dts_logs ask && return $OK
     fi
     read -p "Press Enter to continue."
 
