@@ -1409,6 +1409,13 @@ show_main_menu() {
   if [ -f "${DPP_SUBMENU_JSON}" ]; then
     echo -e "${BLUE}**${YELLOW}     ${DPP_SUBMENU_OPT})${BLUE} DTS extensions${NORMAL}"
   fi
+  # As of now show this option only for PC Engines and only for non-UEFI
+  # firmware as we only implement transition to UEFI for PC Engines
+  # TODO: migrate all transition logic here e.g. Heads, UEFI->SeaBIOS if
+  # possible
+  if [[ ! -d "/sys/firmware/efi" && "$SYSTEM_VENDOR" == "PC Engines" ]]; then
+    echo -e "${BLUE}**${YELLOW}     ${TRANSITION_OPT})${BLUE} Transition Dasharo Firmware${NORMAL}"
+  fi
 }
 
 main_menu_options() {
@@ -1569,6 +1576,16 @@ main_menu_options() {
   "${DPP_SUBMENU_OPT}")
     [ -f "$DPP_SUBMENU_JSON" ] || return 0
     export DPP_SUBMENU_ACTIVE="true"
+    return 0
+    ;;
+  "${TRANSITION_OPT}")
+    ${CMD_DASHARO_DEPLOY} transition
+    result=$?
+    if [ "$result" -ne $OK ] && [ "$result" -ne $CANCEL ]; then
+      send_dts_logs ask && return 0
+    fi
+    read -p "Press Enter to continue."
+
     return 0
     ;;
   esac
