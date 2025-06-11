@@ -1413,7 +1413,7 @@ show_main_menu() {
   # firmware as we only implement transition to UEFI for PC Engines
   # TODO: migrate all transition logic here e.g. Heads, UEFI->SeaBIOS if
   # possible
-  if [[ ! -d "/sys/firmware/efi" && "$SYSTEM_VENDOR" == "PC Engines" ]]; then
+  if ! $FSREAD_TOOL test -d "/sys/firmware/efi" && [[ "$SYSTEM_VENDOR" == "PC Engines" ]]; then
     echo -e "${BLUE}**${YELLOW}     ${TRANSITION_OPT})${BLUE} Transition Dasharo Firmware${NORMAL}"
   fi
 }
