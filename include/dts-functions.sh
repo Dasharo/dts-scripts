@@ -32,7 +32,9 @@ print_ok() {
 }
 
 check_if_dasharo() {
-  if [[ $BIOS_VENDOR == *$DASHARO_VENDOR* && $BIOS_VERSION == *$DASHARO_NAME* ]]; then
+  if [[ $BIOS_VENDOR == *$DASHARO_VENDOR* &&
+    $BIOS_VERSION == *$DASHARO_NAME* ||
+    "$SYSTEM_VENDOR" == "PC Engines" ]]; then
     return 0
   else
     return 1
@@ -230,14 +232,14 @@ board_config() {
 
   wait_for_network_connection
 
-  echo "Downloading board configs repository to $BOARD_CONFIG_PATH.tar.gz"
+  echo "Downloading board configs repository"
   mkdir -p "$BOARD_CONFIG_PATH"
   curl -L -o "$BOARD_CONFIG_PATH.tar.gz" https://github.com/Dasharo/dts-configs/archive/refs/heads/main.tar.gz >/dev/null 2>>"$ERR_LOG_FILE"
   if [ $? -ne 0 ]; then
     print_error "Failed to download configs."
     return 1
   fi
-  tar xvf "$BOARD_CONFIG_PATH.tar.gz" -C "$BOARD_CONFIG_PATH" --strip-components=1
+  tar xf "$BOARD_CONFIG_PATH.tar.gz" -C "$BOARD_CONFIG_PATH" --strip-components=1
 
   echo "Checking if board is Dasharo compatible."
   case "$SYSTEM_VENDOR" in
@@ -759,6 +761,14 @@ compare_versions() {
   ver1=$(sed -r "s/-rc([0-9]+)$/-rc.\1/" <<<"$1")
   ver2=$(sed -r "s/-rc([0-9]+)$/-rc.\1/" <<<"$2")
 
+  # convert SeaBIOS versioning x.x.x.x to x.x.x-x so it can be used with semver
+  # checker. Also remove leading zeroes as it's not allowed in semver
+  # specification. In case x are only zeroes then leave only one zero
+  dot_to_dash='s/([0-9]+\.[0-9]+\.[0-9]+)\.([0-9]+)/\1-\2/'
+  leading_zeroes='s/(^|\.)0+(0|[1-9])/\1\2/g'
+  ver1=$(sed -r -e "$leading_zeroes" -e "$dot_to_dash" <<<"$ver1")
+  ver2=$(sed -r -e "$leading_zeroes" -e "$dot_to_dash" <<<"$ver2")
+
   if ! python3 -m semver check "$ver1" || ! python3 -m semver check "$ver2"; then
     error_exit "Incorrect version format"
   fi
@@ -1147,7 +1157,7 @@ handle_fw_switching() {
         ;;
       n | N)
         echo "Will not install Dasharo heads firmware. Proceeding with regular Dasharo firmware update."
-        return 2
+        return $CANCEL
         ;;
       *) ;;
       esac
@@ -1182,7 +1192,7 @@ handle_fw_switching() {
           UPDATE_VERSION=$HEADS_REL_VER_DPP
           compare_versions $DASHARO_VERSION $UPDATE_VERSION
           if [ $? -ne 1 ]; then
-            error_exit "No update available for your machine"
+            error_exit "No update available for your machine" $CANCEL
           fi
           echo "Will not switch back to regular Dasharo firmware. Proceeding with Dasharo heads firmware update to $UPDATE_VERSION."
           FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
@@ -1245,7 +1255,7 @@ handle_fw_switching() {
     fi
     compare_versions $DASHARO_VERSION $UPDATE_VERSION
     if [ $? -ne 1 ]; then
-      error_exit "No update available for your machine"
+      error_exit "No update available for your machine" $CANCEL
     fi
   fi
 }
@@ -1399,6 +1409,13 @@ show_main_menu() {
   if [ -f "${DPP_SUBMENU_JSON}" ]; then
     echo -e "${BLUE}**${YELLOW}     ${DPP_SUBMENU_OPT})${BLUE} DTS extensions${NORMAL}"
   fi
+  # As of now show this option only for PC Engines and only for non-UEFI
+  # firmware as we only implement transition to UEFI for PC Engines
+  # TODO: migrate all transition logic here e.g. Heads, UEFI->SeaBIOS if
+  # possible
+  if ! $FSREAD_TOOL test -d "/sys/firmware/efi" && [[ "$SYSTEM_VENDOR" == "PC Engines" ]]; then
+    echo -e "${BLUE}**${YELLOW}     ${TRANSITION_OPT})${BLUE} Transition Dasharo Firmware${NORMAL}"
+  fi
 }
 
 main_menu_options() {
@@ -1458,7 +1475,7 @@ main_menu_options() {
       if [ -n "${LOGS_SENT}" ]; then
         ${CMD_DASHARO_DEPLOY} install
         result=$?
-        if [ "$result" -ne 0 ] && [ "$result" -ne 2 ]; then
+        if [ "$result" -ne $OK ] && [ "$result" -ne $CANCEL ]; then
           send_dts_logs ask && return 0
         fi
       fi
@@ -1490,7 +1507,7 @@ main_menu_options() {
       # Use regular update process for everything else
       ${CMD_DASHARO_DEPLOY} update
       result=$?
-      if [ "$result" -ne 0 ] && [ "$result" -ne 2 ]; then
+      if [ "$result" -ne $OK ] && [ "$result" -ne $CANCEL ]; then
         send_dts_logs ask && return 0
       fi
     fi
@@ -1559,6 +1576,16 @@ main_menu_options() {
   "${DPP_SUBMENU_OPT}")
     [ -f "$DPP_SUBMENU_JSON" ] || return 0
     export DPP_SUBMENU_ACTIVE="true"
+    return 0
+    ;;
+  "${TRANSITION_OPT}")
+    ${CMD_DASHARO_DEPLOY} transition
+    result=$?
+    if [ "$result" -ne $OK ] && [ "$result" -ne $CANCEL ]; then
+      send_dts_logs ask && return $OK
+    fi
+    read -p "Press Enter to continue."
+
     return 0
     ;;
   esac
@@ -1742,7 +1769,7 @@ check_if_fused() {
 
   if ! $FSREAD_TOOL test -f "$_file_path"; then
     print_error "File not found: $_file_path"
-    return 2
+    return $CANCEL
   fi
 
   _file_content="$($FSREAD_TOOL cat $_file_path)"

@@ -407,6 +407,7 @@ TEST_AC_PRESENT="${TEST_AC_PRESENT:-}"
 TEST_MEI_CONF_PRESENT="${TEST_MEI_CONF_PRESENT:-true}"
 TEST_INTEL_FUSE_STATUS="${TEST_INTEL_FUSE_STATUS:-0}"
 TEST_SOUND_CARD_PRESENT="${TEST_SOUND_CARD_PRESENT:-true}"
+TEST_EFI_PRESENT="${TEST_EFI_PRESENT:-true}"
 
 fsread_tool_common_mock() {
   # This functionn emulates read hardware specific file system resources or its
@@ -449,6 +450,11 @@ fsread_tool_test_mock() {
   if [ "$_arg_f" = "/sys/class/sound/card0/hw*/init_pin_configs" ] || [ "$_arg_f" = "/proc/asound/card0/codec#*" ]; then
     # Emulate sound card presence, check dasharo-hcl-report for more inf.:
     [ "$TEST_SOUND_CARD_PRESENT" = "true" ] && return 0
+  fi
+
+  if [ "$_arg_d" = "/sys/firmware/efi" ]; then
+    # Emulate sysfs EFI presence:
+    [ "$TEST_EFI_PRESENT" = "true" ] && return 0
   fi
 
   return 1

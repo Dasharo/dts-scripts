@@ -245,6 +245,28 @@ choose_version() {
     fi
   fi
 
+  if [ -n "$DASHARO_REL_VER_DPP_SEABIOS" ]; then
+    tmp_rom=$(mktemp --dry-run)
+    config=/tmp/config
+    # get current firmware
+    $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r "$tmp_rom" >>"$FLASH_INFO_FILE" 2>>"$ERR_LOG_FILE"
+    if [ -f "$tmp_rom" ]; then
+      # extract config
+      $CBFSTOOL "$tmp_rom" extract -n config -f "$config" 2>>"$ERR_LOG_FILE"
+      # check if current firmware is seabios, if yes then we can offer update
+      if grep -q "CONFIG_PAYLOAD_SEABIOS=y" "$config"; then
+        if check_for_firmware_access seabios; then
+          FIRMWARE_VERSION="seabios"
+          return $OK
+        else
+          print_firm_access_warning seabios
+        fi
+      fi
+    else
+      return $FAIL
+    fi
+  fi
+
   if [ -n "$DASHARO_REL_VER_DPP" ]; then
     if check_for_firmware_access dpp; then
       FIRMWARE_VERSION="dpp"
@@ -362,6 +384,7 @@ prepare_env() {
     BIOS_LINK=$BIOS_LINK_DPP_SEABIOS
     BIOS_HASH_LINK=$BIOS_HASH_LINK_DPP_SEABIOS
     BIOS_SIGN_LINK=$BIOS_SIGN_LINK_DPP_SEABIOS
+    UPDATE_VERSION="$DASHARO_REL_VER_DPP_SEABIOS"
 
     return 0
   elif [ "$FIRMWARE_VERSION" == "heads" ]; then
@@ -369,7 +392,7 @@ prepare_env() {
     # If the user chose not to update to heads, allow them to try another
     # version
     ret_code=$?
-    if [ $ret_code -eq 2 ]; then
+    if [ $ret_code -eq $CANCEL ]; then
       HAVE_HEADS_FW="false"
       prepare_env $_prepare_for
     elif [ $ret_code -eq 0 ]; then
@@ -771,7 +794,7 @@ firmware_pre_installation_routine() {
   set_intel_regions_update_params "-N --ifd -i bios"
 
   $CBFSTOOL read_bios_conffile_mock "$BIOS_UPDATE_FILE" extract -r COREBOOT -n config -f "$BIOS_UPDATE_CONFIG_FILE"
-  grep "CONFIG_VBOOT=y" "$BIOS_UPDATE_CONFIG_FILE"
+  grep -q "CONFIG_VBOOT=y" "$BIOS_UPDATE_CONFIG_FILE"
   HAVE_VBOOT="$?"
 
   if [ "$NEED_ROMHOLE_MIGRATION" = "true" ]; then
@@ -1003,7 +1026,7 @@ update_workflow() {
     print_ok "Latest available Dasharo version for your subscription: $UPDATE_VERSION"
     compare_versions $DASHARO_VERSION $UPDATE_VERSION
     if [ $? -ne 1 ]; then
-      error_exit "No update available for your machine" 2
+      error_exit "No update available for your machine" $CANCEL
     fi
   fi
 
@@ -1086,6 +1109,169 @@ update_workflow() {
   echo "Rebooting"
   sleep 1
   ${REBOOT}
+}
+
+ask_for_version_transition() {
+  # Copy of ask_for_transition, trimmed for only SeaBIOS -> UEFI
+  local _option
+  local _might_be_comm
+  local _might_be_dpp
+
+  while :; do
+    echo
+    echo "Please, select Dasharo firmware version to install:"
+    echo
+
+    # Here we check if user has access to a certain version of Dasharo Firmware.
+    # The check consists of two stages:
+    # * does user platform support the firmware - BIOS_LINK_* variables are
+    # being checked;
+    # * does user has access rights to the blobs of the supported firmware - a
+    # call to the server with binaries is done, to check if user can download
+    # the blobs.
+    if [ -n "$BIOS_LINK_COMM" ]; then
+      if check_for_firmware_access community; then
+        echo "  c) Community version"
+        _might_be_comm="true"
+      fi
+    fi
+
+    if [ -n "$BIOS_LINK_DPP" ]; then
+      if check_for_firmware_access dpp; then
+        echo "  d) DPP version (coreboot + UEFI)"
+        _might_be_dpp="true"
+      else
+        print_firm_access_warning dpp
+      fi
+    fi
+
+    echo "  b) Back to main menu"
+    echo
+    read -r -p "Enter an option: " _option
+    echo
+
+    # In case of several Dasharo Firmware versions supported we leave the
+    # decision to user:
+    case ${_option} in
+    c | C | comm | community | COMMUNITY | COMM | Community)
+      if [ -n "$_might_be_comm" ]; then
+        print_ok "Community (Coreboot + EDK2) version selected"
+        FIRMWARE_VERSION="community"
+        break
+      fi
+      ;;
+    d | D | dpp | DPP | Dpp)
+      if [ -n "$_might_be_dpp" ]; then
+        print_ok "Subscription version (cooreboot + EDK2) selected"
+        FIRMWARE_VERSION="dpp"
+        break
+      fi
+      ;;
+    b | B)
+      echo "Returning to main menu..."
+      exit $OK
+      ;;
+    *) ;;
+    esac
+  done
+
+  return $OK
+}
+
+prepare_env_transition() {
+  # copy of prepare_env but trimmed only for SeaBIOS -> UEFI transition
+
+  ask_for_version_transition
+
+  # This is the key variable for this function, should be set either by
+  # choose_version or by ask_for_version:
+  if [ -z "$FIRMWARE_VERSION" ]; then
+    return $FAIL
+  fi
+
+  # When board_config returns, we have a set of *_LINK_* variables holding links
+  # to artifacts for our board. Now we need to decide which links to use (some
+  # platforms may support several firmware types). The links being used are
+  # determined bising on FIRMWARE_VERSION:
+  if [ "$FIRMWARE_VERSION" == "community" ]; then
+    BIOS_LINK=$BIOS_LINK_COMM
+    BIOS_HASH_LINK=$BIOS_HASH_LINK_COMM
+    BIOS_SIGN_LINK=$BIOS_SIGN_LINK_COMM
+
+    UPDATE_VERSION="$DASHARO_REL_VER"
+
+    return $OK
+  elif [ "$FIRMWARE_VERSION" == "dpp" ]; then
+    BIOS_LINK=$BIOS_LINK_DPP
+    BIOS_HASH_LINK=$BIOS_HASH_LINK_DPP
+    BIOS_SIGN_LINK=$BIOS_SIGN_LINK_DPP
+
+    UPDATE_VERSION="$DASHARO_REL_VER_DPP"
+
+    return $OK
+  fi
+
+  # Must not get here. If it gets here - the above variables are empty and
+  # script will not be able to continue.
+  return $FAIL
+}
+
+transition_firmware() {
+  # trimmed copy of deploy_firmware, modified only for transition
+  firmware_pre_installation_routine
+
+  echo "Transitioning Dasharo firmware..."
+  # FIXME: It seems we do not have an easy way to add some flasrhom extra args
+  # globally for specific platform and variant
+  $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "$BIOS_UPDATE_FILE" >>$FLASHROM_LOG_FILE 2>>"$ERR_LOG_FILE"
+  error_check "Failed to transition Dasharo firmware"
+  print_ok "Successfully transitioned Dasharo firmware"
+
+  return $OK
+}
+
+transition_workflow() {
+  # As of now it only targets SeaBIOS -> UEFI transition for PCEngines
+  sync_clocks
+
+  # Set all global variables needed for installation:
+  prepare_env_transition
+
+  if [ "$CAN_INSTALL_BIOS" == "true" ]; then
+    download_bios
+    verify_artifacts bios
+  fi
+
+  # Ask user for confirmation:
+  display_warning
+
+  # Deploy BIOS firmware
+  if [ "$CAN_INSTALL_BIOS" == "true" ]; then
+    transition_firmware
+  fi
+
+  # Post-installation routine:
+  echo -n "Syncing disks... "
+  sync
+  echo "Done."
+
+  send_dts_logs
+
+  echo "The computer will reboot automatically in 5 seconds"
+  sleep 0.5
+  _sleep_delay=5
+  echo "Rebooting in ${_sleep_delay} s:"
+  for ((i = _sleep_delay; i > 0; --i)); do
+    echo "${i}..."
+    sleep 1
+  done
+  echo "Rebooting"
+  sleep 1
+  if [ "$NEED_EC_RESET" == "true" ]; then
+    it5570_shutdown
+  else
+    ${REBOOT}
+  fi
 }
 
 restore() {
@@ -1273,6 +1459,9 @@ restore)
         restoring original firmware on platforms that runs Dasharo Firmware. Aborting..."
   fi
   restore
+  ;;
+transition)
+  transition_workflow
   ;;
 *)
   usage

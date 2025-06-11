@@ -17,6 +17,11 @@ YELLOW='\033[0;33m'
 GREEN='\033[0;32m'
 BLUE='\033[0;36m'
 
+# Return values
+OK=0
+FAIL=1
+CANCEL=2
+
 # DPP variables:
 DPP_SERVER_ADDRESS="https://dl.dasharo.com"
 DPP_SERVER_USER_ALIAS="premium"
@@ -38,6 +43,7 @@ DASHARO_FIRM_OPT="2"
 REST_FIRM_OPT="3"
 DPP_KEYS_OPT="4"
 DPP_SUBMENU_OPT="5"
+TRANSITION_OPT="6"
 BACK_TO_MAIN_MENU_UP="Q"
 BACK_TO_MAIN_MENU_DOWN="$(echo $BACK_TO_MAIN_MENU_UP | awk '{print tolower($0)}')"
 REBOOT_OPT_UP="R"
