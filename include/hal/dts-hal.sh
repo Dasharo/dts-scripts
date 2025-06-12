@@ -56,6 +56,8 @@ LSCPU="tool_wrapper lscpu"
 POWEROFF="tool_wrapper poweroff"
 REBOOT="tool_wrapper reboot"
 RDMSR="tool_wrapper rdmsr"
+LSPCI="tool_wrapper lspci"
+LSUSB="tool_wrapper lsusb"
 
 ################################################################################
 # Tools wrapper.
