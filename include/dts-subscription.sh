@@ -98,7 +98,7 @@ get_dpp_creds() {
   echo ""
   read -p "Enter DPP email:   " 'DPP_EMAIL'
   echo ""
-  read -p "Enter password:                " 'DPP_PASSWORD'
+  read -p "Enter password:    " 'DPP_PASSWORD'
 
   # Export DPP creds to a file for future use. Currently these are being used
   # for both: MinIO (and its mc CLI) and cloudsend (deprecated, all DPP
