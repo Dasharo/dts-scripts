@@ -130,14 +130,17 @@ tool_wrapper() {
     else
       common_mock $_tool
     fi
-
-    return $?
+  else
+    # If not testing - call tool with the arguments instead:
+    $_tool "${_arguments[@]}"
   fi
+  # !! When modifying this function, make sure this is return value of wrapped
+  # tool (real of mocked)
+  ret=$?
+  echo "${_tool} ${_arguments[*]} $ret" >>/tmp/logs/profile
+  echo "${BASH_SOURCE[1]}:${FUNCNAME[1]}:${BASH_LINENO[0]} ${_tool} ${_arguments[*]} $ret" >>/tmp/logs/debug_profile
 
-  # If not testing - call tool with the arguments instead:
-  $_tool "${_arguments[@]}"
-
-  return $?
+  return $ret
 }
 
 ################################################################################
