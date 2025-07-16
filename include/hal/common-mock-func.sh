@@ -355,16 +355,18 @@ cbfstool_read_bios_conffile_mock() {
   local _file_to_write_into
   _file_to_write_into=$(parse_for_arg_return_next "-f" "$@")
 
+  cat /dev/null >"$_file_to_write_into"
+
   if [ "$TEST_VBOOT_ENABLED" = "true" ]; then
     # Emulating VBOOT presence, check firmware_pre_installation_routine and
     # firmware_pre_updating_routine funcs for more inf.:
-    echo "CONFIG_VBOOT=y" >"$_file_to_write_into"
+    echo "CONFIG_VBOOT=y" >>"$_file_to_write_into"
   fi
 
   if [ "$TEST_IS_SEABIOS" = "true" ]; then
     # Emulating SeaBIOS payload presence, check function choose_version for more
     # inf..
-    echo "CONFIG_PAYLOAD_SEABIOS=y" >"$_file_to_write_into"
+    echo "CONFIG_PAYLOAD_SEABIOS=y" >>"$_file_to_write_into"
   fi
 
   echo "" >>"$_file_to_write_into"
