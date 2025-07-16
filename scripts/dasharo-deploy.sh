@@ -249,10 +249,10 @@ choose_version() {
     tmp_rom=$(mktemp --dry-run)
     config=/tmp/config
     # get current firmware
-    $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r "$tmp_rom" >>"$FLASH_INFO_FILE" 2>>"$ERR_LOG_FILE"
+    $FLASHROM flashrom_read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r "$tmp_rom" >>"$FLASH_INFO_FILE" 2>>"$ERR_LOG_FILE"
     if [ -f "$tmp_rom" ]; then
       # extract config
-      $CBFSTOOL "$tmp_rom" extract -n config -f "$config" 2>>"$ERR_LOG_FILE"
+      $CBFSTOOL read_bios_conffile_mock "$tmp_rom" extract -n config -f "$config" 2>>"$ERR_LOG_FILE"
       # check if current firmware is seabios, if yes then we can offer update
       if grep -q "CONFIG_PAYLOAD_SEABIOS=y" "$config"; then
         if check_for_firmware_access seabios; then

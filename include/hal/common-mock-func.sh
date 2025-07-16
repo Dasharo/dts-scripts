@@ -322,6 +322,7 @@ cbmem_check_if_me_disabled_mock() {
 TEST_VBOOT_ENABLED="${TEST_VBOOT_ENABLED:-}"
 TEST_ROMHOLE_MIGRATION="${TEST_ROMHOLE_MIGRATION:-}"
 TEST_DIFFERENT_FMAP="${TEST_DIFFERENT_FMAP:-}"
+TEST_IS_SEABIOS="${TEST_IS_SEABIOS:-}"
 
 cbfstool_layout_mock() {
   # Emulating some fields in Coreboot Files System layout table:
@@ -358,6 +359,12 @@ cbfstool_read_bios_conffile_mock() {
     # Emulating VBOOT presence, check firmware_pre_installation_routine and
     # firmware_pre_updating_routine funcs for more inf.:
     echo "CONFIG_VBOOT=y" >"$_file_to_write_into"
+  fi
+
+  if [ "$TEST_IS_SEABIOS" = "true" ]; then
+    # Emulating SeaBIOS payload presence, check function choose_version for more
+    # inf..
+    echo "CONFIG_PAYLOAD_SEABIOS=y" >"$_file_to_write_into"
   fi
 
   echo "" >>"$_file_to_write_into"
