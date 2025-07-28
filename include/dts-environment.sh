@@ -134,6 +134,9 @@ declare DASHARO_REL_VER_DPP_CAP
 # set in board_config:
 declare DASHARO_SUPPORT_CAP_FROM
 # Links to files:
+declare BUCKET_DPP
+declare BUCKET_DPP_SEABIOS
+declare BUCKET_DPP_HEADS
 declare BIOS_LINK_COMM
 declare BIOS_HASH_LINK_COMM
 declare BIOS_SIGN_LINK_COMM
