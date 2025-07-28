@@ -21,7 +21,7 @@ source $DTS_HAL
 
 # Variables used in this script:
 # Currently following firmware versions are available: community, community_cap,
-# dpp, dpp_cap, seabios, and heads:
+# dpp, dpp_cap, seabios, slimuefi, and heads:
 declare FIRMWARE_VERSION
 declare CAN_SWITCH_TO_HEADS
 CMD="$1"
@@ -30,7 +30,7 @@ FUM="$2"
 print_firm_access_warning() {
   # This function prints standard warning informing user that a specific DPP
   # firmware is available but he does not have access to it. Arguments: dpp,
-  # dpp_cap, seabios, and heads:
+  # dpp_cap, seabios, slimuefi, and heads:
   local _firm_type="$1"
   local _firm_type_print
 
@@ -43,6 +43,9 @@ print_firm_access_warning() {
     ;;
   seabios)
     _firm_type_print="coreboot + SeaBIOS"
+    ;;
+  slimuefi)
+    _firm_type_print="Slim Bootloader + UEFI"
     ;;
   heads)
     _firm_type_print="coreboot + Heads"
@@ -102,6 +105,14 @@ check_for_firmware_access() {
 
     [ $? -ne 0 ] && return 1
     ;;
+  slimuefi)
+    # This firmware type require user to provide creds:
+    [ "$DPP_IS_LOGGED" == "true" ] || return 1
+
+    mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP_SLIMUEFI}" >/dev/null 2>>"$ERR_LOG_FILE"
+
+    [ $? -ne 0 ] && return 1
+    ;;
   heads)
     # This firmware type require user to provide creds:
     [ "$DPP_IS_LOGGED" == "true" ] || return 1
@@ -124,6 +135,7 @@ ask_for_version() {
   local _might_be_comm
   local _might_be_dpp
   local _might_be_seabios
+  local _might_be_slimuefi
 
   while :; do
     echo
@@ -162,6 +174,15 @@ ask_for_version() {
       fi
     fi
 
+    if [ -n "$BIOS_LINK_DPP_SLIMUEFI" ]; then
+      if check_for_firmware_access slimuefi; then
+	echo "  s) DPP version (Slim Bootloader + UEFI)"
+        _might_be_slimuefi="true"
+      else
+        print_firm_access_warning slimuefi
+      fi
+    fi
+
     echo "  b) Back to main menu"
     echo
     read -r -p "Enter an option: " _option
@@ -188,6 +209,13 @@ ask_for_version() {
       if [ -n "$_might_be_seabios" ]; then
         print_ok "Subscription version (coreboot + SeaBIOS) selected"
         FIRMWARE_VERSION="seabios"
+        break
+      fi
+      ;;
+    l | L | slim | Slim)
+      if [ -n "$_might_be_slimuefi" ]; then
+        print_ok "Subscription version (Slim Bootloader + UEFI) selected"
+        FIRMWARE_VERSION="slimuefi"
         break
       fi
       ;;
@@ -385,6 +413,12 @@ prepare_env() {
     BIOS_HASH_LINK=$BIOS_HASH_LINK_DPP_SEABIOS
     BIOS_SIGN_LINK=$BIOS_SIGN_LINK_DPP_SEABIOS
     UPDATE_VERSION="$DASHARO_REL_VER_DPP_SEABIOS"
+
+    return 0
+  elif [ "$FIRMWARE_VERSION" == "slimuefi" ]; then
+    BIOS_LINK=$BIOS_LINK_DPP_SLIMUEFI
+    BIOS_HASH_LINK=$BIOS_HASH_LINK_DPP_SLIMUEFI
+    BIOS_SIGN_LINK=$BIOS_SIGN_LINK_DPP_SLIMUEFI
 
     return 0
   elif [ "$FIRMWARE_VERSION" == "heads" ]; then

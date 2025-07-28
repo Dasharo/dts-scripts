@@ -21,6 +21,7 @@ check_for_dasharo_firmware() {
   local _check_dwn_req_resp_uefi_cap="0"
   local _check_dwn_req_resp_heads="0"
   local _check_dwn_req_resp_seabios="0"
+  local _check_dwn_req_resp_slimuefi="0"
   local _check_logs_req_resp="0"
   # Ignore "SC2154 (warning): DPP_CREDENTIAL_FILE is referenced but not assigned"
   # for external variable:
@@ -32,7 +33,7 @@ check_for_dasharo_firmware() {
   board_config
 
   # If board_config function has not set firmware links - exit with warning:
-  if [ -z "$BIOS_LINK_DPP" ] && [ -z "$HEADS_LINK_DPP" ] && [ -z "$BIOS_LINK_DPP_SEABIOS" ] && [ -z "$BIOS_LINK_DPP_CAP" ]; then
+  if [ -z "$BIOS_LINK_DPP" ] && [ -z "$HEADS_LINK_DPP" ] && [ -z "$BIOS_LINK_DPP_SEABIOS" ] && [ -z "$BIOS_LINK_DPP_CAP" ] && [ -z "$BIOS_LINK_DPP_SLIMUEFI" ]; then
     print_warning "There is no Dasharo Firmware available for your platform."
     return 1
   fi
@@ -58,13 +59,19 @@ check_for_dasharo_firmware() {
       mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP_SEABIOS}" >/dev/null 2>>"$ERR_LOG_FILE"
       _check_dwn_req_resp_seabios=$?
     fi
+
+    if [ -n "$BIOS_LINK_DPP_SLIMUEFI" ]; then
+      mc find "${DPP_SERVER_USER_ALIAS}/${BIOS_LINK_DPP_SLIMUEFI}" >/dev/null 2>>"$ERR_LOG_FILE"
+      _check_dwn_req_resp_slimuefi=$?
+    fi
+
     if [ -n "${DPP_EMAIL}" ]; then
       mc find "${DPP_SERVER_USER_ALIAS}/${DPP_BUCKET}" >/dev/null 2>>"$ERR_LOG_FILE"
       _check_logs_req_resp=$?
     fi
   fi
   # Return 0 if any of Dasharo Firmware binaries is available:
-  if [ ${_check_dwn_req_resp_uefi} -eq 0 ] || [ ${_check_dwn_req_resp_uefi_cap} -eq 0 ] || [ ${_check_dwn_req_resp_heads} -eq 0 ] || [ ${_check_dwn_req_resp_seabios} -eq 0 ]; then
+  if [ ${_check_dwn_req_resp_uefi} -eq 0 ] || [ ${_check_dwn_req_resp_uefi_cap} -eq 0 ] || [ ${_check_dwn_req_resp_heads} -eq 0 ] || [ ${_check_dwn_req_resp_seabios} -eq 0 ] || [ $ {_check_dwn_req_resp_slimuefi} -eq 0 ]; then
     if [ ${_check_logs_req_resp} -eq 0 ]; then
       print_ok "A Dasharo Firmware binary has been found for your platform!"
       return 0
