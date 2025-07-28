@@ -133,10 +133,11 @@ declare DASHARO_REL_VER_DPP_CAP
 # from which Dasharo firmware supports capsule update for current patform. It is
 # set in board_config:
 declare DASHARO_SUPPORT_CAP_FROM
-# Links to files:
 declare BUCKET_DPP
 declare BUCKET_DPP_SEABIOS
 declare BUCKET_DPP_HEADS
+declare BUCKET_DPP_SLIMUEFI
+# Links to files:
 declare BIOS_LINK_COMM
 declare BIOS_HASH_LINK_COMM
 declare BIOS_SIGN_LINK_COMM
