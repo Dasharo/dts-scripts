@@ -200,3 +200,75 @@ check_me_op_mode() {
 
   return 0
 }
+
+check_for_uefi() {
+  # Check if current firmware is Dasharo (coreboot+UEFI). Returns 0 on
+  # success, otherwise returns 1.
+  [[ "$DASHARO_FLAVOR" == "Dasharo (coreboot+UEFI)" ]] && return 0
+  # Additional check is useful sometimes:
+  $FSREAD_TOOL test -d "/sys/firmware/efi" && return 0
+
+  return 1
+}
+
+check_for_seabios() {
+  # Check if current firmware is Dasharo (coreboot+SeaBIOS). Returns 0 on
+  # success, otherwise returns 1.
+  [[ "$DASHARO_FLAVOR" == "Dasharo (coreboot+SeaBIOS)" ]] && return 0
+  # Additional check is useful sometimes:
+  tmp_rom=$(mktemp --dry-run)
+  config=/tmp/config
+  # Get current firmware:
+  $FLASHROM flashrom_read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r "$tmp_rom" >>"$FLASH_INFO_FILE" 2>>"$ERR_LOG_FILE"
+
+  if [ -f "$tmp_rom" ]; then
+    # extract config
+    $CBFSTOOL read_bios_conffile_mock "$tmp_rom" extract -n config -f "$config" 2>>"$ERR_LOG_FILE"
+    grep -q "CONFIG_PAYLOAD_SEABIOS=y" "$config" && return 0
+  fi
+
+  return 1
+}
+
+check_for_transition() {
+  # This function checks for possible transition for current hardware and
+  # firmware confugration flows and returns:
+  # * In case no transition flows sare available: return code 1 and epmty
+  # stdout.
+  # * In case at least one transition flow is available: return code 0 and the
+  # transition flow name on stdout.
+  #
+  # Check the end of the function for stdout formatting.
+  local _is_uefi
+  local _is_seabios
+  declare -a _transition_list
+  _is_uefi="false"
+  _is_seabios="false"
+
+  check_for_uefi && _is_uefi="true"
+  check_for_seabios && _is_seabios="true"
+
+  if [[ "$_is_uefi" == "true" ]]; then
+    # Dasharo (coreboot+UEFI) is installed, check possible transitions:
+    if [[ "$COREBOOT_UEFI_TO_SLIM_BOOTLOADER_UEFI_TRANSITION" == "true" ]]; then
+      _transition_list+=("Dasharo (coreboot+UEFI) to Dasharo (Slim Bootloader+UEFI)")
+    fi
+  fi
+
+  if [[ "$_is_seabios" == "true" ]]; then
+    # Dasharo (coreboot+SeaBIOS) is installed, check possible transitions:
+    if [[ "$COREBOOT_SEABIOS_TO_COREBOOT_UEFI_TRANSITION" == "true" ]]; then
+      _transition_list+=("Dasharo (coreboot+SeaBIOS) to Dasharo (coreboot+UEFI)")
+    fi
+  fi
+
+  # This loop will make this function return a string that contains a string
+  # that contains possible transitions separated by a new line, so it can be
+  # easily reconstracted back to an array with
+  # readarray -t transitions < <(check_for_transition)
+  for transition in "${_transition_list[@]}"; do
+    echo "$transition"
+  done
+
+  [[ -n "${_transition_list[@]}" ]] && return 0 || return 1
+}

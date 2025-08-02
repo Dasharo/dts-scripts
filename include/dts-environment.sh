@@ -135,9 +135,9 @@ declare DASHARO_REL_VER_DPP_CAP
 # set in board_config:
 declare DASHARO_SUPPORT_CAP_FROM
 # MinIO bucket names:
-declare BUCKET_DPP # Means coreboot+UEFI
-declare BUCKET_DPP_SEABIOS # Means coreboot+SeaBIOS
-declare BUCKET_DPP_HEADS # Means coreboot+Headsd
+declare BUCKET_DPP          # Means coreboot+UEFI
+declare BUCKET_DPP_SEABIOS  # Means coreboot+SeaBIOS
+declare BUCKET_DPP_HEADS    # Means coreboot+Headsd
 declare BUCKET_DPP_SLIMUEFI # Means Slim Bootloader+UEFI
 # Links to files:
 declare BIOS_LINK_COMM

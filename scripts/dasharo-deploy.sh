@@ -176,7 +176,7 @@ ask_for_version() {
 
     if [ -n "$BIOS_LINK_DPP_SLIMUEFI" ]; then
       if check_for_firmware_access slimuefi; then
-	echo "  s) DPP version (Slim Bootloader + UEFI)"
+        echo "  s) DPP version (Slim Bootloader + UEFI)"
         _might_be_slimuefi="true"
       else
         print_firm_access_warning slimuefi
@@ -1146,10 +1146,13 @@ update_workflow() {
 }
 
 ask_for_version_transition() {
-  # Copy of ask_for_transition, trimmed for only SeaBIOS -> UEFI
   local _option
   local _might_be_comm
   local _might_be_dpp
+  local _might_be_slimuefi
+  declare -a _possible_transitions
+
+  readarray -t _possible_transitions < <(check_for_transition)
 
   while :; do
     echo
@@ -1158,24 +1161,33 @@ ask_for_version_transition() {
 
     # Here we check if user has access to a certain version of Dasharo Firmware.
     # The check consists of two stages:
-    # * does user platform support the firmware - BIOS_LINK_* variables are
-    # being checked;
+    # * does user platform support the firmware - the list of possible
+    # transitions is being checked.
     # * does user has access rights to the blobs of the supported firmware - a
     # call to the server with binaries is done, to check if user can download
     # the blobs.
-    if [ -n "$BIOS_LINK_COMM" ]; then
+    if grep -q 'to Dasharo (coreboot+UEFI)' "${_possible_transitions[@]}"; then
       if check_for_firmware_access community; then
         echo "  c) Community version"
         _might_be_comm="true"
       fi
     fi
 
-    if [ -n "$BIOS_LINK_DPP" ]; then
+    if grep -q 'to Dasharo (coreboot+UEFI)' "${_possible_transitions[@]}"; then
       if check_for_firmware_access dpp; then
         echo "  d) DPP version (coreboot + UEFI)"
         _might_be_dpp="true"
       else
         print_firm_access_warning dpp
+      fi
+    fi
+
+    if grep -q 'to Dasharo (Slim Bootloader+UEFI)' "${_possible_transitions[@]}"; then
+      if check_for_firmware_access slimuefi; then
+        echo "  d) DPP version (Slim Bootloader + UEFI)"
+        _might_be_dpp="true"
+      else
+        print_firm_access_warning slimuefi
       fi
     fi
 
@@ -1201,6 +1213,13 @@ ask_for_version_transition() {
         break
       fi
       ;;
+    l | L | slim | Slim)
+      if [ -n "$_might_be_slimuefi" ]; then
+        print_ok "Subscription version (Slim Bootloader + UEFI) selected"
+        FIRMWARE_VERSION="slimuefi"
+        break
+      fi
+      ;;
     b | B)
       echo "Returning to main menu..."
       exit $OK
@@ -1213,7 +1232,7 @@ ask_for_version_transition() {
 }
 
 prepare_env_transition() {
-  # copy of prepare_env but trimmed only for SeaBIOS -> UEFI transition
+  # Copy of prepare_env but trimmed only for SeaBIOS -> UEFI transition
 
   ask_for_version_transition
 
@@ -1243,6 +1262,12 @@ prepare_env_transition() {
     UPDATE_VERSION="$DASHARO_REL_VER_DPP"
 
     return $OK
+  elif [ "$FIRMWARE_VERSION" == "slimuefi" ]; then
+    BIOS_LINK=$BIOS_LINK_DPP_SLIMUEFI
+    BIOS_HASH_LINK=$BIOS_HASH_LINK_DPP_SLIMUEFI
+    BIOS_SIGN_LINK=$BIOS_SIGN_LINK_DPP_SLIMUEFI
+
+    return $OK
   fi
 
   # Must not get here. If it gets here - the above variables are empty and
@@ -1251,7 +1276,7 @@ prepare_env_transition() {
 }
 
 transition_firmware() {
-  # trimmed copy of deploy_firmware, modified only for transition
+  # Trimmed copy of deploy_firmware, modified only for transition
   firmware_pre_installation_routine
 
   echo "Transitioning Dasharo firmware..."
@@ -1265,7 +1290,6 @@ transition_firmware() {
 }
 
 transition_workflow() {
-  # As of now it only targets SeaBIOS -> UEFI transition for PCEngines
   sync_clocks
 
   # Set all global variables needed for installation:
