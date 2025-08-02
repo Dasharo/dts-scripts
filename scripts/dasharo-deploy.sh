@@ -1166,14 +1166,14 @@ ask_for_version_transition() {
     # * does user has access rights to the blobs of the supported firmware - a
     # call to the server with binaries is done, to check if user can download
     # the blobs.
-    if grep -q 'to Dasharo (coreboot+UEFI)' "${_possible_transitions[@]}"; then
+    if grep -q 'to Dasharo (coreboot+UEFI)' <(echo "${_possible_transitions[@]}"); then
       if check_for_firmware_access community; then
         echo "  c) Community version"
         _might_be_comm="true"
       fi
     fi
 
-    if grep -q 'to Dasharo (coreboot+UEFI)' "${_possible_transitions[@]}"; then
+    if grep -q 'to Dasharo (coreboot+UEFI)' <(echo "${_possible_transitions[@]}"); then
       if check_for_firmware_access dpp; then
         echo "  d) DPP version (coreboot + UEFI)"
         _might_be_dpp="true"
@@ -1182,7 +1182,7 @@ ask_for_version_transition() {
       fi
     fi
 
-    if grep -q 'to Dasharo (Slim Bootloader+UEFI)' "${_possible_transitions[@]}"; then
+    if grep -q 'to Dasharo (Slim Bootloader+UEFI)' <(echo "${_possible_transitions[@]}"); then
       if check_for_firmware_access slimuefi; then
         echo "  d) DPP version (Slim Bootloader + UEFI)"
         _might_be_dpp="true"
