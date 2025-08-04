@@ -1414,7 +1414,9 @@ show_main_menu() {
   if [ -f "${DPP_SUBMENU_JSON}" ]; then
     echo -e "${BLUE}**${YELLOW}     ${DPP_SUBMENU_OPT})${BLUE} DTS extensions${NORMAL}"
   fi
-  echo -e "${BLUE}**${YELLOW}     ${TRANSITION_OPT})${BLUE} Transition Dasharo Firmware${NORMAL}"
+  if check_if_dasharo; then
+    echo -e "${BLUE}**${YELLOW}     ${TRANSITION_OPT})${BLUE} Transition Dasharo Firmware${NORMAL}"
+  fi
 }
 
 main_menu_options() {
@@ -1578,6 +1580,9 @@ main_menu_options() {
     return 0
     ;;
   "${TRANSITION_OPT}")
+    # No transition, if there is no Dasharo firmware installed:
+    check_if_dasharo || return 0
+
     ${CMD_DASHARO_DEPLOY} transition
     result=$?
     if [ "$result" -ne $OK ] && [ "$result" -ne $CANCEL ]; then
