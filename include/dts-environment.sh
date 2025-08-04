@@ -181,6 +181,8 @@ declare HEADS_SWITCH_FLASHROM_OPT_OVERRIDE
 declare PLATFORM_SIGN_KEY
 
 # Other variables:
+# dts-scripts config path
+declare DTS_CONFIG_REF="${DTS_CONFIG_REF:-/refs/heads/main}"
 # Default values for flash chip related information:
 declare FLASH_CHIP_SELECT
 declare FLASH_CHIP_SIZE
