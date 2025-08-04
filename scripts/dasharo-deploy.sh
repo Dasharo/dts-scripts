@@ -591,12 +591,14 @@ romhole_migration() {
 }
 
 smbios_migration() {
+  local _the_image_was_changed
+  _the_image_was_changed="false"
   echo -n "$($DMIDECODE dump_var_mock -s system-uuid)" >$SYSTEM_UUID_FILE
   echo -n "$($DMIDECODE dump_var_mock -s baseboard-serial-number)" >$SERIAL_NUMBER_FILE
 
-  COREBOOT_SEC=$($CBFSTOOL layout_mock $BIOS_UPDATE_FILE layout -w | grep "COREBOOT")
-  FW_MAIN_A_SEC=$($CBFSTOOL layout_mock $BIOS_UPDATE_FILE layout -w | grep "FW_MAIN_A")
-  FW_MAIN_B_SEC=$($CBFSTOOL layout_mock $BIOS_UPDATE_FILE layout -w | grep "FW_MAIN_B")
+  COREBOOT_SEC=$($CBFSTOOL layout_mock $BIOS_UPDATE_FILE layout -w 2>>"$ERR_LOG_FILE" | grep "COREBOOT")
+  FW_MAIN_A_SEC=$($CBFSTOOL layout_mock $BIOS_UPDATE_FILE layout -w 2>>"$ERR_LOG_FILE" | grep "FW_MAIN_A")
+  FW_MAIN_B_SEC=$($CBFSTOOL layout_mock $BIOS_UPDATE_FILE layout -w 2>>"$ERR_LOG_FILE" | grep "FW_MAIN_B")
 
   if [ -n "$COREBOOT_SEC" ]; then
     # if the migration can be done there for sure will be COREBOOT section
@@ -604,6 +606,8 @@ smbios_migration() {
     echo "Migrate to COREBOOT section."
     $CBFSTOOL $BIOS_UPDATE_FILE add -f $SERIAL_NUMBER_FILE -n serial_number -t raw -r COREBOOT
     $CBFSTOOL $BIOS_UPDATE_FILE add -f $SYSTEM_UUID_FILE -n system_uuid -t raw -r COREBOOT
+
+    _the_image_was_changed="true"
   fi
 
   if [ -n "$FW_MAIN_A_SEC" ]; then
@@ -612,6 +616,8 @@ smbios_migration() {
     $CBFSTOOL $BIOS_UPDATE_FILE add -f $SERIAL_NUMBER_FILE -n serial_number -t raw -r FW_MAIN_A
     $CBFSTOOL $BIOS_UPDATE_FILE add -f $SYSTEM_UUID_FILE -n system_uuid -t raw -r FW_MAIN_A
     $CBFSTOOL $BIOS_UPDATE_FILE truncate -r FW_MAIN_A
+
+    _the_image_was_changed="true"
   fi
 
   if [ -n "$FW_MAIN_B_SEC" ]; then
@@ -620,7 +626,13 @@ smbios_migration() {
     $CBFSTOOL $BIOS_UPDATE_FILE add -f $SERIAL_NUMBER_FILE -n serial_number -t raw -r FW_MAIN_B
     $CBFSTOOL $BIOS_UPDATE_FILE add -f $SYSTEM_UUID_FILE -n system_uuid -t raw -r FW_MAIN_B
     $CBFSTOOL $BIOS_UPDATE_FILE truncate -r FW_MAIN_B
+
+    _the_image_was_changed="true"
   fi
+
+  # In case the caller wants to know, whether this function changed the to be
+  # installed firmware image:
+  [[ "$_the_image_was_changed" == "true" ]] && return 0 || return 1
 }
 
 smmstore_migration() {
@@ -840,8 +852,8 @@ firmware_pre_installation_routine() {
   fi
 
   if [ "$NEED_SMBIOS_MIGRATION" = "true" ]; then
-    smbios_migration
-    resign_binary
+    # Do not resign the firmware if it was not changed by smbios_migration
+    smbios_migration && resign_binary
   fi
 
   if [ "$NEED_BLOB_TRANSMISSION" = "true" ]; then
