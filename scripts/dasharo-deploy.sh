@@ -839,7 +839,7 @@ firmware_pre_installation_routine() {
   check_if_me_disabled
   set_intel_regions_update_params "-N --ifd -i bios"
 
-  $CBFSTOOL read_bios_conffile_mock "$BIOS_UPDATE_FILE" extract -r COREBOOT -n config -f "$BIOS_UPDATE_CONFIG_FILE"
+  $CBFSTOOL read_bios_conffile_mock "$BIOS_UPDATE_FILE" extract -r COREBOOT -n config -f "$BIOS_UPDATE_CONFIG_FILE" 2>>$ERR_LOG_FILE
   grep -q "CONFIG_VBOOT=y" "$BIOS_UPDATE_CONFIG_FILE" 2>>$ERR_LOG_FILE
   HAVE_VBOOT="$?"
 
