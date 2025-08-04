@@ -176,7 +176,7 @@ ask_for_version() {
 
     if [ -n "$BIOS_LINK_DPP_SLIMUEFI" ]; then
       if check_for_firmware_access slimuefi; then
-        echo "  s) DPP version (Slim Bootloader + UEFI)"
+        echo "  l) DPP version (Slim Bootloader + UEFI)"
         _might_be_slimuefi="true"
       else
         print_firm_access_warning slimuefi
@@ -1196,8 +1196,8 @@ ask_for_version_transition() {
 
     if grep -q 'to Dasharo (Slim Bootloader+UEFI)' <(echo "${_possible_transitions[@]}"); then
       if check_for_firmware_access slimuefi; then
-        echo "  d) DPP version (Slim Bootloader + UEFI)"
-        _might_be_dpp="true"
+        echo "  l) DPP version (Slim Bootloader + UEFI)"
+        _might_be_slimuefi="true"
       else
         print_firm_access_warning slimuefi
       fi

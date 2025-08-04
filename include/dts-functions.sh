@@ -655,7 +655,7 @@ board_config() {
 
     BIOS_LINK_DPP="$BUCKET_DPP/$DASHARO_REL_NAME/v$DASHARO_REL_VER_DPP/${DASHARO_REL_NAME}_v$DASHARO_REL_VER_DPP.rom"
     # TODO: check if it really will be called "*_slimuefi_*.rom"
-    BIOS_LINK_DPP_SLIMUEFI="${BUCKET_DPP_SLIMUEFI}/pcengines_apu2/v${DASHARO_REL_VER_DPP_SLIMUEFI}/${DASHARO_REL_NAME}_slimuefi_v${DASHARO_REL_VER_DPP_SLIMUEFI}.rom"
+    BIOS_LINK_DPP_SLIMUEFI="${BUCKET_DPP_SLIMUEFI}/hardkernel_odroid_h4/v${DASHARO_REL_VER_DPP_SLIMUEFI}/${DASHARO_REL_NAME}_slim_bootloader_uefi_v${DASHARO_REL_VER_DPP_SLIMUEFI}.rom"
     ;;
   "QEMU" | "Emulation")
     case "$SYSTEM_MODEL" in
