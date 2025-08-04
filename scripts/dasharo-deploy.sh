@@ -818,7 +818,7 @@ firmware_pre_updating_routine() {
   fi
 
   $CBFSTOOL read_bios_conffile_mock "$BIOS_UPDATE_FILE" extract -r COREBOOT -n config -f "$BIOS_UPDATE_CONFIG_FILE"
-  grep -q "CONFIG_VBOOT=y" "$BIOS_UPDATE_CONFIG_FILE"
+  grep -q "CONFIG_VBOOT=y" "$BIOS_UPDATE_CONFIG_FILE" 2>>$ERR_LOG_FILE
   HAVE_VBOOT="$?"
 
   check_intel_regions
@@ -840,7 +840,7 @@ firmware_pre_installation_routine() {
   set_intel_regions_update_params "-N --ifd -i bios"
 
   $CBFSTOOL read_bios_conffile_mock "$BIOS_UPDATE_FILE" extract -r COREBOOT -n config -f "$BIOS_UPDATE_CONFIG_FILE"
-  grep -q "CONFIG_VBOOT=y" "$BIOS_UPDATE_CONFIG_FILE"
+  grep -q "CONFIG_VBOOT=y" "$BIOS_UPDATE_CONFIG_FILE" 2>>$ERR_LOG_FILE
   HAVE_VBOOT="$?"
 
   if [ "$NEED_ROMHOLE_MIGRATION" = "true" ]; then
