@@ -232,8 +232,8 @@ check_for_seabios() {
 
 check_for_transition() {
   # This function checks for possible transition for current hardware and
-  # firmware confugration flows and returns:
-  # * In case no transition flows sare available: return code 1 and epmty
+  # firmware configuration flows and returns:
+  # * In case no transition flows sare available: return code 1 and empty
   # stdout.
   # * In case at least one transition flow is available: return code 0 and the
   # transition flow name on stdout.
@@ -270,5 +270,5 @@ check_for_transition() {
     echo "$transition"
   done
 
-  [[ -n "${_transition_list[@]}" ]] && return 0 || return 1
+  [[ -n "${_transition_list[*]}" ]] && return 0 || return 1
 }

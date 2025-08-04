@@ -71,7 +71,7 @@ check_for_dasharo_firmware() {
     fi
   fi
   # Return 0 if any of Dasharo Firmware binaries is available:
-  if [ ${_check_dwn_req_resp_uefi} -eq 0 ] || [ ${_check_dwn_req_resp_uefi_cap} -eq 0 ] || [ ${_check_dwn_req_resp_heads} -eq 0 ] || [ ${_check_dwn_req_resp_seabios} -eq 0 ] || [ $ {_check_dwn_req_resp_slimuefi} -eq 0 ]; then
+  if [ ${_check_dwn_req_resp_uefi} -eq 0 ] || [ ${_check_dwn_req_resp_uefi_cap} -eq 0 ] || [ ${_check_dwn_req_resp_heads} -eq 0 ] || [ ${_check_dwn_req_resp_seabios} -eq 0 ] || [ ${_check_dwn_req_resp_slimuefi} -eq 0 ]; then
     if [ ${_check_logs_req_resp} -eq 0 ]; then
       print_ok "A Dasharo Firmware binary has been found for your platform!"
       return 0
