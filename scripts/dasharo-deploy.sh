@@ -1177,16 +1177,20 @@ ask_for_version_transition() {
     # call to the server with binaries is done, to check if user can download
     # the blobs.
     if grep -q 'to Dasharo (coreboot+UEFI)' <(echo "${_possible_transitions[@]}"); then
-      if check_for_firmware_access community; then
-        echo "  c) Community version"
-        _might_be_comm="true"
+      if [ -n "$BIOS_LINK_COMM" ]; then
+        if check_for_firmware_access community; then
+          echo "  c) Community version"
+          _might_be_comm="true"
+        fi
       fi
 
-      if check_for_firmware_access dpp; then
-        echo "  d) DPP version (coreboot + UEFI)"
-        _might_be_dpp="true"
-      else
-        print_firm_access_warning dpp
+      if [ -n "$BIOS_LINK_DPP" ]; then
+        if check_for_firmware_access dpp; then
+          echo "  d) DPP version (coreboot + UEFI)"
+          _might_be_dpp="true"
+        else
+          print_firm_access_warning dpp
+        fi
       fi
     fi
 
