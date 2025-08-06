@@ -590,8 +590,7 @@ romhole_migration() {
 }
 
 smbios_migration() {
-  local _the_image_was_changed
-  _the_image_was_changed="false"
+  local _the_image_was_changed="false"
   echo -n "$($DMIDECODE dump_var_mock -s system-uuid)" >$SYSTEM_UUID_FILE
   echo -n "$($DMIDECODE dump_var_mock -s baseboard-serial-number)" >$SERIAL_NUMBER_FILE
 
@@ -1161,7 +1160,7 @@ ask_for_version_transition() {
   local _might_be_comm
   local _might_be_dpp
   local _might_be_slimuefi
-  declare -a _possible_transitions
+  local _possible_transitions=()
 
   readarray -t _possible_transitions < <(check_for_transition)
 

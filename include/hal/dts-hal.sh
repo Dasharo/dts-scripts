@@ -239,11 +239,9 @@ check_for_transition() {
   # transition flow name on stdout.
   #
   # Check the end of the function for stdout formatting.
-  local _is_uefi
-  local _is_seabios
-  declare -a _transition_list
-  _is_uefi="false"
-  _is_seabios="false"
+  local _is_uefi="false"
+  local _is_seabios="false"
+  local _transition_list=()
 
   # The transition is only possible from Dasharo firmware:
   check_if_dasharo || return 1
@@ -266,7 +264,7 @@ check_for_transition() {
 
   # This loop will make this function return a string that contains a string
   # that contains possible transitions separated by a new line, so it can be
-  # easily reconstracted back to an array with
+  # easily reconstructed back to an array with
   # readarray -t transitions < <(check_for_transition)
   for transition in "${_transition_list[@]}"; do
     echo "$transition"
