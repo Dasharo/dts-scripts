@@ -122,6 +122,7 @@ declare DASHARO_REL_VER_DPP
 declare DASHARO_REL_VER_DPP_CAP
 declare HEADS_REL_VER_DPP
 declare DASHARO_REL_VER_DPP_SEABIOS
+declare DASHARO_REL_VER_DPP_SLIMUEFI
 declare COMPATIBLE_EC_FW_VERSION
 # and for capsules:
 declare DASHARO_REL_VER_CAP
@@ -133,6 +134,11 @@ declare DASHARO_REL_VER_DPP_CAP
 # from which Dasharo firmware supports capsule update for current patform. It is
 # set in board_config:
 declare DASHARO_SUPPORT_CAP_FROM
+# MinIO bucket names:
+declare BUCKET_DPP          # Means coreboot+UEFI
+declare BUCKET_DPP_SEABIOS  # Means coreboot+SeaBIOS
+declare BUCKET_DPP_HEADS    # Means coreboot+Headsd
+declare BUCKET_DPP_SLIMUEFI # Means Slim Bootloader+UEFI
 # Links to files:
 declare BIOS_LINK_COMM
 declare BIOS_HASH_LINK_COMM
@@ -143,6 +149,9 @@ declare BIOS_SIGN_LINK_DPP
 declare BIOS_LINK_DPP_SEABIOS
 declare BIOS_HASH_LINK_DPP_SEABIOS
 declare BIOS_SIGN_LINK_DPP_SEABIOS
+declare BIOS_LINK_DPP_SLIMUEFI
+declare BIOS_HASH_LINK_DPP_SLIMUEFI
+declare BIOS_SIGN_LINK_DPP_SLIMUEFI
 declare EC_LINK_COMM
 declare EC_HASH_LINK_COMM
 declare EC_SIGN_LINK_COMM

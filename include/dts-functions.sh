@@ -654,6 +654,8 @@ board_config() {
     esac
 
     BIOS_LINK_DPP="$BUCKET_DPP/$DASHARO_REL_NAME/v$DASHARO_REL_VER_DPP/${DASHARO_REL_NAME}_v$DASHARO_REL_VER_DPP.rom"
+    # TODO: check if it really will be called "*_slimuefi_*.rom"
+    BIOS_LINK_DPP_SLIMUEFI="${BUCKET_DPP_SLIMUEFI}/${DASHARO_REL_NAME}/v${DASHARO_REL_VER_DPP_SLIMUEFI}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP_SLIMUEFI}_slim_bootloader_uefi.rom"
     ;;
   "QEMU" | "Emulation")
     case "$SYSTEM_MODEL" in
@@ -688,6 +690,8 @@ board_config() {
   [ -z "$BIOS_SIGN_LINK_DPP_SEABIOS" ] && BIOS_SIGN_LINK_DPP_SEABIOS="${BIOS_HASH_LINK_DPP_SEABIOS}.sig"
   [ -z "$HEADS_HASH_LINK_DPP" ] && HEADS_HASH_LINK_DPP="${HEADS_LINK_DPP}.sha256"
   [ -z "$HEADS_SIGN_LINK_DPP" ] && HEADS_SIGN_LINK_DPP="${HEADS_HASH_LINK_DPP}.sig"
+  [ -z "$BIOS_HASH_LINK_DPP_SLIMUEFI" ] && BIOS_HASH_LINK_DPP_SLIMUEFI="${BIOS_LINK_DPP_SLIMUEFI}.sha256"
+  [ -z "$BIOS_SIGN_LINK_DPP_SLIMUEFI" ] && BIOS_SIGN_LINK_DPP_SLIMUEFI="${BIOS_HASH_LINK_DPP_SLIMUEFI}.sig"
   [ -z "$EC_HASH_LINK_COMM" ] && EC_HASH_LINK_COMM="${EC_LINK_COMM}.sha256"
   [ -z "$EC_SIGN_LINK_COMM" ] && EC_SIGN_LINK_COMM="${EC_HASH_LINK_COMM}.sig"
   [ -z "$EC_HASH_LINK_DPP" ] && EC_HASH_LINK_DPP="${EC_LINK_DPP}.sha256"
@@ -1410,11 +1414,7 @@ show_main_menu() {
   if [ -f "${DPP_SUBMENU_JSON}" ]; then
     echo -e "${BLUE}**${YELLOW}     ${DPP_SUBMENU_OPT})${BLUE} DTS extensions${NORMAL}"
   fi
-  # As of now show this option only for PC Engines and only for non-UEFI
-  # firmware as we only implement transition to UEFI for PC Engines
-  # TODO: migrate all transition logic here e.g. Heads, UEFI->SeaBIOS if
-  # possible
-  if ! $FSREAD_TOOL test -d "/sys/firmware/efi" && [[ "$SYSTEM_VENDOR" == "PC Engines" ]]; then
+  if check_if_dasharo; then
     echo -e "${BLUE}**${YELLOW}     ${TRANSITION_OPT})${BLUE} Transition Dasharo Firmware${NORMAL}"
   fi
 }
@@ -1580,6 +1580,9 @@ main_menu_options() {
     return 0
     ;;
   "${TRANSITION_OPT}")
+    # No transition, if there is no Dasharo firmware installed:
+    check_if_dasharo || return 0
+
     ${CMD_DASHARO_DEPLOY} transition
     result=$?
     if [ "$result" -ne $OK ] && [ "$result" -ne $CANCEL ]; then
