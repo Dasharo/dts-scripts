@@ -201,20 +201,20 @@ check_me_op_mode() {
   return 0
 }
 
-check_for_uefi() {
-  # Check if current firmware is Dasharo (coreboot+UEFI). Returns 0 on
-  # success, otherwise returns 1.
-  [[ "$DASHARO_FLAVOR" == "Dasharo (coreboot+UEFI)" ]] && return 0
+check_if_uefi() {
+  # Check if current firmware has UEFI payload. Returns 0 on  success, otherwise
+  # returns 1.
+  grep -q 'UEFI' <(echo "${DASHARO_FLAVOR}") && return 0
   # Additional check is useful sometimes:
   $FSREAD_TOOL test -d "/sys/firmware/efi" && return 0
 
   return 1
 }
 
-check_for_seabios() {
-  # Check if current firmware is Dasharo (coreboot+SeaBIOS). Returns 0 on
-  # success, otherwise returns 1.
-  [[ "$DASHARO_FLAVOR" == "Dasharo (coreboot+SeaBIOS)" ]] && return 0
+check_if_seabios() {
+  # Check if current firmware has SeaBIOS payload. Returns 0 on  success,
+  # otherwise returns 1.
+  grep -q 'SeaBIOS' <(echo "${DASHARO_FLAVOR}") && return 0
   # Additional check is useful sometimes:
   tmp_rom=$(mktemp --dry-run)
   config=/tmp/config
@@ -224,7 +224,7 @@ check_for_seabios() {
   if [ -f "$tmp_rom" ]; then
     # extract config
     $CBFSTOOL read_bios_conffile_mock "$tmp_rom" extract -n config -f "$config" 2>>"$ERR_LOG_FILE"
-    grep -q "CONFIG_PAYLOAD_SEABIOS=y" "$config" && return 0
+    grep -q "CONFIG_PAYLOAD_SEABIOS=y" "$config" 2>>"${ERR_LOG_FILE}" && return 0
   fi
 
   return 1
@@ -245,8 +245,10 @@ check_for_transition() {
   _is_uefi="false"
   _is_seabios="false"
 
-  check_for_uefi && _is_uefi="true"
-  check_for_seabios && _is_seabios="true"
+  # The transition is only possible from Dasharo firmware:
+  check_if_dasharo || return 1
+  check_if_uefi && _is_uefi="true"
+  check_if_seabios && _is_seabios="true"
 
   if [[ "$_is_uefi" == "true" ]]; then
     # Dasharo (coreboot+UEFI) is installed, check possible transitions:
