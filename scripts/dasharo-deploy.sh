@@ -1182,9 +1182,7 @@ ask_for_version_transition() {
         echo "  c) Community version"
         _might_be_comm="true"
       fi
-    fi
 
-    if grep -q 'to Dasharo (coreboot+UEFI)' <(echo "${_possible_transitions[@]}"); then
       if check_for_firmware_access dpp; then
         echo "  d) DPP version (coreboot + UEFI)"
         _might_be_dpp="true"
