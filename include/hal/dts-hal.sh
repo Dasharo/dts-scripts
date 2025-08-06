@@ -223,7 +223,7 @@ check_if_seabios() {
 
   if [ -f "$tmp_rom" ]; then
     # extract config
-    $CBFSTOOL read_bios_conffile_mock "$tmp_rom" extract -n config -f "$config" 2>>"$ERR_LOG_FILE"
+    $CBFSTOOL read_bios_conffile_mock "$tmp_rom" extract -n config -f "$config" >/dev/null 2>>"$ERR_LOG_FILE"
     grep -q "CONFIG_PAYLOAD_SEABIOS=y" "$config" 2>>"${ERR_LOG_FILE}" && return 0
   fi
 
