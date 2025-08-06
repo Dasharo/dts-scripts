@@ -67,9 +67,8 @@ print_firm_access_warning() {
 }
 
 check_for_firmware_access() {
-  # DPP credentials are being provided outside of this script, this script only
-  # has to check whether the credentials give access to appropriate firmware. The
-  # appropriate firmware are defined by FIRMWARE_VERSION variable.
+  # Check if the credentials provide accecss to the firmware artifacts per
+  # specific access supplied via first argument.
 
   local _firm_ver_to_check
   _firm_ver_to_check=$1
