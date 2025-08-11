@@ -670,7 +670,7 @@ check_vboot_keys() {
     # No FMAP flashing? Also skip
     grep -q "\--fmap" <<<"$FLASHROM_ADD_OPT_UPDATE" || return
 
-    BINARY_KEYS=$(CBFSTOOL=$(which cbfstool) $FUTILITY dump_vboot_keys show $BIOS_UPDATE_FILE | grep -i 'key sha1sum')
+    BINARY_KEYS=$(CBFSTOOL=$(which cbfstool) $FUTILITY dump_vboot_keys_mock show $BIOS_UPDATE_FILE | grep -i 'key sha1sum')
 
     if [ $BOARD_HAS_FD_REGION -eq 0 ]; then
       FLASHROM_ADD_OPT_READ=""
@@ -680,7 +680,7 @@ check_vboot_keys() {
     echo "Checking vboot keys."
     $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_READ} -r $BIOS_DUMP_FILE >/dev/null 2>>"$ERR_LOG_FILE"
     if [ $? -eq 0 ] && [ -f $BIOS_DUMP_FILE ]; then
-      FLASH_KEYS=$(CBFSTOOL=$(which cbfstool) $FUTILITY dump_vboot_keys show $BIOS_DUMP_FILE | grep -i 'key sha1sum')
+      FLASH_KEYS=$(CBFSTOOL=$(which cbfstool) $FUTILITY dump_vboot_keys_mock show $BIOS_DUMP_FILE | grep -i 'key sha1sum')
       diff <(echo "$BINARY_KEYS") <(echo "$FLASH_KEYS") >/dev/null 2>>"$ERR_LOG_FILE"
       # If keys are different we must additionally flash at least GBB region as well
       if [ $? -ne 0 ]; then
