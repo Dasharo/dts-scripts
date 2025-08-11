@@ -228,55 +228,55 @@ dmidecode_dump_var_mock() {
   case "$_option_to_read" in
   system-manufacturer)
 
-    [ -z "$TEST_SYSTEM_VENDOR" ] && return 1
+    [ -z "$TEST_SYSTEM_VENDOR" ] && return 0
 
     echo "$TEST_SYSTEM_VENDOR"
     ;;
   system-product-name)
 
-    [ -z "$TEST_SYSTEM_MODEL" ] && return 1
+    [ -z "$TEST_SYSTEM_MODEL" ] && return 0
 
     echo "$TEST_SYSTEM_MODEL"
     ;;
   baseboard-version)
 
-    [ -z "$TEST_BOARD_MODEL" ] && return 1
+    [ -z "$TEST_BOARD_MODEL" ] && return 0
 
     echo "$TEST_BOARD_MODEL"
     ;;
   baseboard-product-name)
 
-    [ -z "$TEST_BOARD_MODEL" ] && return 1
+    [ -z "$TEST_BOARD_MODEL" ] && return 0
 
     echo "$TEST_BOARD_MODEL"
     ;;
   processor-version)
 
-    [ -z "$TEST_CPU_VERSION" ] && return 1
+    [ -z "$TEST_CPU_VERSION" ] && return 0
 
     echo "$TEST_CPU_VERSION"
     ;;
   bios-vendor)
 
-    [ -z "$TEST_BIOS_VENDOR" ] && return 1
+    [ -z "$TEST_BIOS_VENDOR" ] && return 0
 
     echo "$TEST_BIOS_VENDOR"
     ;;
   bios-version)
 
-    [ -z "$TEST_BIOS_VERSION" ] && return 1
+    [ -z "$TEST_BIOS_VERSION" ] && return 0
 
     echo "$TEST_BIOS_VERSION"
     ;;
   system-uuid)
 
-    [ -z "$TEST_SYSTEM_UUID" ] && return 1
+    [ -z "$TEST_SYSTEM_UUID" ] && return 0
 
     echo "$TEST_SYSTEM_UUID"
     ;;
   baseboard-serial-number)
 
-    [ -z "$TEST_BASEBOARD_SERIAL_NUMBER" ] && return 1
+    [ -z "$TEST_BASEBOARD_SERIAL_NUMBER" ] && return 0
 
     echo "$TEST_BASEBOARD_SERIAL_NUMBER"
     ;;
