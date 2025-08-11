@@ -273,8 +273,8 @@ choose_version() {
   fi
 
   if [ -n "$DASHARO_REL_VER_DPP_SEABIOS" ]; then
-    tmp_rom=$(mktemp --dry-run)
-    config=/tmp/config
+    tmp_rom="$TEMP_DIR/rom_seabios_check"
+    config="$TEMP_DIR/config"
     # get current firmware
     $FLASHROM flashrom_read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r "$tmp_rom" >>"$FLASH_INFO_FILE" 2>>"$ERR_LOG_FILE"
     if [ -f "$tmp_rom" ]; then

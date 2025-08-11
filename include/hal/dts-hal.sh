@@ -216,8 +216,8 @@ check_if_seabios() {
   # otherwise returns 1.
   grep -q 'SeaBIOS' <(echo "${DASHARO_FLAVOR}") && return 0
   # Additional check is useful sometimes:
-  tmp_rom=$(mktemp --dry-run)
-  config=/tmp/config
+  tmp_rom="$TEMP_DIR/rom_seabios_check"
+  config="$TEMP_DIR/config"
   # Get current firmware:
   $FLASHROM flashrom_read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r "$tmp_rom" >>"$FLASH_INFO_FILE" 2>>"$ERR_LOG_FILE"
 
