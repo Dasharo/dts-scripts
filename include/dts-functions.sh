@@ -1039,6 +1039,7 @@ force_me_update() {
 }
 
 set_flashrom_update_params() {
+  local bios_update_file=$1
   # Safe defaults which should always work
   if [ $BOARD_HAS_FD_REGION -eq 0 ]; then
     FLASHROM_ADD_OPT_UPDATE=""
@@ -1052,7 +1053,7 @@ set_flashrom_update_params() {
   $FLASHROM read_flash_layout_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE} -r $BIOS_DUMP_FILE >/dev/null 2>>"$ERR_LOG_FILE"
   if [ $? -eq 0 ] && [ -f "$BIOS_DUMP_FILE" ]; then
     BOARD_FMAP_LAYOUT=$($CBFSTOOL layout_mock $BIOS_DUMP_FILE layout -w 2>>"$ERR_LOG_FILE")
-    BINARY_FMAP_LAYOUT=$($CBFSTOOL layout_mock $1 layout -w 2>>"$ERR_LOG_FILE")
+    BINARY_FMAP_LAYOUT=$($CBFSTOOL layout_mock "$bios_update_file" layout -w 2>>"$ERR_LOG_FILE")
     diff <(echo "$BOARD_FMAP_LAYOUT") <(echo "$BINARY_FMAP_LAYOUT") >/dev/null 2>>"$ERR_LOG_FILE"
     # If layout is identical, perform standard update using FMAP only
     if [ $? -eq 0 ]; then
