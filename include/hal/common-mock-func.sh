@@ -320,11 +320,14 @@ cbmem_check_if_me_disabled_mock() {
 TEST_VBOOT_ENABLED="${TEST_VBOOT_ENABLED:-}"
 TEST_ROMHOLE_MIGRATION="${TEST_ROMHOLE_MIGRATION:-}"
 TEST_DIFFERENT_FMAP="${TEST_DIFFERENT_FMAP:-}"
+TEST_FMAP_REGIONS="${TEST_FMAP_REGIONS:-}"
 TEST_IS_SEABIOS="${TEST_IS_SEABIOS:-}"
 
 cbfstool_layout_mock() {
   # Emulating some fields in Coreboot Files System layout table:
   local _file_to_check="$1"
+  local regions
+  IFS=" " read -r -a regions <<<"$TEST_FMAP_REGIONS"
 
   echo "This image contains the following sections that can be accessed with this tool:"
   echo ""
@@ -333,6 +336,10 @@ cbfstool_layout_mock() {
   # Emulating difference in Coreboot FS, check function
   # set_flashrom_update_params for more inf.:
   [ "$TEST_DIFFERENT_FMAP" = "true" ] && [ "$_file_to_check" != "$BIOS_DUMP_FILE" ] && echo "test"
+
+  for region in "${regions[@]}"; do
+    echo "$region"
+  done
 
   return 0
 }
