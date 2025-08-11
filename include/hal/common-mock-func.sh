@@ -396,6 +396,7 @@ TEST_DIFFERENT_FMAP="${TEST_DIFFERENT_FMAP:-}"
 TEST_FMAP_REGIONS="${TEST_FMAP_REGIONS:-}"
 TEST_IS_SEABIOS="${TEST_IS_SEABIOS:-}"
 TEST_IS_COREBOOT="${TEST_IS_COREBOOT:-}"
+TEST_GBB_WP_RO_OVERLAP="${TEST_GBB_WP_RO_OVERLAP:-}"
 TEST_BOARD_HAS_SMMSTORE="${TEST_BOARD_HAS_SMMSTORE:-true}"
 
 check_if_coreboot() {
@@ -437,7 +438,11 @@ cbfstool_layout_mock() {
   [ "$TEST_DIFFERENT_FMAP" = "true" ] && [ "$_file_to_check" != "$BIOS_DUMP_FILE" ] && echo "test"
 
   for region in "${_regions[@]}"; do
-    echo "$region"
+    if [[ "$region" = "GBB" && -z "$TEST_GBB_WP_RO_OVERLAP" ]]; then
+      echo "'$region' (size 100, offset 1000)"
+    else
+      echo "'$region' (size 100, offset 100)"
+    fi
   done
 
   return 0
@@ -548,13 +553,18 @@ dmesg_i2c_hid_detect_mock() {
 ################################################################################
 # futility
 ################################################################################
+TEST_VBOOT_KEYS=${TEST_VBOOT_KEYS:-false}
 TEST_DIFFERENT_VBOOT_KEYS=${TEST_DIFFERENT_VBOOT_KEYS:-}
 
-futility_dump_vboot_keys() {
+futility_dump_vboot_keys_mock() {
   # Emulating VBOOT keys difference to trigger GBB region migration, check
   # check_vboot_keys func. for more inf.:
-  _local _file_to_check
+  local _file_to_check
   _file_to_check=$(parse_for_arg_return_next show "$@")
+  if [ "${TEST_VBOOT_KEYS}" = "false" ]; then
+    return 1
+  fi
+
   if [ "$TEST_DIFFERENT_VBOOT_KEYS" = "true" ]; then
     [ "$_file_to_check" = "$BIOS_UPDATE_FILE" ] && echo "key sha1sum: Test1"
     [ "$_file_to_check" = "$BIOS_DUMP_FILE" ] && echo "key sha1sum: Test2"
