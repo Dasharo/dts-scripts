@@ -309,11 +309,9 @@ cbmem_check_if_me_disabled_mock() {
   if [ "$TEST_ME_DISABLED" = "true" ]; then
     echo "ME is disabled"
     echo "ME is HAP disabled"
-
-    return 0
   fi
 
-  return 1
+  return 0
 }
 
 ################################################################################
