@@ -815,7 +815,7 @@ firmware_pre_updating_routine() {
     bootsplash_migration
   fi
 
-  $CBFSTOOL dont_mock "$BIOS_UPDATE_FILE" extract -r COREBOOT -n config -f "$BIOS_UPDATE_CONFIG_FILE"
+  $CBFSTOOL dont_mock "$BIOS_UPDATE_FILE" extract -r COREBOOT -n config -f "$BIOS_UPDATE_CONFIG_FILE" 2>>$ERR_LOG_FILE
   grep -q "CONFIG_VBOOT=y" "$BIOS_UPDATE_CONFIG_FILE" 2>>$ERR_LOG_FILE
   HAVE_VBOOT="$?"
 
