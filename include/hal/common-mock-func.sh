@@ -302,6 +302,14 @@ TEST_ME_OFFSET="${TEST_ME_OFFSET:-}"
 ifdtool_check_blobs_in_binary_mock() {
   # Emulating ME offset value check, check check_blobs_in_binary func. for more
   # inf.:
+  # last argument is file
+  local file="${*: -1}"
+
+  # if called on BIOS_UPDATE_FILE call original tool
+  if [ "$file" = "$BIOS_UPDATE_FILE" ]; then
+    ifdtool "$@"
+    return
+  fi
   echo "Flash Region 2 (Intel ME): $TEST_ME_OFFSET"
 
   return 0
