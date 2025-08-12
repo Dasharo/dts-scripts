@@ -273,8 +273,8 @@ choose_version() {
   fi
 
   if [ -n "$DASHARO_REL_VER_DPP_SEABIOS" ]; then
-    tmp_rom=$(mktemp --dry-run)
-    config=/tmp/config
+    tmp_rom="$TEMP_DIR/rom_seabios_check"
+    config="$TEMP_DIR/config"
     # get current firmware
     $FLASHROM flashrom_read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r "$tmp_rom" >>"$FLASH_INFO_FILE" 2>>"$ERR_LOG_FILE"
     if [ -f "$tmp_rom" ]; then
@@ -570,7 +570,7 @@ backup() {
 }
 
 romhole_migration() {
-  $CBFSTOOL layout_mock $BIOS_UPDATE_FILE layout -w | grep -q "ROMHOLE" || return
+  $CBFSTOOL dont_mock $BIOS_UPDATE_FILE layout -w | grep -q "ROMHOLE" || return
 
   $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r /tmp/rom.bin --ifd -i bios >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
   error_check "Failed to read current firmware to migrate MSI ROMHOLE"
@@ -594,9 +594,9 @@ smbios_migration() {
   echo -n "$($DMIDECODE dump_var_mock -s system-uuid)" >$SYSTEM_UUID_FILE
   echo -n "$($DMIDECODE dump_var_mock -s baseboard-serial-number)" >$SERIAL_NUMBER_FILE
 
-  COREBOOT_SEC=$($CBFSTOOL layout_mock $BIOS_UPDATE_FILE layout -w 2>>"$ERR_LOG_FILE" | grep "COREBOOT")
-  FW_MAIN_A_SEC=$($CBFSTOOL layout_mock $BIOS_UPDATE_FILE layout -w 2>>"$ERR_LOG_FILE" | grep "FW_MAIN_A")
-  FW_MAIN_B_SEC=$($CBFSTOOL layout_mock $BIOS_UPDATE_FILE layout -w 2>>"$ERR_LOG_FILE" | grep "FW_MAIN_B")
+  COREBOOT_SEC=$($CBFSTOOL dont_mock $BIOS_UPDATE_FILE layout -w 2>>"$ERR_LOG_FILE" | grep "COREBOOT")
+  FW_MAIN_A_SEC=$($CBFSTOOL dont_mock $BIOS_UPDATE_FILE layout -w 2>>"$ERR_LOG_FILE" | grep "FW_MAIN_A")
+  FW_MAIN_B_SEC=$($CBFSTOOL dont_mock $BIOS_UPDATE_FILE layout -w 2>>"$ERR_LOG_FILE" | grep "FW_MAIN_B")
 
   if [ -n "$COREBOOT_SEC" ]; then
     # if the migration can be done there for sure will be COREBOOT section
@@ -670,7 +670,7 @@ check_vboot_keys() {
     # No FMAP flashing? Also skip
     grep -q "\--fmap" <<<"$FLASHROM_ADD_OPT_UPDATE" || return
 
-    BINARY_KEYS=$(CBFSTOOL=$(which cbfstool) $FUTILITY dump_vboot_keys show $BIOS_UPDATE_FILE | grep -i 'key sha1sum')
+    BINARY_KEYS=$(CBFSTOOL=$(which cbfstool) $FUTILITY dump_vboot_keys_mock show $BIOS_UPDATE_FILE | grep -i 'key sha1sum')
 
     if [ $BOARD_HAS_FD_REGION -eq 0 ]; then
       FLASHROM_ADD_OPT_READ=""
@@ -680,7 +680,7 @@ check_vboot_keys() {
     echo "Checking vboot keys."
     $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_READ} -r $BIOS_DUMP_FILE >/dev/null 2>>"$ERR_LOG_FILE"
     if [ $? -eq 0 ] && [ -f $BIOS_DUMP_FILE ]; then
-      FLASH_KEYS=$(CBFSTOOL=$(which cbfstool) $FUTILITY dump_vboot_keys show $BIOS_DUMP_FILE | grep -i 'key sha1sum')
+      FLASH_KEYS=$(CBFSTOOL=$(which cbfstool) $FUTILITY dump_vboot_keys_mock show $BIOS_DUMP_FILE | grep -i 'key sha1sum')
       diff <(echo "$BINARY_KEYS") <(echo "$FLASH_KEYS") >/dev/null 2>>"$ERR_LOG_FILE"
       # If keys are different we must additionally flash at least GBB region as well
       if [ $? -ne 0 ]; then
@@ -815,7 +815,7 @@ firmware_pre_updating_routine() {
     bootsplash_migration
   fi
 
-  $CBFSTOOL read_bios_conffile_mock "$BIOS_UPDATE_FILE" extract -r COREBOOT -n config -f "$BIOS_UPDATE_CONFIG_FILE"
+  $CBFSTOOL dont_mock "$BIOS_UPDATE_FILE" extract -r COREBOOT -n config -f "$BIOS_UPDATE_CONFIG_FILE" 2>>$ERR_LOG_FILE
   grep -q "CONFIG_VBOOT=y" "$BIOS_UPDATE_CONFIG_FILE" 2>>$ERR_LOG_FILE
   HAVE_VBOOT="$?"
 
@@ -837,7 +837,7 @@ firmware_pre_installation_routine() {
   check_if_me_disabled
   set_intel_regions_update_params "-N --ifd -i bios"
 
-  $CBFSTOOL read_bios_conffile_mock "$BIOS_UPDATE_FILE" extract -r COREBOOT -n config -f "$BIOS_UPDATE_CONFIG_FILE" 2>>$ERR_LOG_FILE
+  $CBFSTOOL dont_mock "$BIOS_UPDATE_FILE" extract -r COREBOOT -n config -f "$BIOS_UPDATE_CONFIG_FILE" 2>>$ERR_LOG_FILE
   grep -q "CONFIG_VBOOT=y" "$BIOS_UPDATE_CONFIG_FILE" 2>>$ERR_LOG_FILE
   HAVE_VBOOT="$?"
 

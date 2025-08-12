@@ -45,6 +45,8 @@ source $DTS_FUNCS
 # shellcheck source=../include/hal/dts-hal.sh
 source $DTS_HAL
 
+mkdir -p "$TEMP_DIR"
+
 if [ -f $FUM_EFIVAR ]; then
   $SBIN_DIR/dasharo-deploy update fum
 else

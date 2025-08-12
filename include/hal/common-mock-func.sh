@@ -47,6 +47,15 @@ common_mock() {
   return 0
 }
 
+dont_mock() {
+  # Call original tool without mocking. Can be used if we want to call tool via
+  # tool wrapper e.g. if we want to log used tool in generated profile
+  local _tool="$1"
+  shift
+
+  "$_tool" "$@"
+}
+
 ################################################################################
 # flashrom
 ################################################################################
@@ -228,55 +237,55 @@ dmidecode_dump_var_mock() {
   case "$_option_to_read" in
   system-manufacturer)
 
-    [ -z "$TEST_SYSTEM_VENDOR" ] && return 1
+    [ -z "$TEST_SYSTEM_VENDOR" ] && return 0
 
     echo "$TEST_SYSTEM_VENDOR"
     ;;
   system-product-name)
 
-    [ -z "$TEST_SYSTEM_MODEL" ] && return 1
+    [ -z "$TEST_SYSTEM_MODEL" ] && return 0
 
     echo "$TEST_SYSTEM_MODEL"
     ;;
   baseboard-version)
 
-    [ -z "$TEST_BOARD_MODEL" ] && return 1
+    [ -z "$TEST_BOARD_MODEL" ] && return 0
 
     echo "$TEST_BOARD_MODEL"
     ;;
   baseboard-product-name)
 
-    [ -z "$TEST_BOARD_MODEL" ] && return 1
+    [ -z "$TEST_BOARD_MODEL" ] && return 0
 
     echo "$TEST_BOARD_MODEL"
     ;;
   processor-version)
 
-    [ -z "$TEST_CPU_VERSION" ] && return 1
+    [ -z "$TEST_CPU_VERSION" ] && return 0
 
     echo "$TEST_CPU_VERSION"
     ;;
   bios-vendor)
 
-    [ -z "$TEST_BIOS_VENDOR" ] && return 1
+    [ -z "$TEST_BIOS_VENDOR" ] && return 0
 
     echo "$TEST_BIOS_VENDOR"
     ;;
   bios-version)
 
-    [ -z "$TEST_BIOS_VERSION" ] && return 1
+    [ -z "$TEST_BIOS_VERSION" ] && return 0
 
     echo "$TEST_BIOS_VERSION"
     ;;
   system-uuid)
 
-    [ -z "$TEST_SYSTEM_UUID" ] && return 1
+    [ -z "$TEST_SYSTEM_UUID" ] && return 0
 
     echo "$TEST_SYSTEM_UUID"
     ;;
   baseboard-serial-number)
 
-    [ -z "$TEST_BASEBOARD_SERIAL_NUMBER" ] && return 1
+    [ -z "$TEST_BASEBOARD_SERIAL_NUMBER" ] && return 0
 
     echo "$TEST_BASEBOARD_SERIAL_NUMBER"
     ;;
@@ -293,6 +302,14 @@ TEST_ME_OFFSET="${TEST_ME_OFFSET:-}"
 ifdtool_check_blobs_in_binary_mock() {
   # Emulating ME offset value check, check check_blobs_in_binary func. for more
   # inf.:
+  # last argument is file
+  local file="${*: -1}"
+
+  # if called on BIOS_UPDATE_FILE call original tool
+  if [ "$file" = "$BIOS_UPDATE_FILE" ]; then
+    ifdtool "$@"
+    return
+  fi
   echo "Flash Region 2 (Intel ME): $TEST_ME_OFFSET"
 
   return 0
@@ -303,17 +320,25 @@ ifdtool_check_blobs_in_binary_mock() {
 ################################################################################
 TEST_ME_DISABLED="${TEST_ME_DISABLED:-true}"
 
+cbmem_common_mock() {
+  # should fail if fw is not coreboot
+  local _tool="$1"
+
+  [ "$TEST_IS_COREBOOT" != "true" ] && return 1
+  echo "${FUNCNAME[0]}: using ${_tool}..."
+  return 0
+}
+
 cbmem_check_if_me_disabled_mock() {
   # Emulating ME state checked in Coreboot table, check check_if_me_disabled func.
   # for more inf.:
+  [ "$TEST_IS_COREBOOT" != "true" ] && return 1
   if [ "$TEST_ME_DISABLED" = "true" ]; then
     echo "ME is disabled"
     echo "ME is HAP disabled"
-
-    return 0
   fi
 
-  return 1
+  return 0
 }
 
 ################################################################################
@@ -322,12 +347,31 @@ cbmem_check_if_me_disabled_mock() {
 TEST_VBOOT_ENABLED="${TEST_VBOOT_ENABLED:-}"
 TEST_ROMHOLE_MIGRATION="${TEST_ROMHOLE_MIGRATION:-}"
 TEST_DIFFERENT_FMAP="${TEST_DIFFERENT_FMAP:-}"
+TEST_FMAP_REGIONS="${TEST_FMAP_REGIONS:-}"
 TEST_IS_SEABIOS="${TEST_IS_SEABIOS:-}"
+TEST_IS_COREBOOT="${TEST_IS_COREBOOT:-}"
+
+check_if_coreboot() {
+  # if we are checking current firmware, return value based on TEST_IS_COREBOOT
+  # otherwise check with cbfstool
+  local file="$1"
+
+  if [ "$file" != "$BIOS_UPDATE_FILE" ]; then
+    [ "$TEST_IS_COREBOOT" = "true" ] && return 0
+    return 1
+  fi
+  cbfstool "$file" print &>/dev/null
+}
 
 cbfstool_layout_mock() {
   # Emulating some fields in Coreboot Files System layout table:
   local _file_to_check="$1"
+  local regions
+  IFS=" " read -r -a regions <<<"$TEST_FMAP_REGIONS"
 
+  if ! check_if_coreboot "$_file_to_check"; then
+    return 1
+  fi
   echo "This image contains the following sections that can be accessed with this tool:"
   echo ""
   # Emulating ROMHOLE presence, check romhole_migration function for more inf.:
@@ -336,15 +380,23 @@ cbfstool_layout_mock() {
   # set_flashrom_update_params for more inf.:
   [ "$TEST_DIFFERENT_FMAP" = "true" ] && [ "$_file_to_check" != "$BIOS_DUMP_FILE" ] && echo "test"
 
+  for region in "${regions[@]}"; do
+    echo "$region"
+  done
+
   return 0
 }
 
 cbfstool_read_romhole_mock() {
   # Emulating reading ROMHOLE section from dumped firmware, check
   # romhole_migration func for more inf.:
+  local _file_to_check="$1"
   local _file_to_write_into
   _file_to_write_into=$(parse_for_arg_return_next "-f" "$@")
 
+  if ! check_if_coreboot "$_file_to_check"; then
+    return 1
+  fi
   [ -f "$_file_to_write_into" ] || echo "Testing..." >"$_file_to_write_into"
 
   return 0
@@ -352,8 +404,13 @@ cbfstool_read_romhole_mock() {
 
 cbfstool_read_bios_conffile_mock() {
   # Emulating reading bios configuration and some fields inside it.
+  local _file_to_check="$1"
   local _file_to_write_into
   _file_to_write_into=$(parse_for_arg_return_next "-f" "$@")
+
+  if ! check_if_coreboot "$_file_to_check"; then
+    return 1
+  fi
 
   cat /dev/null >"$_file_to_write_into"
 
@@ -392,13 +449,18 @@ dmesg_i2c_hid_detect_mock() {
 ################################################################################
 # futility
 ################################################################################
+TEST_VBOOT_KEYS=${TEST_VBOOT_KEYS:-false}
 TEST_DIFFERENT_VBOOT_KEYS=${TEST_DIFFERENT_VBOOT_KEYS:-}
 
-futility_dump_vboot_keys() {
+futility_dump_vboot_keys_mock() {
   # Emulating VBOOT keys difference to trigger GBB region migration, check
   # check_vboot_keys func. for more inf.:
-  _local _file_to_check
+  local _file_to_check
   _file_to_check=$(parse_for_arg_return_next show "$@")
+  if [ "${TEST_VBOOT_KEYS}" = "false" ]; then
+    return 1
+  fi
+
   if [ "$TEST_DIFFERENT_VBOOT_KEYS" = "true" ]; then
     [ "$_file_to_check" = "$BIOS_UPDATE_FILE" ] && echo "key sha1sum: Test1"
     [ "$_file_to_check" = "$BIOS_DUMP_FILE" ] && echo "key sha1sum: Test2"
@@ -536,6 +598,24 @@ lscpu_common_mock() {
 
   return 0
 }
+
+################################################################################
+# msrtool
+################################################################################
+TEST_MSRTOOL="${TEST_MSRTOOL:-}"
+
+msrtool_common_mock() {
+  # print random msr if TEST_MSRTOOL is true otherwise print error
+  if [ "$TEST_MSRTOOL" = "true" ]; then
+    echo "# MSR_THERM2_CTL"
+    echo "0x0000019d"
+    return 0
+  else
+    echo "can not decode any MSRs!" >&2
+    return 1
+  fi
+}
+
 ################################################################################
 # rdmsr
 ################################################################################
@@ -559,4 +639,17 @@ rdmsr_boot_guard_status_mock() {
   echo "00000000000000${_bits_8_5}0"
 
   return 0
+}
+
+################################################################################
+# mei-amt-check
+################################################################################
+TEST_MEI_AMT_CHECK="${TEST_MEI_AMT_CHECK:-}"
+
+mei-amt-check_common_mock() {
+  if [ "$TEST_MEI_AMT_CHECK" = "true" ]; then
+    return 0
+  else
+    return 1
+  fi
 }
