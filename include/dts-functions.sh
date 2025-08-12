@@ -836,7 +836,7 @@ download_ec() {
 }
 
 download_keys() {
-  mkdir $KEYS_DIR
+  mkdir -p $KEYS_DIR
   wget -O $KEYS_DIR/recovery_key.vbpubk https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/recovery_key.vbpubk >>$ERR_LOG_FILE 2>&1
   wget -O $KEYS_DIR/firmware.keyblock https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/firmware.keyblock >>$ERR_LOG_FILE 2>&1
   wget -O $KEYS_DIR/firmware_data_key.vbprivk https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/firmware_data_key.vbprivk >>$ERR_LOG_FILE 2>&1
