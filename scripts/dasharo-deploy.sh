@@ -570,7 +570,7 @@ backup() {
 }
 
 romhole_migration() {
-  $CBFSTOOL layout_mock $BIOS_UPDATE_FILE layout -w | grep -q "ROMHOLE" || return
+  $CBFSTOOL dont_mock $BIOS_UPDATE_FILE layout -w | grep -q "ROMHOLE" || return
 
   $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r /tmp/rom.bin --ifd -i bios >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
   error_check "Failed to read current firmware to migrate MSI ROMHOLE"
@@ -594,9 +594,9 @@ smbios_migration() {
   echo -n "$($DMIDECODE dump_var_mock -s system-uuid)" >$SYSTEM_UUID_FILE
   echo -n "$($DMIDECODE dump_var_mock -s baseboard-serial-number)" >$SERIAL_NUMBER_FILE
 
-  COREBOOT_SEC=$($CBFSTOOL layout_mock $BIOS_UPDATE_FILE layout -w 2>>"$ERR_LOG_FILE" | grep "COREBOOT")
-  FW_MAIN_A_SEC=$($CBFSTOOL layout_mock $BIOS_UPDATE_FILE layout -w 2>>"$ERR_LOG_FILE" | grep "FW_MAIN_A")
-  FW_MAIN_B_SEC=$($CBFSTOOL layout_mock $BIOS_UPDATE_FILE layout -w 2>>"$ERR_LOG_FILE" | grep "FW_MAIN_B")
+  COREBOOT_SEC=$($CBFSTOOL dont_mock $BIOS_UPDATE_FILE layout -w 2>>"$ERR_LOG_FILE" | grep "COREBOOT")
+  FW_MAIN_A_SEC=$($CBFSTOOL dont_mock $BIOS_UPDATE_FILE layout -w 2>>"$ERR_LOG_FILE" | grep "FW_MAIN_A")
+  FW_MAIN_B_SEC=$($CBFSTOOL dont_mock $BIOS_UPDATE_FILE layout -w 2>>"$ERR_LOG_FILE" | grep "FW_MAIN_B")
 
   if [ -n "$COREBOOT_SEC" ]; then
     # if the migration can be done there for sure will be COREBOOT section
@@ -815,7 +815,7 @@ firmware_pre_updating_routine() {
     bootsplash_migration
   fi
 
-  $CBFSTOOL read_bios_conffile_mock "$BIOS_UPDATE_FILE" extract -r COREBOOT -n config -f "$BIOS_UPDATE_CONFIG_FILE"
+  $CBFSTOOL dont_mock "$BIOS_UPDATE_FILE" extract -r COREBOOT -n config -f "$BIOS_UPDATE_CONFIG_FILE"
   grep -q "CONFIG_VBOOT=y" "$BIOS_UPDATE_CONFIG_FILE" 2>>$ERR_LOG_FILE
   HAVE_VBOOT="$?"
 
@@ -837,7 +837,7 @@ firmware_pre_installation_routine() {
   check_if_me_disabled
   set_intel_regions_update_params "-N --ifd -i bios"
 
-  $CBFSTOOL read_bios_conffile_mock "$BIOS_UPDATE_FILE" extract -r COREBOOT -n config -f "$BIOS_UPDATE_CONFIG_FILE" 2>>$ERR_LOG_FILE
+  $CBFSTOOL dont_mock "$BIOS_UPDATE_FILE" extract -r COREBOOT -n config -f "$BIOS_UPDATE_CONFIG_FILE" 2>>$ERR_LOG_FILE
   grep -q "CONFIG_VBOOT=y" "$BIOS_UPDATE_CONFIG_FILE" 2>>$ERR_LOG_FILE
   HAVE_VBOOT="$?"
 

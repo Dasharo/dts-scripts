@@ -47,6 +47,15 @@ common_mock() {
   return 0
 }
 
+dont_mock() {
+  # Call original tool without mocking. Can be used if we want to call tool via
+  # tool wrapper e.g. if we want to log used tool in generated profile
+  local _tool="$1"
+  shift
+
+  "$_tool" "$@"
+}
+
 ################################################################################
 # flashrom
 ################################################################################

@@ -117,11 +117,14 @@ tool_wrapper() {
 
   if [ -n "$DTS_TESTING" ]; then
     # This is the order of calling mocking functions:
-    # 1) FUNCTIONNAME_mock;
-    # 2) TOOLNAME_FUNCTIONNAME_mock;
-    # 3) TOOLNAME_common_mock;
-    # 4) common_mock - last resort.
-    if [ -n "$_mock_func" ] && type $_mock_func &>/dev/null; then
+    # 1) dont_mock - use original command
+    # 2) FUNCTIONNAME_mock;
+    # 3) TOOLNAME_FUNCTIONNAME_mock;
+    # 4) TOOLNAME_common_mock;
+    # 5) common_mock - last resort.
+    if [ "$_mock_func" = "dont_mock" ]; then
+      dont_mock "$_tool" "${_arguments[@]}"
+    elif [ -n "$_mock_func" ] && type $_mock_func &>/dev/null; then
       $_mock_func "${_arguments[@]}"
     elif type ${_tool}_${_mock_func} &>/dev/null; then
       ${_tool}_${_mock_func} "${_arguments[@]}"
