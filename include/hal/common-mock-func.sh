@@ -312,6 +312,15 @@ ifdtool_check_blobs_in_binary_mock() {
 ################################################################################
 TEST_ME_DISABLED="${TEST_ME_DISABLED:-true}"
 
+cbmem_common_mock() {
+  # should fail if fw is not coreboot
+  local _tool="$1"
+
+  [ "$TEST_IS_COREBOOT" != "true" ] && return 1
+  echo "${FUNCNAME[0]}: using ${_tool}..."
+  return 0
+}
+
 cbmem_check_if_me_disabled_mock() {
   # Emulating ME state checked in Coreboot table, check check_if_me_disabled func.
   # for more inf.:
