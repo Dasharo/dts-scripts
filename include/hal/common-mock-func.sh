@@ -315,6 +315,7 @@ TEST_ME_DISABLED="${TEST_ME_DISABLED:-true}"
 cbmem_check_if_me_disabled_mock() {
   # Emulating ME state checked in Coreboot table, check check_if_me_disabled func.
   # for more inf.:
+  [ "$TEST_IS_COREBOOT" != "true" ] && return 1
   if [ "$TEST_ME_DISABLED" = "true" ]; then
     echo "ME is disabled"
     echo "ME is HAP disabled"
