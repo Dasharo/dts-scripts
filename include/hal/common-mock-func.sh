@@ -322,6 +322,19 @@ TEST_ROMHOLE_MIGRATION="${TEST_ROMHOLE_MIGRATION:-}"
 TEST_DIFFERENT_FMAP="${TEST_DIFFERENT_FMAP:-}"
 TEST_FMAP_REGIONS="${TEST_FMAP_REGIONS:-}"
 TEST_IS_SEABIOS="${TEST_IS_SEABIOS:-}"
+TEST_IS_COREBOOT="${TEST_IS_COREBOOT:-}"
+
+check_if_coreboot() {
+  # if we are checking current firmware, return value based on TEST_IS_COREBOOT
+  # otherwise check with cbfstool
+  local file="$1"
+
+  if [ "$file" != "$BIOS_UPDATE_FILE" ]; then
+    [ "$TEST_IS_COREBOOT" = "true" ] && return 0
+    return 1
+  fi
+  cbfstool "$file" print &>/dev/null
+}
 
 cbfstool_layout_mock() {
   # Emulating some fields in Coreboot Files System layout table:
@@ -329,6 +342,9 @@ cbfstool_layout_mock() {
   local regions
   IFS=" " read -r -a regions <<<"$TEST_FMAP_REGIONS"
 
+  if ! check_if_coreboot "$_file_to_check"; then
+    return 1
+  fi
   echo "This image contains the following sections that can be accessed with this tool:"
   echo ""
   # Emulating ROMHOLE presence, check romhole_migration function for more inf.:
@@ -347,9 +363,13 @@ cbfstool_layout_mock() {
 cbfstool_read_romhole_mock() {
   # Emulating reading ROMHOLE section from dumped firmware, check
   # romhole_migration func for more inf.:
+  local _file_to_check="$1"
   local _file_to_write_into
   _file_to_write_into=$(parse_for_arg_return_next "-f" "$@")
 
+  if ! check_if_coreboot "$_file_to_check"; then
+    return 1
+  fi
   [ -f "$_file_to_write_into" ] || echo "Testing..." >"$_file_to_write_into"
 
   return 0
@@ -357,8 +377,13 @@ cbfstool_read_romhole_mock() {
 
 cbfstool_read_bios_conffile_mock() {
   # Emulating reading bios configuration and some fields inside it.
+  local _file_to_check="$1"
   local _file_to_write_into
   _file_to_write_into=$(parse_for_arg_return_next "-f" "$@")
+
+  if ! check_if_coreboot "$_file_to_check"; then
+    return 1
+  fi
 
   cat /dev/null >"$_file_to_write_into"
 
