@@ -590,6 +590,24 @@ lscpu_common_mock() {
 
   return 0
 }
+
+################################################################################
+# msrtool
+################################################################################
+TEST_MSRTOOL="${TEST_MSRTOOL:-}"
+
+msrtool_common_mock() {
+  # print random msr if TEST_MSRTOOL is true otherwise print error
+  if [ "$TEST_MSRTOOL" = "true" ]; then
+    echo "# MSR_THERM2_CTL"
+    echo "0x0000019d"
+    return 0
+  else
+    echo "can not decode any MSRs!" >&2
+    return 1
+  fi
+}
+
 ################################################################################
 # rdmsr
 ################################################################################
@@ -613,4 +631,17 @@ rdmsr_boot_guard_status_mock() {
   echo "00000000000000${_bits_8_5}0"
 
   return 0
+}
+
+################################################################################
+# mei-amt-check
+################################################################################
+TEST_MEI_AMT_CHECK="${TEST_MEI_AMT_CHECK:-}"
+
+mei-amt-check_common_mock() {
+  if [ "$TEST_MEI_AMT_CHECK" = "true" ]; then
+    return 0
+  else
+    return 1
+  fi
 }
