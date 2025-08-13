@@ -4,11 +4,11 @@
 # Helper functions used in this script:
 ################################################################################
 parse_for_arg_return_next() {
-  # This function parses a list of arguments (given as a second argument), looks
-  # for a specified argument (given as a first argument). In case the specified
-  # argument has been found in the list - this function returns (to stdout) the
-  # argument, which is on the list after specified one, and a return value 0,
-  # otherwise nothing is being printed to stdout and the return value is 1.
+  # parse_for_arg_return_next <search_for> <list_of_args>...
+  # search <list_of_args> for <search_for> argument. If it's found output to
+  # stdout argument after it, e.g.
+  # parse_for_arg_return_next --file arg1 --param1 --file <file> --param2
+  # should output <file>
   # Arguments:
   # 1. The argument you are searching for like -r for flashrom;
   # 2. Space-separated list of arguments to search in.
@@ -70,9 +70,31 @@ TEST_BOARD_GBE_REGION_RW="${TEST_BOARD_GBE_REGION_RW:-true}"
 TEST_BOARD_GBE_REGION_LOCKED="${TEST_BOARD_GBE_REGION_LOCKED:-}"
 TEST_COMPATIBLE_EC_VERSINO="${TEST_COMPATIBLE_EC_VERSINO:-}"
 TEST_FLASH_CHIP_SIZE="${TEST_FLASH_CHIP_SIZE:-$((2 * 1024 * 1024))}"
+TEST_INTERNAL_PROGRAMMER_CHIPNAME="${TEST_INTERNAL_PROGRAMMER_CHIPNAME:-}"
+TEST_INTERNAL_MULTIPLE_DEFINITIONS="${TEST_INTERNAL_MULTIPLE_DEFINITIONS:-}"
+
+flashrom_verify_internal_chip() {
+  # if TEST_INTERNAL_MULTIPLE_DEFINITIONS is true then flashrom command
+  # requires '-c' argument containing 'TEST_INTERNAL_PROGRAMMER_CHIPNAME'
+  # otherwise it should return 1
+  local used_chip
+
+  if [[ "$(parse_for_arg_return_next -p "$@")" != internal* ]]; then
+    return 0
+  fi
+
+  if [ "$TEST_INTERNAL_MULTIPLE_DEFINITIONS" = "true" ]; then
+    if used_chip="$(parse_for_arg_return_next -c "$@")" && [ "$used_chip" = "$TEST_INTERNAL_PROGRAMMER_CHIPNAME" ]; then
+      return 0
+    else
+      return 1
+    fi
+  fi
+}
 
 flashrom_check_flash_lock_mock() {
   # For flash lock testing, for more inf. check check_flash_lock func.:
+  flashrom_verify_internal_chip "$@" || return 1
   if [ "$TEST_FLASH_LOCK" = "true" ]; then
     echo "PR0: Warning:.TEST is read-only" 1>&2
     echo "SMM protection is enabled" 1>&2
@@ -86,7 +108,8 @@ flashrom_check_flash_lock_mock() {
 flashrom_flash_chip_name_mock() {
   # For flash chip name check emulation, for more inf. check check_flash_chip
   # func.:
-  echo "Test Flash Chip"
+  flashrom_verify_internal_chip "$@" || return 1
+  echo "${TEST_INTERNAL_PROGRAMMER_CHIPNAME}"
 
   return 0
 }
@@ -94,6 +117,7 @@ flashrom_flash_chip_name_mock() {
 flashrom_flash_chip_size_mock() {
   # For flash chip size check emulation, for more inf. check check_flash_chip
   # func..
+  flashrom_verify_internal_chip "$@" || return 1
   echo "$TEST_FLASH_CHIP_SIZE"
 
   return 0
@@ -102,6 +126,7 @@ flashrom_flash_chip_size_mock() {
 flashrom_check_intel_regions_mock() {
   # For flash regions check emulation, for more inf. check check_intel_regions
   # func.:
+  flashrom_verify_internal_chip "$@" || return 1
   if [ "$TEST_BOARD_HAS_FD_REGION" = "true" ]; then
     echo -n "Flash Descriptor region (0x00000000-0x00000fff)"
 
@@ -149,6 +174,7 @@ flashrom_read_flash_layout_mock() {
   # which will create a binary with needed bytes appropriately set.
   # For -r check flashrom man page:
   local _file_to_write_into
+  flashrom_verify_internal_chip "$@" || return 1
   _file_to_write_into=$(parse_for_arg_return_next "-r" "$@")
 
   [ -f "$_file_to_write_into" ] || echo "Testing..." >"$_file_to_write_into"
@@ -161,6 +187,7 @@ flashrom_read_firm_mock() {
   # writing into text file, that should be changed to binary instead (TODO).
   # For -r check flashrom man page:
   local _file_to_write_into
+  flashrom_verify_internal_chip "$@" || return 1
   _file_to_write_into=$(parse_for_arg_return_next "-r" "$@")
 
   [ -f "$_file_to_write_into" ] || echo "Test flashrom read." >"$_file_to_write_into"
