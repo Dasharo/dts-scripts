@@ -72,6 +72,7 @@ TEST_COMPATIBLE_EC_VERSINO="${TEST_COMPATIBLE_EC_VERSINO:-}"
 TEST_FLASH_CHIP_SIZE="${TEST_FLASH_CHIP_SIZE:-$((2 * 1024 * 1024))}"
 TEST_INTERNAL_PROGRAMMER_CHIPNAME="${TEST_INTERNAL_PROGRAMMER_CHIPNAME:-}"
 TEST_INTERNAL_MULTIPLE_DEFINITIONS="${TEST_INTERNAL_MULTIPLE_DEFINITIONS:-}"
+TEST_BOARD_HAS_BOOTSPLASH="${TEST_BOARD_HAS_BOOTSPLASH:-true}"
 
 flashrom_verify_internal_chip() {
   # if TEST_INTERNAL_MULTIPLE_DEFINITIONS is true then flashrom command
@@ -191,6 +192,21 @@ flashrom_read_firm_mock() {
   _file_to_write_into=$(parse_for_arg_return_next "-r" "$@")
 
   [ -f "$_file_to_write_into" ] || echo "Test flashrom read." >"$_file_to_write_into"
+
+  return 0
+}
+
+flashrom_read_firm_bootsplash_mock() {
+  # Emulating dumping bootsplash region
+  local _file_to_write_into
+  flashrom_verify_internal_chip "$@" || return 1
+  _file_to_write_into=$(parse_for_arg_return_next "-r" "$@")
+
+  if [ "$TEST_BOARD_HAS_BOOTSPLASH" = "true" ]; then
+    [ -f "$_file_to_write_into" ] || echo "Test flashrom read." >"$_file_to_write_into"
+  else
+    return 1
+  fi
 
   return 0
 }
@@ -459,6 +475,25 @@ cbfstool_read_bios_conffile_mock() {
   fi
 
   echo "" >>"$_file_to_write_into"
+
+  return 0
+}
+
+cbfstool_read_bootsplash_mock() {
+  # Emulate extracting bootsplash from fw
+  local _file_to_check="$1"
+  local _file_to_write_into
+  _file_to_write_into=$(parse_for_arg_return_next "-f" "$@")
+
+  if ! check_if_coreboot "$_file_to_check"; then
+    return 1
+  fi
+
+  if [ "$TEST_BOARD_HAS_BOOTSPLASH" = "true" ]; then
+    [ -f "$_file_to_write_into" ] || echo "bootsplash" >"$_file_to_write_into"
+  else
+    return 1
+  fi
 
   return 0
 }
