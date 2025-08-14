@@ -202,7 +202,7 @@ flashrom_read_firm_bootsplash_mock() {
   flashrom_verify_internal_chip "$@" || return 1
   _file_to_write_into=$(parse_for_arg_return_next "-r" "$@")
 
-  if [ "$TEST_BOARD_HAS_BOOTSPLASH" = "true" ]; then
+  if [[ "$TEST_FMAP_REGIONS" == *BOOTSPLASH* ]]; then
     echo "Test flashrom read." >"$_file_to_write_into"
   else
     return 1
