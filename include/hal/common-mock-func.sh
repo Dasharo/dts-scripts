@@ -362,6 +362,7 @@ ifdtool_check_blobs_in_binary_mock() {
 # cbmem
 ################################################################################
 TEST_ME_DISABLED="${TEST_ME_DISABLED:-true}"
+TEST_ME_HAP_DISABLED="${TEST_ME_HAP_DISABLED:-}"
 
 cbmem_common_mock() {
   # should fail if fw is not coreboot
@@ -376,9 +377,11 @@ cbmem_check_if_me_disabled_mock() {
   # Emulating ME state checked in Coreboot table, check check_if_me_disabled func.
   # for more inf.:
   [ "$TEST_IS_COREBOOT" != "true" ] && return 1
-  if [ "$TEST_ME_DISABLED" = "true" ]; then
-    echo "ME is disabled"
+
+  if [ "$TEST_ME_HAP_DISABLED" = "true" ]; then
     echo "ME is HAP disabled"
+  elif [ "$TEST_ME_DISABLED" = "true" ]; then
+    echo "ME is disabled"
   fi
 
   return 0
