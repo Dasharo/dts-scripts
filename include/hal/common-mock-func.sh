@@ -178,7 +178,7 @@ flashrom_read_flash_layout_mock() {
   flashrom_verify_internal_chip "$@" || return 1
   _file_to_write_into=$(parse_for_arg_return_next "-r" "$@")
 
-  [ -f "$_file_to_write_into" ] || echo "Testing..." >"$_file_to_write_into"
+  echo "Testing..." >"$_file_to_write_into"
 
   return 0
 }
@@ -191,7 +191,7 @@ flashrom_read_firm_mock() {
   flashrom_verify_internal_chip "$@" || return 1
   _file_to_write_into=$(parse_for_arg_return_next "-r" "$@")
 
-  [ -f "$_file_to_write_into" ] || echo "Test flashrom read." >"$_file_to_write_into"
+  echo "Test flashrom read." >"$_file_to_write_into"
 
   return 0
 }
@@ -203,7 +203,7 @@ flashrom_read_firm_bootsplash_mock() {
   _file_to_write_into=$(parse_for_arg_return_next "-r" "$@")
 
   if [ "$TEST_BOARD_HAS_BOOTSPLASH" = "true" ]; then
-    [ -f "$_file_to_write_into" ] || echo "Test flashrom read." >"$_file_to_write_into"
+    echo "Test flashrom read." >"$_file_to_write_into"
   else
     return 1
   fi
@@ -445,7 +445,7 @@ cbfstool_read_romhole_mock() {
   if ! check_if_coreboot "$_file_to_check"; then
     return 1
   fi
-  [ -f "$_file_to_write_into" ] || echo "Testing..." >"$_file_to_write_into"
+  echo "Testing..." >"$_file_to_write_into"
 
   return 0
 }
@@ -490,7 +490,7 @@ cbfstool_read_bootsplash_mock() {
   fi
 
   if [ "$TEST_BOARD_HAS_BOOTSPLASH" = "true" ]; then
-    [ -f "$_file_to_write_into" ] || echo "bootsplash" >"$_file_to_write_into"
+    echo "bootsplash" >"$_file_to_write_into"
   else
     return 1
   fi
