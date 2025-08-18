@@ -684,6 +684,21 @@ check_vboot_keys() {
       diff <(echo "$BINARY_KEYS") <(echo "$FLASH_KEYS") >/dev/null 2>>"$ERR_LOG_FILE"
       # If keys are different we must additionally flash at least GBB region as well
       if [ $? -ne 0 ]; then
+        local wp_ro_size wp_ro_offset gbb_size gbb_offset
+        # If GBB and WP_RO regions overlap then use only WP_RO (assume that GBB
+        # is contained inside WP_RO)
+        if [[ "$FLASHROM_ADD_OPT_UPDATE" == *WP_RO* ]]; then
+          $CBFSTOOL layout_mock "$BIOS_DUMP_FILE" layout -w >"$TEMP_DIR/layout" 2>"$ERR_LOG_FILE"
+          wp_ro_size="$(sed -rn 's/.*WP_RO.*size ([0-9]+).*/\1/p' "$TEMP_DIR/layout")"
+          wp_ro_offset="$(sed -rn 's/.*WP_RO.*offset ([0-9]+).*/\1/p' "$TEMP_DIR/layout")"
+          gbb_size="$(sed -rn 's/.*GBB.*size ([0-9]+).*/\1/p' "$TEMP_DIR/layout")"
+          gbb_offset="$(sed -rn 's/.*GBB.*offset ([0-9]+).*/\1/p' "$TEMP_DIR/layout")"
+          # check if any part of GBB region is inside WP_RO
+          if [[ -n "$wp_ro_size" && -n "$wp_ro_offset" && -n "$gbb_size" && -n "$gbb_offset" ]] &&
+            [[ "$((gbb_offset + gbb_size))" -gt "$wp_ro_offset" && "$gbb_offset" -lt "$((wp_ro_offset + wp_ro_size))" ]]; then
+            return 0
+          fi
+        fi
         FLASHROM_ADD_OPT_UPDATE+=" -i GBB"
       fi
     fi

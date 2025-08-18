@@ -350,6 +350,7 @@ TEST_DIFFERENT_FMAP="${TEST_DIFFERENT_FMAP:-}"
 TEST_FMAP_REGIONS="${TEST_FMAP_REGIONS:-}"
 TEST_IS_SEABIOS="${TEST_IS_SEABIOS:-}"
 TEST_IS_COREBOOT="${TEST_IS_COREBOOT:-}"
+TEST_GBB_WP_RO_OVERLAP="${TEST_GBB_WP_RO_OVERLAP:-}"
 
 check_if_coreboot() {
   # if we are checking current firmware, return value based on TEST_IS_COREBOOT
@@ -381,7 +382,11 @@ cbfstool_layout_mock() {
   [ "$TEST_DIFFERENT_FMAP" = "true" ] && [ "$_file_to_check" != "$BIOS_DUMP_FILE" ] && echo "test"
 
   for region in "${regions[@]}"; do
-    echo "$region"
+    if [[ "$region" = "GBB" && -z "$TEST_GBB_WP_RO_OVERLAP" ]]; then
+      echo "'$region' (size 100, offset 1000)"
+    else
+      echo "'$region' (size 100, offset 100)"
+    fi
   done
 
   return 0
