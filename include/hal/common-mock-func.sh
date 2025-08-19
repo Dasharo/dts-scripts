@@ -397,6 +397,7 @@ TEST_FMAP_REGIONS="${TEST_FMAP_REGIONS:-}"
 TEST_IS_SEABIOS="${TEST_IS_SEABIOS:-}"
 TEST_IS_COREBOOT="${TEST_IS_COREBOOT:-}"
 TEST_GBB_WP_RO_OVERLAP="${TEST_GBB_WP_RO_OVERLAP:-}"
+TEST_BOARD_HAS_SMMSTORE="${TEST_BOARD_HAS_SMMSTORE:-true}"
 
 check_if_coreboot() {
   # if we are checking current firmware, return value based on TEST_IS_COREBOOT
@@ -408,6 +409,15 @@ check_if_coreboot() {
     return 1
   fi
   cbfstool "$file" print &>/dev/null
+}
+
+cbfstool_common_mock() {
+  local _file_to_check="$1"
+  if [ -n "$1" ]; then
+    check_if_coreboot "$_file_to_check"
+  else
+    return 1
+  fi
 }
 
 cbfstool_layout_mock() {
@@ -499,6 +509,30 @@ cbfstool_read_bootsplash_mock() {
   fi
 
   return 0
+}
+
+cbfstool_write_smmstore_mock() {
+  # Emulate writing smmstore to file
+  local _file_to_check="$1"
+  local _file_to_write_into
+  _file_to_write_into=$(parse_for_arg_return_next "-f" "$@")
+
+  if ! check_if_coreboot "$_file_to_check"; then
+    return 1
+  fi
+
+  if [ "$_file_to_check" = "$BIOS_UPDATE_FILE" ]; then
+    # return result based on if update file has SMMSTORE region. It should fail
+    # e.g. for novacustom heads binary
+    cbfstool "$_file_to_check" layout | grep "SMMSTORE"
+    return
+  else
+    if [ "$TEST_BOARD_HAS_SMMSTORE" = "true" ]; then
+      return 0
+    else
+      return 1
+    fi
+  fi
 }
 
 ################################################################################
