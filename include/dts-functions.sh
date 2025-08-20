@@ -1825,7 +1825,7 @@ check_if_boot_guard_enabled() {
   local _verified_boot
 
   # MSR cannot be read
-  if ! $RDMSR boot_guard_status_mock 0x13a -0; then
+  if ! $RDMSR boot_guard_status_mock 0x13a -0 >/dev/null 2>"$ERR_LOG_FILE"; then
     return 1
   fi
 
@@ -1833,7 +1833,6 @@ check_if_boot_guard_enabled() {
   _msr_binary=$(echo "ibase=16; obase=2; $_msr_hex" | bc)
 
   _binary_length=${#_msr_binary}
-  arkuszu
   if [ $_binary_length -lt 64 ]; then
     _padding=$((64 - $_binary_length))
     _zeros=$(printf "%${_padding}s" | tr ' ' "0")
