@@ -398,6 +398,9 @@ TEST_IS_SEABIOS="${TEST_IS_SEABIOS:-}"
 TEST_IS_COREBOOT="${TEST_IS_COREBOOT:-}"
 TEST_GBB_WP_RO_OVERLAP="${TEST_GBB_WP_RO_OVERLAP:-}"
 TEST_BOARD_HAS_SMMSTORE="${TEST_BOARD_HAS_SMMSTORE:-true}"
+TEST_SCH5545_MIGRATED="${TEST_SCH5545_MIGRATED:-true}"
+TEST_ACM_MIGRATED="${TEST_ACM_MIGRATED:-true}"
+TEST_SINIT_MIGRATED="${TEST_SINIT_MIGRATED:-true}"
 
 check_if_coreboot() {
   # if we are checking current firmware, return value based on TEST_IS_COREBOOT
@@ -533,6 +536,31 @@ cbfstool_write_smmstore_mock() {
       return 1
     fi
   fi
+}
+
+cbfstool_add_firmware_section_mock() {
+  # For now is only used in dasharo-deploy.sh blob_transmission:
+  local _file_to_update="$1"
+  local _option="$2"
+  local _source_file
+  _source_file=$(parse_for_arg_return_next "-f" "$@")
+
+  if [ "$_file_to_update" != "$BIOS_UPDATE_FILE" ]; then
+    return 1
+  fi
+  if [ "$_option" != "add" ]; then
+    return 1
+  fi
+
+  if [ "$_source_file" = "$SCH5545_FW" ]; then
+    [ "$TEST_SCH5545_MIGRATED" = "true" ] && return 0
+  elif [ "$_source_file" = "$ACM_BIN" ]; then
+    [ "$TEST_ACM_MIGRATED" = "true" ] && return 0
+  elif [ "$_source_file" = "$SINIT_ACM" ]; then
+    [ "$TEST_SINIT_MIGRATED" = "true" ] && return 0
+  fi
+
+  return 1
 }
 
 ################################################################################
