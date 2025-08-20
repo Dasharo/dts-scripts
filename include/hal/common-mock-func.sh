@@ -4,11 +4,11 @@
 # Helper functions used in this script:
 ################################################################################
 parse_for_arg_return_next() {
-  # This function parses a list of arguments (given as a second argument), looks
-  # for a specified argument (given as a first argument). In case the specified
-  # argument has been found in the list - this function returns (to stdout) the
-  # argument, which is on the list after specified one, and a return value 0,
-  # otherwise nothing is being printed to stdout and the return value is 1.
+  # parse_for_arg_return_next <search_for> <list_of_args>...
+  # search <list_of_args> for <search_for> argument. If it's found output to
+  # stdout argument after it, e.g.
+  # parse_for_arg_return_next --file arg1 --param1 --file <file> --param2
+  # should output <file>
   # Arguments:
   # 1. The argument you are searching for like -r for flashrom;
   # 2. Space-separated list of arguments to search in.
@@ -70,9 +70,32 @@ TEST_BOARD_GBE_REGION_RW="${TEST_BOARD_GBE_REGION_RW:-true}"
 TEST_BOARD_GBE_REGION_LOCKED="${TEST_BOARD_GBE_REGION_LOCKED:-}"
 TEST_COMPATIBLE_EC_VERSINO="${TEST_COMPATIBLE_EC_VERSINO:-}"
 TEST_FLASH_CHIP_SIZE="${TEST_FLASH_CHIP_SIZE:-$((2 * 1024 * 1024))}"
+TEST_INTERNAL_PROGRAMMER_CHIPNAME="${TEST_INTERNAL_PROGRAMMER_CHIPNAME:-}"
+TEST_INTERNAL_MULTIPLE_DEFINITIONS="${TEST_INTERNAL_MULTIPLE_DEFINITIONS:-}"
+TEST_BOARD_HAS_BOOTSPLASH="${TEST_BOARD_HAS_BOOTSPLASH:-true}"
+
+flashrom_verify_internal_chip() {
+  # if TEST_INTERNAL_MULTIPLE_DEFINITIONS is true then flashrom command
+  # requires '-c' argument containing 'TEST_INTERNAL_PROGRAMMER_CHIPNAME'
+  # otherwise it should return 1
+  local used_chip
+
+  if [[ "$(parse_for_arg_return_next -p "$@")" != internal* ]]; then
+    return 0
+  fi
+
+  if [ "$TEST_INTERNAL_MULTIPLE_DEFINITIONS" = "true" ]; then
+    if used_chip="$(parse_for_arg_return_next -c "$@")" && [ "$used_chip" = "$TEST_INTERNAL_PROGRAMMER_CHIPNAME" ]; then
+      return 0
+    else
+      return 1
+    fi
+  fi
+}
 
 flashrom_check_flash_lock_mock() {
   # For flash lock testing, for more inf. check check_flash_lock func.:
+  flashrom_verify_internal_chip "$@" || return 1
   if [ "$TEST_FLASH_LOCK" = "true" ]; then
     echo "PR0: Warning:.TEST is read-only" 1>&2
     echo "SMM protection is enabled" 1>&2
@@ -86,7 +109,8 @@ flashrom_check_flash_lock_mock() {
 flashrom_flash_chip_name_mock() {
   # For flash chip name check emulation, for more inf. check check_flash_chip
   # func.:
-  echo "Test Flash Chip"
+  flashrom_verify_internal_chip "$@" || return 1
+  echo "${TEST_INTERNAL_PROGRAMMER_CHIPNAME}"
 
   return 0
 }
@@ -94,6 +118,7 @@ flashrom_flash_chip_name_mock() {
 flashrom_flash_chip_size_mock() {
   # For flash chip size check emulation, for more inf. check check_flash_chip
   # func..
+  flashrom_verify_internal_chip "$@" || return 1
   echo "$TEST_FLASH_CHIP_SIZE"
 
   return 0
@@ -102,6 +127,7 @@ flashrom_flash_chip_size_mock() {
 flashrom_check_intel_regions_mock() {
   # For flash regions check emulation, for more inf. check check_intel_regions
   # func.:
+  flashrom_verify_internal_chip "$@" || return 1
   if [ "$TEST_BOARD_HAS_FD_REGION" = "true" ]; then
     echo -n "Flash Descriptor region (0x00000000-0x00000fff)"
 
@@ -149,9 +175,10 @@ flashrom_read_flash_layout_mock() {
   # which will create a binary with needed bytes appropriately set.
   # For -r check flashrom man page:
   local _file_to_write_into
+  flashrom_verify_internal_chip "$@" || return 1
   _file_to_write_into=$(parse_for_arg_return_next "-r" "$@")
 
-  [ -f "$_file_to_write_into" ] || echo "Testing..." >"$_file_to_write_into"
+  echo "Testing..." >"$_file_to_write_into"
 
   return 0
 }
@@ -161,9 +188,25 @@ flashrom_read_firm_mock() {
   # writing into text file, that should be changed to binary instead (TODO).
   # For -r check flashrom man page:
   local _file_to_write_into
+  flashrom_verify_internal_chip "$@" || return 1
   _file_to_write_into=$(parse_for_arg_return_next "-r" "$@")
 
-  [ -f "$_file_to_write_into" ] || echo "Test flashrom read." >"$_file_to_write_into"
+  echo "Test flashrom read." >"$_file_to_write_into"
+
+  return 0
+}
+
+flashrom_read_firm_bootsplash_mock() {
+  # Emulating dumping bootsplash region
+  local _file_to_write_into
+  flashrom_verify_internal_chip "$@" || return 1
+  _file_to_write_into=$(parse_for_arg_return_next "-r" "$@")
+
+  if [[ "$TEST_FMAP_REGIONS" == *BOOTSPLASH* ]]; then
+    echo "Test flashrom read." >"$_file_to_write_into"
+  else
+    return 1
+  fi
 
   return 0
 }
@@ -319,6 +362,7 @@ ifdtool_check_blobs_in_binary_mock() {
 # cbmem
 ################################################################################
 TEST_ME_DISABLED="${TEST_ME_DISABLED:-true}"
+TEST_ME_HAP_DISABLED="${TEST_ME_HAP_DISABLED:-}"
 
 cbmem_common_mock() {
   # should fail if fw is not coreboot
@@ -333,9 +377,11 @@ cbmem_check_if_me_disabled_mock() {
   # Emulating ME state checked in Coreboot table, check check_if_me_disabled func.
   # for more inf.:
   [ "$TEST_IS_COREBOOT" != "true" ] && return 1
-  if [ "$TEST_ME_DISABLED" = "true" ]; then
-    echo "ME is disabled"
+
+  if [ "$TEST_ME_HAP_DISABLED" = "true" ]; then
     echo "ME is HAP disabled"
+  elif [ "$TEST_ME_DISABLED" = "true" ]; then
+    echo "ME is disabled"
   fi
 
   return 0
@@ -351,6 +397,7 @@ TEST_FMAP_REGIONS="${TEST_FMAP_REGIONS:-}"
 TEST_IS_SEABIOS="${TEST_IS_SEABIOS:-}"
 TEST_IS_COREBOOT="${TEST_IS_COREBOOT:-}"
 TEST_GBB_WP_RO_OVERLAP="${TEST_GBB_WP_RO_OVERLAP:-}"
+TEST_BOARD_HAS_SMMSTORE="${TEST_BOARD_HAS_SMMSTORE:-true}"
 
 check_if_coreboot() {
   # if we are checking current firmware, return value based on TEST_IS_COREBOOT
@@ -362,6 +409,15 @@ check_if_coreboot() {
     return 1
   fi
   cbfstool "$file" print &>/dev/null
+}
+
+cbfstool_common_mock() {
+  local _file_to_check="$1"
+  if [ -n "$1" ]; then
+    check_if_coreboot "$_file_to_check"
+  else
+    return 1
+  fi
 }
 
 cbfstool_layout_mock() {
@@ -402,7 +458,7 @@ cbfstool_read_romhole_mock() {
   if ! check_if_coreboot "$_file_to_check"; then
     return 1
   fi
-  [ -f "$_file_to_write_into" ] || echo "Testing..." >"$_file_to_write_into"
+  echo "Testing..." >"$_file_to_write_into"
 
   return 0
 }
@@ -434,6 +490,49 @@ cbfstool_read_bios_conffile_mock() {
   echo "" >>"$_file_to_write_into"
 
   return 0
+}
+
+cbfstool_read_bootsplash_mock() {
+  # Emulate extracting bootsplash from fw
+  local _file_to_check="$1"
+  local _file_to_write_into
+  _file_to_write_into=$(parse_for_arg_return_next "-f" "$@")
+
+  if ! check_if_coreboot "$_file_to_check"; then
+    return 1
+  fi
+
+  if [ "$TEST_BOARD_HAS_BOOTSPLASH" = "true" ]; then
+    echo "bootsplash" >"$_file_to_write_into"
+  else
+    return 1
+  fi
+
+  return 0
+}
+
+cbfstool_write_smmstore_mock() {
+  # Emulate writing smmstore to file
+  local _file_to_check="$1"
+  local _file_to_write_into
+  _file_to_write_into=$(parse_for_arg_return_next "-f" "$@")
+
+  if ! check_if_coreboot "$_file_to_check"; then
+    return 1
+  fi
+
+  if [ "$_file_to_check" = "$BIOS_UPDATE_FILE" ]; then
+    # return result based on if update file has SMMSTORE region. It should fail
+    # e.g. for novacustom heads binary
+    cbfstool "$_file_to_check" layout | grep "SMMSTORE"
+    return
+  else
+    if [ "$TEST_BOARD_HAS_SMMSTORE" = "true" ]; then
+      return 0
+    else
+      return 1
+    fi
+  fi
 }
 
 ################################################################################

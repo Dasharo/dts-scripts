@@ -638,16 +638,16 @@ smmstore_migration() {
   $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r /tmp/dasharo_dump.rom ${FLASHROM_ADD_OPT_READ} --fmap -i FMAP -i SMMSTORE >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
   $CBFSTOOL read_smmstore_mock /tmp/dasharo_dump.rom read -r SMMSTORE -f /tmp/smmstore.bin >>$ERR_LOG_FILE 2>&1 ||
     print_warning "Failed! Default settings will be used."
-  $CBFSTOOL "$BIOS_UPDATE_FILE" write -r SMMSTORE -f /tmp/smmstore.bin -u >>$ERR_LOG_FILE 2>&1 ||
+  $CBFSTOOL write_smmstore_mock "$BIOS_UPDATE_FILE" write -r SMMSTORE -f /tmp/smmstore.bin -u >>$ERR_LOG_FILE 2>&1 ||
     print_warning "Failed! Default settings will be used."
   print_ok Done.
 }
 
 bootsplash_migration() {
-  $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r /tmp/dasharo_dump.rom ${FLASHROM_ADD_OPT_READ} --fmap -i FMAP -i BOOTSPLASH >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
+  $FLASHROM read_firm_bootsplash_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r /tmp/dasharo_dump.rom ${FLASHROM_ADD_OPT_READ} --fmap -i FMAP -i BOOTSPLASH >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
   # If no custom logo, return from bootsplash_migration early and don't show
   # unnecessary messages
-  $CBFSTOOL /tmp/dasharo_dump.rom extract -r BOOTSPLASH -n logo.bmp -f /tmp/logo.bmp >>$ERR_LOG_FILE 2>&1 || return 1
+  $CBFSTOOL read_bootsplash_mock /tmp/dasharo_dump.rom extract -r BOOTSPLASH -n logo.bmp -f /tmp/logo.bmp >>$ERR_LOG_FILE 2>&1 || return 1
   echo -n "Backing up custom boot logo... "
   $DCU logo $BIOS_UPDATE_FILE -l /tmp/logo.bmp >>$ERR_LOG_FILE 2>&1 ||
     print_warning "Failed! Default boot splash will be used." || return 1

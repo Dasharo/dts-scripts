@@ -1004,8 +1004,10 @@ check_if_me_disabled() {
     fi
   else
     # If we are running coreboot, check for status in logs
-    $CBMEM check_if_me_disabled_mock -1 | grep -q "ME is disabled" && ME_DISABLED=1 && return     # HECI (soft) disabled
-    $CBMEM check_if_me_disabled_mock -1 | grep -q "ME is HAP disabled" && ME_DISABLED=1 && return # HAP disabled
+    $CBMEM check_if_me_disabled_mock -1 |
+      grep "ME is disabled" &>/dev/null && ME_DISABLED=1 && return # HECI (soft) disabled
+    $CBMEM check_if_me_disabled_mock -1 |
+      grep "ME is HAP disabled" &>/dev/null && ME_DISABLED=1 && return # HAP disabled
     # TODO: If proprietary BIOS, then also try to check SMBIOS for ME FWSTS
     # BTW we could do the same in coreboot, expose FWSTS in SMBIOS before it
     # gets disabled
