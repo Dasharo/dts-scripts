@@ -580,7 +580,7 @@ TEST_TOUCHPAD_HID="${TEST_TOUCHPAD_HID:-}"
 TEST_TOUCHPAD_PATH="${TEST_TOUCHPAD_PATH:-}"
 TEST_AC_PRESENT="${TEST_AC_PRESENT:-}"
 TEST_MEI_CONF_PRESENT="${TEST_MEI_CONF_PRESENT:-true}"
-TEST_INTEL_FUSE_STATUS="${TEST_INTEL_FUSE_STATUS:-0}"
+TEST_INTEL_IS_FUSED="${TEST_INTEL_IS_FUSED:-}"
 TEST_SOUND_CARD_PRESENT="${TEST_SOUND_CARD_PRESENT:-true}"
 TEST_EFI_PRESENT="${TEST_EFI_PRESENT:-true}"
 
@@ -666,7 +666,11 @@ fsread_tool_cat_mock() {
     echo "smth"
     # Emulating Intel Secure Boot Fuse status, check check_if_fused func. for
     # more inf. 4... if fused, and 0 if not:
-    echo "${TEST_INTEL_FUSE_STATUS}0000000"
+    if [ "${TEST_INTEL_IS_FUSED}" = "true" ]; then
+      echo "40000000"
+    else
+      echo "00000000"
+    fi
     echo "smth"
   else
     echo "${FUNCNAME[0]}: ${_file_to_cat}: No such file or directory"
