@@ -313,16 +313,7 @@ board_config() {
       fi
       ;;
     "NV4xPZ")
-      parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"
-      result=$?
-      if [ $result -eq 1 ]; then
-        print_error "Vendor $VENDOR is currently not supported!"
-        return 1
-      elif [ $result -eq 2 ]; then
-        print_error "System model $SYSTEM_MODEL is currently not supported!"
-        return 1
-      elif [ $result -eq 3 ]; then
-        print_error "Board model $BOARD_MODEL is currently now supported"
+      if ! parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
         return 1
       fi
 
@@ -615,16 +606,7 @@ board_config() {
     esac
     ;;
   "PC Engines")
-    parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"
-    result=$?
-    if [ $result -eq 1 ]; then
-      print_error "Vendor $VENDOR is currently not supported!"
-      return 1
-    elif [ $result -eq 2 ]; then
-      print_error "System model $SYSTEM_MODEL is currently not supported!"
-      return 1
-    elif [ $result -eq 3 ]; then
-      print_error "Board model $BOARD_MODEL is currently now supported"
+    if ! parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
       return 1
     fi
 
@@ -634,16 +616,7 @@ board_config() {
   "HARDKERNEL")
     case "$SYSTEM_MODEL" in
     "ODROID-H4")
-      parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"
-      result=$?
-      if [ $result -eq 1 ]; then
-        print_error "Vendor $VENDOR is currently not supported!"
-        return 1
-      elif [ $result -eq 2 ]; then
-        print_error "System model $SYSTEM_MODEL is currently not supported!"
-        return 1
-      elif [ $result -eq 3 ]; then
-        print_error "Board model $BOARD_MODEL is currently now supported"
+      if ! parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
         return 1
       fi
       ;;
@@ -1911,6 +1884,7 @@ parse_config() {
   # shellcheck disable=SC2046
   output=$(jq -r 'to_entries[] | select(.key != "models") | "\(.key | ascii_upcase)=\"\(.value|tostring)\""' $json_file 2>>"$ERR_LOG_FILE")
   if [ -z "$output" ]; then
+    print_error "Vendor $vendor is currently not supported!"
     return 1
   fi
   eval "$output"
@@ -1933,7 +1907,8 @@ parse_config() {
   | "\(.key | ascii_upcase)=\"\(.value|tostring)\""
 ' $json_file 2>>"$ERR_LOG_FILE")
   if [ -z "$output" ]; then
-    return 2
+    print_error "System model $system_model is currently not supported!"
+    return 1
   fi
   eval "$output"
 
@@ -1957,10 +1932,10 @@ parse_config() {
     | "\(.key | ascii_upcase)=\"\(.value|tostring)\""
   ' $json_file 2>>"$ERR_LOG_FILE")
     if [ -z "$output" ]; then
-      return 3
+      print_error "Board model $board_model is currently not supported"
+      return 1
     fi
     eval "$output"
   fi
   return 0
-
 }
