@@ -348,29 +348,15 @@ board_config() {
           sed -r 's|.*novacustom/(.*)|\1|' | awk '{print toupper($1)}')
       fi
 
-      # Common configuration for all V54x_6x_TU:
-      DASHARO_REL_VER="0.9.0"
-      COMPATIBLE_EC_FW_VERSION="2024-07-17_4ae73b9"
-      NEED_BOOTSPLASH_MIGRATION="true"
+      if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
+        return 1
+      fi
 
       case $BOARD_MODEL in
-      "V540TU")
-        DASHARO_REL_NAME="novacustom_v54x_mtl"
-        FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-        HAVE_HEADS_FW="true"
-        HEADS_REL_VER_DPP="0.9.0"
-        COMPATIBLE_HEADS_EC_FW_VERSION="2024-07-17_4ae73b9"
-        HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
-        ;;
       "V560TU")
-        DASHARO_REL_NAME="novacustom_v56x_mtl"
-        FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-        HAVE_HEADS_FW="true"
-        HEADS_REL_VER_DPP="0.9.0"
-        COMPATIBLE_HEADS_EC_FW_VERSION="2024-12-20_368e08e"
-        HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
         HEADS_EC_LINK_DPP="${BUCKET_DPP_HEADS}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_ec_v${HEADS_REL_VER_DPP}.rom"
         ;;
+      "V540TU") ;;
       *)
         print_error "Board model $BOARD_MODEL is currently not supported"
         return 1
@@ -386,26 +372,9 @@ board_config() {
         ask_for_model V540TNx V560TNx
       fi
 
-      NEED_BOOTSPLASH_MIGRATION="true"
-
-      case $BOARD_MODEL in
-      "V540TNx")
-        DASHARO_REL_NAME="novacustom_v54x_mtl"
-        DASHARO_REL_VER="0.9.1"
-        COMPATIBLE_EC_FW_VERSION="2024-09-10_3786c8c"
-        FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-        ;;
-      "V560TNx")
-        DASHARO_REL_NAME="novacustom_v56x_mtl"
-        DASHARO_REL_VER="0.9.1"
-        COMPATIBLE_EC_FW_VERSION="2024-09-10_3786c8c"
-        FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-        ;;
-      *)
-        print_error "Board model $BOARD_MODEL is currently not supported"
+      if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
         return 1
-        ;;
-      esac
+      fi
       ;;
     *)
       print_error "Board model $SYSTEM_MODEL is currently not supported"
