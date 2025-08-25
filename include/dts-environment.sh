@@ -169,9 +169,6 @@ declare BIOS_SIGN_LINK_COMM_CAP
 declare BIOS_LINK_DPP_CAP
 declare BIOS_HASH_LINK_DPP_CAP
 declare BIOS_SIGN_LINK_DPP_CAP
-declare EC_LINK_COMM_CAP
-declare EC_HASH_LINK_COMM_CAP
-declare EC_SIGN_LINK_COMM_CAP
 # Configs, are used in dasharo-deploy script:
 CAN_INSTALL_BIOS="false"
 HAVE_HEADS_FW="false"
