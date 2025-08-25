@@ -963,6 +963,25 @@ deploy_firmware() {
   return 1
 }
 
+prevent_deploying_1_1_1_on_13th_gen_and_newer() {
+  # TODO: It is not a good practice to do some target specific work in the code
+  # of a scallable product, this should be handled in a more scallable way:
+  if [[ "$UPDATE_VERSION" == "1.1.1" &&
+    ("$BOARD_MODEL" == "PRO Z690-A WIFI DDR4(MS-7D25)" ||
+    "$BOARD_MODEL" == "PRO Z690-A DDR4(MS-7D25)" ||
+    "$BOARD_MODEL" == "PRO Z690-A (MS-7D25)" ||
+    "$BOARD_MODEL" == "PRO Z690-A WIFI (MS-7D25)") ]]; then
+
+    cpu_gen_check=$($LSCPU | grep -F "Model name" | grep -E "\-(13|14)[0-9]{3}" | wc -l)
+
+    if [ $cpu_gen_check -ne 0 ]; then
+      echo "You have a 13th gen or above CPU and are trying to flash Dasharo v1.1.1 on a MSI PRO Z690-A DDR4 or DDR5 board"
+      echo "That version does not support gen 13 and above CPU. Therefore we cannot continue with flashing."
+      error_exit "Aborting deployment..."
+    fi
+  fi
+}
+
 install_workflow() {
   # Installation workflow. The installation of firmware is possible only via
   # flashrom, capsules cannot do the installation because they need initial
@@ -981,6 +1000,8 @@ install_workflow() {
 
   # Set all global variables needed for installation:
   prepare_env install
+
+  prevent_deploying_1_1_1_on_13th_gen_and_newer
 
   # Download and verify firmware:
   if [ "$HAVE_EC" == "true" ]; then
@@ -1074,22 +1095,7 @@ update_workflow() {
     fi
   fi
 
-  # TODO: It is not a good practice to do some target specific work in the code
-  # of a scallable product, this should be handled in a more scallable way:
-  if [[ "$UPDATE_VERSION" == "1.1.1" &&
-    ("$BOARD_MODEL" == "PRO Z690-A WIFI DDR4(MS-7D25)" ||
-    "$BOARD_MODEL" == "PRO Z690-A DDR4(MS-7D25)" ||
-    "$BOARD_MODEL" == "PRO Z690-A (MS-7D25)" ||
-    "$BOARD_MODEL" == "PRO Z690-A WIFI (MS-7D25)") ]]; then
-
-    cpu_gen_check=$($LSCPU | grep -F "Model name" | grep -E "\-(13|14)[0-9]{3}" | wc -l)
-
-    if [ $cpu_gen_check -ne 0 ]; then
-      echo "You have a 13th gen or above CPU and are trying to flash Dasharo v1.1.1 on a MSI PRO Z690-A DDR4 or DDR5 board"
-      echo "That version does not support gen 13 and above CPU. Therefore we cannot continue with flashing."
-      error_exit "Aborting update process..."
-    fi
-  fi
+  prevent_deploying_1_1_1_on_13th_gen_and_newer
 
   if [ "$HAVE_EC" == "true" ]; then
     download_ec
