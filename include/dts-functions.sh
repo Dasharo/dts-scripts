@@ -362,8 +362,12 @@ board_config() {
         return 1
         ;;
       esac
-
-      BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${DASHARO_REL_NAME}/v${DASHARO_REL_VER}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.cap"
+      local board_model_lowercase=
+      board_model_lowercase="$(echo "$BOARD_MODEL" | tr '[:upper:]' '[:lower:]')"
+      local fw_store_dir="novacustom_v5x0_mtl/novacustom_mtl_igpu/novacustom_${board_model_lowercase}_mtl/uefi/v${DASHARO_REL_VER}"
+      BIOS_LINK_COMM="${FW_STORE_URL}/${fw_store_dir}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_btg_provisioned.rom"
+      BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${fw_store_dir}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_btg_provisioned.cap"
+      EC_LINK_COMM="${FW_STORE_URL}/${fw_store_dir}/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
       HEADS_LINK_DPP="${BUCKET_DPP_HEADS}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_heads.rom"
       ;;
     "V5xTNC_TND_TNE")
@@ -377,15 +381,20 @@ board_config() {
         return 1
       fi
 
-      BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${DASHARO_REL_NAME}/v${DASHARO_REL_VER}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.cap"
+      local board_model_lowercase=
+      board_model_lowercase="$(echo "$BOARD_MODEL" | tr '[:upper:]' '[:lower:]')"
+      local fw_store_dir="novacustom_v5x0_mtl/novacustom_mtl_dgpu/novacustom_${board_model_lowercase}_mtl/uefi/v${DASHARO_REL_VER}"
+      BIOS_LINK_COMM="${FW_STORE_URL}/${fw_store_dir}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_btg_provisioned.rom"
+      BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${fw_store_dir}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_btg_provisioned.cap"
+      EC_LINK_COMM="${FW_STORE_URL}/${fw_store_dir}/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
       ;;
     *)
       print_error "Board model $SYSTEM_MODEL is currently not supported"
       return 1
       ;;
     esac
-    BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
-    EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
+    BIOS_LINK_COMM=${BIOS_LINK_COMM:-"$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"}
+    EC_LINK_COMM=${EC_LINK_COMM:-"$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"}
     ;;
   "NovaCustom" | "ASRock Industrial")
     if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
