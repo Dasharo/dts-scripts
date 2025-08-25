@@ -760,11 +760,7 @@ deploy_ec_firmware() {
     # The EC firmware could be updated in two ways: via UEFI Capsule Update or
     # via binaries and flashrom:
     if [ "$FIRMWARE_VERSION" == "community_cap" ] || [ "$FIRMWARE_VERSION" == "dpp_cap" ]; then
-      # Linux Kernel driver is responsible for handling UEFI Capsule Updates, so
-      # the capsule should be fed to a specific device:
-      $CAP_UPD_TOOL "$EC_UPDATE_FILE"
-      # Return after updating. The below code is for flashrom updates (using
-      # binaries) only
+      # EC will be updated by coreboot after rebooting
       return 0
     fi
 
