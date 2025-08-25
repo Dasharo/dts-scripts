@@ -356,6 +356,7 @@ board_config() {
       "V560TU")
         HEADS_EC_LINK_DPP="${BUCKET_DPP_HEADS}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_ec_v${HEADS_REL_VER_DPP}.rom"
         ;;
+      "V540TU") ;;
       *)
         print_error "Board model $BOARD_MODEL is currently not supported"
         return 1
