@@ -4,11 +4,11 @@
 # Helper functions used in this script:
 ################################################################################
 parse_for_arg_return_next() {
-  # This function parses a list of arguments (given as a second argument), looks
-  # for a specified argument (given as a first argument). In case the specified
-  # argument has been found in the list - this function returns (to stdout) the
-  # argument, which is on the list after specified one, and a return value 0,
-  # otherwise nothing is being printed to stdout and the return value is 1.
+  # parse_for_arg_return_next <search_for> <list_of_args>...
+  # search <list_of_args> for <search_for> argument. If it's found output to
+  # stdout argument after it, e.g.
+  # parse_for_arg_return_next --file arg1 --param1 --file <file> --param2
+  # should output <file>
   # Arguments:
   # 1. The argument you are searching for like -r for flashrom;
   # 2. Space-separated list of arguments to search in.
@@ -47,6 +47,15 @@ common_mock() {
   return 0
 }
 
+dont_mock() {
+  # Call original tool without mocking. Can be used if we want to call tool via
+  # tool wrapper e.g. if we want to log used tool in generated profile
+  local _tool="$1"
+  shift
+
+  "$_tool" "$@"
+}
+
 ################################################################################
 # flashrom
 ################################################################################
@@ -61,9 +70,32 @@ TEST_BOARD_GBE_REGION_RW="${TEST_BOARD_GBE_REGION_RW:-true}"
 TEST_BOARD_GBE_REGION_LOCKED="${TEST_BOARD_GBE_REGION_LOCKED:-}"
 TEST_COMPATIBLE_EC_VERSINO="${TEST_COMPATIBLE_EC_VERSINO:-}"
 TEST_FLASH_CHIP_SIZE="${TEST_FLASH_CHIP_SIZE:-$((2 * 1024 * 1024))}"
+TEST_INTERNAL_PROGRAMMER_CHIPNAME="${TEST_INTERNAL_PROGRAMMER_CHIPNAME:-}"
+TEST_INTERNAL_MULTIPLE_DEFINITIONS="${TEST_INTERNAL_MULTIPLE_DEFINITIONS:-}"
+TEST_BOARD_HAS_BOOTSPLASH="${TEST_BOARD_HAS_BOOTSPLASH:-true}"
+
+flashrom_verify_internal_chip() {
+  # if TEST_INTERNAL_MULTIPLE_DEFINITIONS is true then flashrom command
+  # requires '-c' argument containing 'TEST_INTERNAL_PROGRAMMER_CHIPNAME'
+  # otherwise it should return 1
+  local used_chip
+
+  if [[ "$(parse_for_arg_return_next -p "$@")" != internal* ]]; then
+    return 0
+  fi
+
+  if [ "$TEST_INTERNAL_MULTIPLE_DEFINITIONS" = "true" ]; then
+    if used_chip="$(parse_for_arg_return_next -c "$@")" && [ "$used_chip" = "$TEST_INTERNAL_PROGRAMMER_CHIPNAME" ]; then
+      return 0
+    else
+      return 1
+    fi
+  fi
+}
 
 flashrom_check_flash_lock_mock() {
   # For flash lock testing, for more inf. check check_flash_lock func.:
+  flashrom_verify_internal_chip "$@" || return 1
   if [ "$TEST_FLASH_LOCK" = "true" ]; then
     echo "PR0: Warning:.TEST is read-only" 1>&2
     echo "SMM protection is enabled" 1>&2
@@ -77,7 +109,8 @@ flashrom_check_flash_lock_mock() {
 flashrom_flash_chip_name_mock() {
   # For flash chip name check emulation, for more inf. check check_flash_chip
   # func.:
-  echo "Test Flash Chip"
+  flashrom_verify_internal_chip "$@" || return 1
+  echo "${TEST_INTERNAL_PROGRAMMER_CHIPNAME}"
 
   return 0
 }
@@ -85,6 +118,7 @@ flashrom_flash_chip_name_mock() {
 flashrom_flash_chip_size_mock() {
   # For flash chip size check emulation, for more inf. check check_flash_chip
   # func..
+  flashrom_verify_internal_chip "$@" || return 1
   echo "$TEST_FLASH_CHIP_SIZE"
 
   return 0
@@ -93,6 +127,7 @@ flashrom_flash_chip_size_mock() {
 flashrom_check_intel_regions_mock() {
   # For flash regions check emulation, for more inf. check check_intel_regions
   # func.:
+  flashrom_verify_internal_chip "$@" || return 1
   if [ "$TEST_BOARD_HAS_FD_REGION" = "true" ]; then
     echo -n "Flash Descriptor region (0x00000000-0x00000fff)"
 
@@ -140,9 +175,10 @@ flashrom_read_flash_layout_mock() {
   # which will create a binary with needed bytes appropriately set.
   # For -r check flashrom man page:
   local _file_to_write_into
+  flashrom_verify_internal_chip "$@" || return 1
   _file_to_write_into=$(parse_for_arg_return_next "-r" "$@")
 
-  [ -f "$_file_to_write_into" ] || echo "Testing..." >"$_file_to_write_into"
+  echo "Testing..." >"$_file_to_write_into"
 
   return 0
 }
@@ -152,9 +188,25 @@ flashrom_read_firm_mock() {
   # writing into text file, that should be changed to binary instead (TODO).
   # For -r check flashrom man page:
   local _file_to_write_into
+  flashrom_verify_internal_chip "$@" || return 1
   _file_to_write_into=$(parse_for_arg_return_next "-r" "$@")
 
-  [ -f "$_file_to_write_into" ] || echo "Test flashrom read." >"$_file_to_write_into"
+  echo "Test flashrom read." >"$_file_to_write_into"
+
+  return 0
+}
+
+flashrom_read_firm_bootsplash_mock() {
+  # Emulating dumping bootsplash region
+  local _file_to_write_into
+  flashrom_verify_internal_chip "$@" || return 1
+  _file_to_write_into=$(parse_for_arg_return_next "-r" "$@")
+
+  if [[ "$TEST_FMAP_REGIONS" == *BOOTSPLASH* ]]; then
+    echo "Test flashrom read." >"$_file_to_write_into"
+  else
+    return 1
+  fi
 
   return 0
 }
@@ -228,55 +280,55 @@ dmidecode_dump_var_mock() {
   case "$_option_to_read" in
   system-manufacturer)
 
-    [ -z "$TEST_SYSTEM_VENDOR" ] && return 1
+    [ -z "$TEST_SYSTEM_VENDOR" ] && return 0
 
     echo "$TEST_SYSTEM_VENDOR"
     ;;
   system-product-name)
 
-    [ -z "$TEST_SYSTEM_MODEL" ] && return 1
+    [ -z "$TEST_SYSTEM_MODEL" ] && return 0
 
     echo "$TEST_SYSTEM_MODEL"
     ;;
   baseboard-version)
 
-    [ -z "$TEST_BOARD_MODEL" ] && return 1
+    [ -z "$TEST_BOARD_MODEL" ] && return 0
 
     echo "$TEST_BOARD_MODEL"
     ;;
   baseboard-product-name)
 
-    [ -z "$TEST_BOARD_MODEL" ] && return 1
+    [ -z "$TEST_BOARD_MODEL" ] && return 0
 
     echo "$TEST_BOARD_MODEL"
     ;;
   processor-version)
 
-    [ -z "$TEST_CPU_VERSION" ] && return 1
+    [ -z "$TEST_CPU_VERSION" ] && return 0
 
     echo "$TEST_CPU_VERSION"
     ;;
   bios-vendor)
 
-    [ -z "$TEST_BIOS_VENDOR" ] && return 1
+    [ -z "$TEST_BIOS_VENDOR" ] && return 0
 
     echo "$TEST_BIOS_VENDOR"
     ;;
   bios-version)
 
-    [ -z "$TEST_BIOS_VERSION" ] && return 1
+    [ -z "$TEST_BIOS_VERSION" ] && return 0
 
     echo "$TEST_BIOS_VERSION"
     ;;
   system-uuid)
 
-    [ -z "$TEST_SYSTEM_UUID" ] && return 1
+    [ -z "$TEST_SYSTEM_UUID" ] && return 0
 
     echo "$TEST_SYSTEM_UUID"
     ;;
   baseboard-serial-number)
 
-    [ -z "$TEST_BASEBOARD_SERIAL_NUMBER" ] && return 1
+    [ -z "$TEST_BASEBOARD_SERIAL_NUMBER" ] && return 0
 
     echo "$TEST_BASEBOARD_SERIAL_NUMBER"
     ;;
@@ -293,6 +345,14 @@ TEST_ME_OFFSET="${TEST_ME_OFFSET:-}"
 ifdtool_check_blobs_in_binary_mock() {
   # Emulating ME offset value check, check check_blobs_in_binary func. for more
   # inf.:
+  # last argument is file
+  local file="${*: -1}"
+
+  # if called on BIOS_UPDATE_FILE call original tool
+  if [ "$file" = "$BIOS_UPDATE_FILE" ]; then
+    ifdtool "$@"
+    return
+  fi
   echo "Flash Region 2 (Intel ME): $TEST_ME_OFFSET"
 
   return 0
@@ -302,18 +362,29 @@ ifdtool_check_blobs_in_binary_mock() {
 # cbmem
 ################################################################################
 TEST_ME_DISABLED="${TEST_ME_DISABLED:-true}"
+TEST_ME_HAP_DISABLED="${TEST_ME_HAP_DISABLED:-}"
+
+cbmem_common_mock() {
+  # should fail if fw is not coreboot
+  local _tool="$1"
+
+  [ "$TEST_IS_COREBOOT" != "true" ] && return 1
+  echo "${FUNCNAME[0]}: using ${_tool}..."
+  return 0
+}
 
 cbmem_check_if_me_disabled_mock() {
   # Emulating ME state checked in Coreboot table, check check_if_me_disabled func.
   # for more inf.:
-  if [ "$TEST_ME_DISABLED" = "true" ]; then
-    echo "ME is disabled"
-    echo "ME is HAP disabled"
+  [ "$TEST_IS_COREBOOT" != "true" ] && return 1
 
-    return 0
+  if [ "$TEST_ME_HAP_DISABLED" = "true" ]; then
+    echo "ME is HAP disabled"
+  elif [ "$TEST_ME_DISABLED" = "true" ]; then
+    echo "ME is disabled"
   fi
 
-  return 1
+  return 0
 }
 
 ################################################################################
@@ -322,12 +393,42 @@ cbmem_check_if_me_disabled_mock() {
 TEST_VBOOT_ENABLED="${TEST_VBOOT_ENABLED:-}"
 TEST_ROMHOLE_MIGRATION="${TEST_ROMHOLE_MIGRATION:-}"
 TEST_DIFFERENT_FMAP="${TEST_DIFFERENT_FMAP:-}"
+TEST_FMAP_REGIONS="${TEST_FMAP_REGIONS:-}"
 TEST_IS_SEABIOS="${TEST_IS_SEABIOS:-}"
+TEST_IS_COREBOOT="${TEST_IS_COREBOOT:-}"
+TEST_GBB_WP_RO_OVERLAP="${TEST_GBB_WP_RO_OVERLAP:-}"
+TEST_BOARD_HAS_SMMSTORE="${TEST_BOARD_HAS_SMMSTORE:-true}"
+
+check_if_coreboot() {
+  # if we are checking current firmware, return value based on TEST_IS_COREBOOT
+  # otherwise check with cbfstool
+  local file="$1"
+
+  if [ "$file" != "$BIOS_UPDATE_FILE" ]; then
+    [ "$TEST_IS_COREBOOT" = "true" ] && return 0
+    return 1
+  fi
+  cbfstool "$file" print &>/dev/null
+}
+
+cbfstool_common_mock() {
+  local _file_to_check="$1"
+  if [ -n "$1" ]; then
+    check_if_coreboot "$_file_to_check"
+  else
+    return 1
+  fi
+}
 
 cbfstool_layout_mock() {
   # Emulating some fields in Coreboot Files System layout table:
   local _file_to_check="$1"
+  local _regions
+  IFS=" " read -r -a _regions <<<"$TEST_FMAP_REGIONS"
 
+  if ! check_if_coreboot "$_file_to_check"; then
+    return 1
+  fi
   echo "This image contains the following sections that can be accessed with this tool:"
   echo ""
   # Emulating ROMHOLE presence, check romhole_migration function for more inf.:
@@ -336,24 +437,41 @@ cbfstool_layout_mock() {
   # set_flashrom_update_params for more inf.:
   [ "$TEST_DIFFERENT_FMAP" = "true" ] && [ "$_file_to_check" != "$BIOS_DUMP_FILE" ] && echo "test"
 
+  for region in "${_regions[@]}"; do
+    if [[ "$region" = "GBB" && -z "$TEST_GBB_WP_RO_OVERLAP" ]]; then
+      echo "'$region' (size 100, offset 1000)"
+    else
+      echo "'$region' (size 100, offset 100)"
+    fi
+  done
+
   return 0
 }
 
 cbfstool_read_romhole_mock() {
   # Emulating reading ROMHOLE section from dumped firmware, check
   # romhole_migration func for more inf.:
+  local _file_to_check="$1"
   local _file_to_write_into
   _file_to_write_into=$(parse_for_arg_return_next "-f" "$@")
 
-  [ -f "$_file_to_write_into" ] || echo "Testing..." >"$_file_to_write_into"
+  if ! check_if_coreboot "$_file_to_check"; then
+    return 1
+  fi
+  echo "Testing..." >"$_file_to_write_into"
 
   return 0
 }
 
 cbfstool_read_bios_conffile_mock() {
   # Emulating reading bios configuration and some fields inside it.
+  local _file_to_check="$1"
   local _file_to_write_into
   _file_to_write_into=$(parse_for_arg_return_next "-f" "$@")
+
+  if ! check_if_coreboot "$_file_to_check"; then
+    return 1
+  fi
 
   cat /dev/null >"$_file_to_write_into"
 
@@ -374,6 +492,49 @@ cbfstool_read_bios_conffile_mock() {
   return 0
 }
 
+cbfstool_read_bootsplash_mock() {
+  # Emulate extracting bootsplash from fw
+  local _file_to_check="$1"
+  local _file_to_write_into
+  _file_to_write_into=$(parse_for_arg_return_next "-f" "$@")
+
+  if ! check_if_coreboot "$_file_to_check"; then
+    return 1
+  fi
+
+  if [ "$TEST_BOARD_HAS_BOOTSPLASH" = "true" ]; then
+    echo "bootsplash" >"$_file_to_write_into"
+  else
+    return 1
+  fi
+
+  return 0
+}
+
+cbfstool_write_smmstore_mock() {
+  # Emulate writing smmstore to file
+  local _file_to_check="$1"
+  local _file_to_write_into
+  _file_to_write_into=$(parse_for_arg_return_next "-f" "$@")
+
+  if ! check_if_coreboot "$_file_to_check"; then
+    return 1
+  fi
+
+  if [ "$_file_to_check" = "$BIOS_UPDATE_FILE" ]; then
+    # return result based on if update file has SMMSTORE region. It should fail
+    # e.g. for novacustom heads binary
+    cbfstool "$_file_to_check" layout | grep "SMMSTORE"
+    return
+  else
+    if [ "$TEST_BOARD_HAS_SMMSTORE" = "true" ]; then
+      return 0
+    else
+      return 1
+    fi
+  fi
+}
+
 ################################################################################
 # dmesg
 ################################################################################
@@ -392,13 +553,18 @@ dmesg_i2c_hid_detect_mock() {
 ################################################################################
 # futility
 ################################################################################
+TEST_VBOOT_KEYS=${TEST_VBOOT_KEYS:-false}
 TEST_DIFFERENT_VBOOT_KEYS=${TEST_DIFFERENT_VBOOT_KEYS:-}
 
-futility_dump_vboot_keys() {
+futility_dump_vboot_keys_mock() {
   # Emulating VBOOT keys difference to trigger GBB region migration, check
   # check_vboot_keys func. for more inf.:
-  _local _file_to_check
+  local _file_to_check
   _file_to_check=$(parse_for_arg_return_next show "$@")
+  if [ "${TEST_VBOOT_KEYS}" = "false" ]; then
+    return 1
+  fi
+
   if [ "$TEST_DIFFERENT_VBOOT_KEYS" = "true" ]; then
     [ "$_file_to_check" = "$BIOS_UPDATE_FILE" ] && echo "key sha1sum: Test1"
     [ "$_file_to_check" = "$BIOS_DUMP_FILE" ] && echo "key sha1sum: Test2"
@@ -414,7 +580,7 @@ TEST_TOUCHPAD_HID="${TEST_TOUCHPAD_HID:-}"
 TEST_TOUCHPAD_PATH="${TEST_TOUCHPAD_PATH:-}"
 TEST_AC_PRESENT="${TEST_AC_PRESENT:-}"
 TEST_MEI_CONF_PRESENT="${TEST_MEI_CONF_PRESENT:-true}"
-TEST_INTEL_FUSE_STATUS="${TEST_INTEL_FUSE_STATUS:-0}"
+TEST_INTEL_IS_FUSED="${TEST_INTEL_IS_FUSED:-}"
 TEST_SOUND_CARD_PRESENT="${TEST_SOUND_CARD_PRESENT:-true}"
 TEST_EFI_PRESENT="${TEST_EFI_PRESENT:-true}"
 
@@ -500,7 +666,11 @@ fsread_tool_cat_mock() {
     echo "smth"
     # Emulating Intel Secure Boot Fuse status, check check_if_fused func. for
     # more inf. 4... if fused, and 0 if not:
-    echo "${TEST_INTEL_FUSE_STATUS}0000000"
+    if [ "${TEST_INTEL_IS_FUSED}" = "true" ]; then
+      echo "40000000"
+    else
+      echo "00000000"
+    fi
     echo "smth"
   else
     echo "${FUNCNAME[0]}: ${_file_to_cat}: No such file or directory"
@@ -536,6 +706,24 @@ lscpu_common_mock() {
 
   return 0
 }
+
+################################################################################
+# msrtool
+################################################################################
+TEST_MSRTOOL="${TEST_MSRTOOL:-}"
+
+msrtool_common_mock() {
+  # print random msr if TEST_MSRTOOL is true otherwise print error
+  if [ "$TEST_MSRTOOL" = "true" ]; then
+    echo "# MSR_THERM2_CTL"
+    echo "0x0000019d"
+    return 0
+  else
+    echo "can not decode any MSRs!" >&2
+    return 1
+  fi
+}
+
 ################################################################################
 # rdmsr
 ################################################################################
@@ -559,4 +747,17 @@ rdmsr_boot_guard_status_mock() {
   echo "00000000000000${_bits_8_5}0"
 
   return 0
+}
+
+################################################################################
+# mei-amt-check
+################################################################################
+TEST_MEI_AMT_CHECK="${TEST_MEI_AMT_CHECK:-}"
+
+mei-amt-check_common_mock() {
+  if [ "$TEST_MEI_AMT_CHECK" = "true" ]; then
+    return 0
+  else
+    return 1
+  fi
 }

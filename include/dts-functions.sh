@@ -836,7 +836,7 @@ download_ec() {
 }
 
 download_keys() {
-  mkdir $KEYS_DIR
+  mkdir -p $KEYS_DIR
   wget -O $KEYS_DIR/recovery_key.vbpubk https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/recovery_key.vbpubk >>$ERR_LOG_FILE 2>&1
   wget -O $KEYS_DIR/firmware.keyblock https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/firmware.keyblock >>$ERR_LOG_FILE 2>&1
   wget -O $KEYS_DIR/firmware_data_key.vbprivk https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/firmware_data_key.vbprivk >>$ERR_LOG_FILE 2>&1
@@ -1004,8 +1004,10 @@ check_if_me_disabled() {
     fi
   else
     # If we are running coreboot, check for status in logs
-    $CBMEM check_if_me_disabled_mock -1 | grep -q "ME is disabled" && ME_DISABLED=1 && return     # HECI (soft) disabled
-    $CBMEM check_if_me_disabled_mock -1 | grep -q "ME is HAP disabled" && ME_DISABLED=1 && return # HAP disabled
+    $CBMEM check_if_me_disabled_mock -1 |
+      grep "ME is disabled" &>/dev/null && ME_DISABLED=1 && return # HECI (soft) disabled
+    $CBMEM check_if_me_disabled_mock -1 |
+      grep "ME is HAP disabled" &>/dev/null && ME_DISABLED=1 && return # HAP disabled
     # TODO: If proprietary BIOS, then also try to check SMBIOS for ME FWSTS
     # BTW we could do the same in coreboot, expose FWSTS in SMBIOS before it
     # gets disabled
@@ -1039,6 +1041,7 @@ force_me_update() {
 }
 
 set_flashrom_update_params() {
+  local bios_update_file=$1
   # Safe defaults which should always work
   if [ $BOARD_HAS_FD_REGION -eq 0 ]; then
     FLASHROM_ADD_OPT_UPDATE=""
@@ -1052,7 +1055,7 @@ set_flashrom_update_params() {
   $FLASHROM read_flash_layout_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE} -r $BIOS_DUMP_FILE >/dev/null 2>>"$ERR_LOG_FILE"
   if [ $? -eq 0 ] && [ -f "$BIOS_DUMP_FILE" ]; then
     BOARD_FMAP_LAYOUT=$($CBFSTOOL layout_mock $BIOS_DUMP_FILE layout -w 2>>"$ERR_LOG_FILE")
-    BINARY_FMAP_LAYOUT=$($CBFSTOOL layout_mock $1 layout -w 2>>"$ERR_LOG_FILE")
+    BINARY_FMAP_LAYOUT=$($CBFSTOOL layout_mock "$bios_update_file" layout -w 2>>"$ERR_LOG_FILE")
     diff <(echo "$BOARD_FMAP_LAYOUT") <(echo "$BINARY_FMAP_LAYOUT") >/dev/null 2>>"$ERR_LOG_FILE"
     # If layout is identical, perform standard update using FMAP only
     if [ $? -eq 0 ]; then
@@ -1822,7 +1825,7 @@ check_if_boot_guard_enabled() {
   local _verified_boot
 
   # MSR cannot be read
-  if ! $RDMSR boot_guard_status_mock 0x13a -0; then
+  if ! $RDMSR boot_guard_status_mock 0x13a -0 >/dev/null 2>"$ERR_LOG_FILE"; then
     return 1
   fi
 
@@ -1830,7 +1833,6 @@ check_if_boot_guard_enabled() {
   _msr_binary=$(echo "ibase=16; obase=2; $_msr_hex" | bc)
 
   _binary_length=${#_msr_binary}
-  arkuszu
   if [ $_binary_length -lt 64 ]; then
     _padding=$((64 - $_binary_length))
     _zeros=$(printf "%${_padding}s" | tr ' ' "0")

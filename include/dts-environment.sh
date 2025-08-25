@@ -74,6 +74,7 @@ DASHARO_FLAVOR="$(echo $BIOS_VERSION | cut -d ' ' -f 1,2)"
 # Paths to temporary files, created while deploying or updating Dasharo
 # firmware, are used globally for both: updating via binaries and via UEFI
 # Capsule Update.
+TEMP_DIR="/tmp/dts-temp-files"
 BIOS_UPDATE_FILE="/tmp/biosupdate"
 BIOS_DUMP_FILE="/tmp/bios.bin"
 EC_UPDATE_FILE="/tmp/ecupdate"
