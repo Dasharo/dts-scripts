@@ -423,8 +423,8 @@ cbfstool_common_mock() {
 cbfstool_layout_mock() {
   # Emulating some fields in Coreboot Files System layout table:
   local _file_to_check="$1"
-  local regions
-  IFS=" " read -r -a regions <<<"$TEST_FMAP_REGIONS"
+  local _regions
+  IFS=" " read -r -a _regions <<<"$TEST_FMAP_REGIONS"
 
   if ! check_if_coreboot "$_file_to_check"; then
     return 1
@@ -437,7 +437,7 @@ cbfstool_layout_mock() {
   # set_flashrom_update_params for more inf.:
   [ "$TEST_DIFFERENT_FMAP" = "true" ] && [ "$_file_to_check" != "$BIOS_DUMP_FILE" ] && echo "test"
 
-  for region in "${regions[@]}"; do
+  for region in "${_regions[@]}"; do
     if [[ "$region" = "GBB" && -z "$TEST_GBB_WP_RO_OVERLAP" ]]; then
       echo "'$region' (size 100, offset 1000)"
     else
