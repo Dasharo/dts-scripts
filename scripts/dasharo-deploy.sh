@@ -370,10 +370,10 @@ prepare_env() {
     UPDATE_VERSION="$DASHARO_REL_VER_CAP"
 
     # Check EC link additionally, not all platforms have Embedded Controllers:
-    if [ -n "$EC_LINK_COMM_CAP" ]; then
-      EC_LINK=$EC_LINK_COMM_CAP
-      EC_HASH_LINK=$EC_HASH_LINK_COMM_CAP
-      EC_SIGN_LINK=$EC_SIGN_LINK_COMM_CAP
+    if [ -n "$EC_LINK_COMM" ]; then
+      EC_LINK=$EC_LINK_COMM
+      EC_HASH_LINK=$EC_HASH_LINK_COMM
+      EC_SIGN_LINK=$EC_SIGN_LINK_COMM
     fi
 
     return 0
