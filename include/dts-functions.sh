@@ -363,6 +363,7 @@ board_config() {
         ;;
       esac
 
+      BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${DASHARO_REL_NAME}/v${DASHARO_REL_VER}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.cap"
       HEADS_LINK_DPP="${BUCKET_DPP_HEADS}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_heads.rom"
       ;;
     "V5xTNC_TND_TNE")
@@ -375,6 +376,8 @@ board_config() {
       if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
         return 1
       fi
+
+      BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${DASHARO_REL_NAME}/v${DASHARO_REL_VER}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.cap"
       ;;
     *)
       print_error "Board model $SYSTEM_MODEL is currently not supported"
