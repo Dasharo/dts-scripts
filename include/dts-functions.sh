@@ -734,13 +734,13 @@ compare_versions() {
 download_bios() {
   echo "Downloading Dasharo firmware..."
   if [ "${BIOS_LINK}" == "${BIOS_LINK_COMM}" ] || [ "${BIOS_LINK}" == "${BIOS_LINK_COMM_CAP}" ]; then
-    curl -s -S -L -f "$BIOS_LINK" -o $BIOS_UPDATE_FILE 2>>"$ERR_LOG_FILE"
+    fetch_fw "$BIOS_LINK" "$BIOS_UPDATE_FILE"
     error_check "Cannot access $FW_STORE_URL while downloading binary. Please
    check your internet connection"
-    curl -s -S -L -f "$BIOS_HASH_LINK" -o $BIOS_HASH_FILE 2>>"$ERR_LOG_FILE"
+    fetch_fw "$BIOS_HASH_LINK" "$BIOS_HASH_FILE"
     error_check "Cannot access $FW_STORE_URL while downloading signature. Please
    check your internet connection"
-    curl -s -S -L -f "$BIOS_SIGN_LINK" -o $BIOS_SIGN_FILE 2>>"$ERR_LOG_FILE"
+    fetch_fw "$BIOS_SIGN_LINK" "$BIOS_SIGN_FILE"
     error_check "Cannot access $FW_STORE_URL while downloading signature. Please
    check your internet connection"
   else
@@ -759,13 +759,13 @@ download_bios() {
 download_ec() {
   echo "Downloading Dasharo EC firmware..."
   if [ "${EC_LINK}" == "${EC_LINK_COMM}" ]; then
-    curl -s -S -L -f "$EC_LINK" -o "$EC_UPDATE_FILE" 2>>"$ERR_LOG_FILE"
+    fetch_fw "$EC_LINK" "$EC_UPDATE_FILE"
     error_check "Cannot access $FW_STORE_URL while downloading binary. Please
      check your internet connection"
-    curl -s -S -L -f "$EC_HASH_LINK" -o $EC_HASH_FILE 2>>"$ERR_LOG_FILE"
+    fetch_fw "$EC_HASH_LINK" "$EC_HASH_FILE"
     error_check "Cannot access $FW_STORE_URL while downloading signature. Please
      check your internet connection"
-    curl -s -S -L -f "$EC_SIGN_LINK" -o $EC_SIGN_FILE 2>>"$ERR_LOG_FILE"
+    fetch_fw "$EC_SIGN_LINK" "$EC_SIGN_FILE"
     error_check "Cannot access $FW_STORE_URL while downloading signature. Please
      check your internet connection"
   else
@@ -1926,4 +1926,19 @@ parse_config() {
     eval "$output"
   fi
   return 0
+}
+
+fetch_fw() {
+  # fetch_fw <link> <destination>
+  # used do download fw from remote <link> to local <destination>
+  # if FETCH_LOCALLY is set to true then function will try to find firmware
+  # locally (under '/firmware' after removing 'FW_STORE_URL' prefix) instead of
+  # downloading from remote.
+  local source="$1"
+  local target="$2"
+  if [ "$FETCH_LOCALLY" = "true" ]; then
+    :
+  else
+    curl -sSLf "$source" -o "$target" 2>>"$ERR_LOG_FILE"
+  fi
 }
