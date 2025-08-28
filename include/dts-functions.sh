@@ -313,16 +313,7 @@ board_config() {
       fi
       ;;
     "NV4xPZ")
-      parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"
-      result=$?
-      if [ $result -eq 1 ]; then
-        print_error "Vendor $VENDOR is currently not supported!"
-        return 1
-      elif [ $result -eq 2 ]; then
-        print_error "System model $SYSTEM_MODEL is currently not supported!"
-        return 1
-      elif [ $result -eq 3 ]; then
-        print_error "Board model $BOARD_MODEL is currently now supported"
+      if ! parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
         return 1
       fi
 
@@ -357,35 +348,26 @@ board_config() {
           sed -r 's|.*novacustom/(.*)|\1|' | awk '{print toupper($1)}')
       fi
 
-      # Common configuration for all V54x_6x_TU:
-      DASHARO_REL_VER="0.9.0"
-      COMPATIBLE_EC_FW_VERSION="2024-07-17_4ae73b9"
-      NEED_BOOTSPLASH_MIGRATION="true"
+      if ! parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
+        return 1
+      fi
 
       case $BOARD_MODEL in
-      "V540TU")
-        DASHARO_REL_NAME="novacustom_v54x_mtl"
-        FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-        HAVE_HEADS_FW="true"
-        HEADS_REL_VER_DPP="0.9.0"
-        COMPATIBLE_HEADS_EC_FW_VERSION="2024-07-17_4ae73b9"
-        HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
-        ;;
       "V560TU")
-        DASHARO_REL_NAME="novacustom_v56x_mtl"
-        FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-        HAVE_HEADS_FW="true"
-        HEADS_REL_VER_DPP="0.9.0"
-        COMPATIBLE_HEADS_EC_FW_VERSION="2024-12-20_368e08e"
-        HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
         HEADS_EC_LINK_DPP="${BUCKET_DPP_HEADS}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_ec_v${HEADS_REL_VER_DPP}.rom"
         ;;
+      "V540TU") ;;
       *)
         print_error "Board model $BOARD_MODEL is currently not supported"
         return 1
         ;;
       esac
-
+      local board_model_lowercase=
+      board_model_lowercase="$(echo "$BOARD_MODEL" | tr '[:upper:]' '[:lower:]')"
+      local fw_store_dir="novacustom_v5x0_mtl/novacustom_mtl_igpu/novacustom_${board_model_lowercase}_mtl/uefi/v${DASHARO_REL_VER}"
+      BIOS_LINK_COMM="${FW_STORE_URL}/${fw_store_dir}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_btg_provisioned.rom"
+      BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${fw_store_dir}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_btg_provisioned.cap"
+      EC_LINK_COMM="${FW_STORE_URL}/${fw_store_dir}/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
       HEADS_LINK_DPP="${BUCKET_DPP_HEADS}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_heads.rom"
       ;;
     "V5xTNC_TND_TNE")
@@ -395,34 +377,24 @@ board_config() {
         ask_for_model V540TNx V560TNx
       fi
 
-      NEED_BOOTSPLASH_MIGRATION="true"
-
-      case $BOARD_MODEL in
-      "V540TNx")
-        DASHARO_REL_NAME="novacustom_v54x_mtl"
-        DASHARO_REL_VER="0.9.1"
-        COMPATIBLE_EC_FW_VERSION="2024-09-10_3786c8c"
-        FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-        ;;
-      "V560TNx")
-        DASHARO_REL_NAME="novacustom_v56x_mtl"
-        DASHARO_REL_VER="0.9.1"
-        COMPATIBLE_EC_FW_VERSION="2024-09-10_3786c8c"
-        FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-        ;;
-      *)
-        print_error "Board model $BOARD_MODEL is currently not supported"
+      if ! parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
         return 1
-        ;;
-      esac
+      fi
+
+      local board_model_lowercase=
+      board_model_lowercase="$(echo "$BOARD_MODEL" | tr '[:upper:]' '[:lower:]')"
+      local fw_store_dir="novacustom_v5x0_mtl/novacustom_mtl_dgpu/novacustom_${board_model_lowercase}_mtl/uefi/v${DASHARO_REL_VER}"
+      BIOS_LINK_COMM="${FW_STORE_URL}/${fw_store_dir}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_btg_provisioned.rom"
+      BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${fw_store_dir}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_btg_provisioned.cap"
+      EC_LINK_COMM="${FW_STORE_URL}/${fw_store_dir}/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
       ;;
     *)
       print_error "Board model $SYSTEM_MODEL is currently not supported"
       return 1
       ;;
     esac
-    BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
-    EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
+    BIOS_LINK_COMM=${BIOS_LINK_COMM:-"$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"}
+    EC_LINK_COMM=${EC_LINK_COMM:-"$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"}
     ;;
   "Micro-Star International Co., Ltd.")
     BUCKET_DPP="dasharo-msi-uefi"
@@ -615,16 +587,7 @@ board_config() {
     esac
     ;;
   "PC Engines")
-    parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"
-    result=$?
-    if [ $result -eq 1 ]; then
-      print_error "Vendor $VENDOR is currently not supported!"
-      return 1
-    elif [ $result -eq 2 ]; then
-      print_error "System model $SYSTEM_MODEL is currently not supported!"
-      return 1
-    elif [ $result -eq 3 ]; then
-      print_error "Board model $BOARD_MODEL is currently now supported"
+    if ! parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
       return 1
     fi
 
@@ -634,16 +597,7 @@ board_config() {
   "HARDKERNEL")
     case "$SYSTEM_MODEL" in
     "ODROID-H4")
-      parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"
-      result=$?
-      if [ $result -eq 1 ]; then
-        print_error "Vendor $VENDOR is currently not supported!"
-        return 1
-      elif [ $result -eq 2 ]; then
-        print_error "System model $SYSTEM_MODEL is currently not supported!"
-        return 1
-      elif [ $result -eq 3 ]; then
-        print_error "Board model $BOARD_MODEL is currently now supported"
+      if ! parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
         return 1
       fi
       ;;
@@ -704,8 +658,6 @@ board_config() {
   [ -z "$BIOS_SIGN_LINK_COMM_CAP" ] && BIOS_SIGN_LINK_COMM_CAP="${BIOS_HASH_LINK_COMM_CAP}.sig"
   [ -z "$BIOS_HASH_LINK_DPP_CAP" ] && BIOS_HASH_LINK_DPP_CAP="${BIOS_LINK_DPP_CAP}.sha256"
   [ -z "$BIOS_SIGN_LINK_DPP_CAP" ] && BIOS_SIGN_LINK_DPP_CAP="${BIOS_HASH_LINK_DPP_CAP}.sig"
-  [ -z "$EC_HASH_LINK_COMM_CAP" ] && EC_HASH_LINK_COMM_CAP="${EC_LINK_COMM_CAP}.sha256"
-  [ -z "$EC_SIGN_LINK_COMM_CAP" ] && EC_SIGN_LINK_COMM_CAP="${EC_HASH_LINK_COMM_CAP}.sig"
   [ -z "$EC_HASH_LINK_DPP_CAP" ] && EC_HASH_LINK_DPP_CAP="${EC_LINK_DPP_CAP}.sha256"
   [ -z "$EC_SIGN_LINK_DPP_CAP" ] && EC_SIGN_LINK_DPP_CAP="${EC_HASH_LINK_DPP_CAP}.sig"
 
@@ -1911,6 +1863,7 @@ parse_config() {
   # shellcheck disable=SC2046
   output=$(jq -r 'to_entries[] | select(.key != "models") | "\(.key | ascii_upcase)=\"\(.value|tostring)\""' $json_file 2>>"$ERR_LOG_FILE")
   if [ -z "$output" ]; then
+    print_error "Vendor $vendor is currently not supported!"
     return 1
   fi
   eval "$output"
@@ -1933,7 +1886,8 @@ parse_config() {
   | "\(.key | ascii_upcase)=\"\(.value|tostring)\""
 ' $json_file 2>>"$ERR_LOG_FILE")
   if [ -z "$output" ]; then
-    return 2
+    print_error "System model $system_model is currently not supported!"
+    return 1
   fi
   eval "$output"
 
@@ -1957,10 +1911,10 @@ parse_config() {
     | "\(.key | ascii_upcase)=\"\(.value|tostring)\""
   ' $json_file 2>>"$ERR_LOG_FILE")
     if [ -z "$output" ]; then
-      return 3
+      print_error "Board model $board_model is currently not supported"
+      return 1
     fi
     eval "$output"
   fi
   return 0
-
 }
