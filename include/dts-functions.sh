@@ -230,12 +230,19 @@ board_config() {
   # We download firmwares via network. At this point, the network connection
   # must be up already.
 
-  wait_for_network_connection
+  if ! wait_for_network_connection; then
+    FETCH_LOCALLY="true"
+    print_warning "DTS couldn't connect to the internet. Using local files instead"
+  fi
 
   echo "Downloading board configs repository"
   mkdir -p "$BOARD_CONFIG_PATH"
-  curl -f -L -o "$BOARD_CONFIG_PATH.tar.gz" \
-    https://github.com/Dasharo/dts-configs/archive/${DTS_CONFIG_REF}.tar.gz >/dev/null 2>>"$ERR_LOG_FILE"
+  if [ "$FETCH_LOCALLY" = "true" ]; then
+    cp /firmware/dts-configs.tar.gz "$BOARD_CONFIG_PATH.tar.gz"
+  else
+    curl -f -L -o "$BOARD_CONFIG_PATH.tar.gz" \
+      https://github.com/Dasharo/dts-configs/archive/${DTS_CONFIG_REF}.tar.gz >/dev/null 2>>"$ERR_LOG_FILE"
+  fi
   if [ $? -ne 0 ]; then
     print_error "Failed to download configs."
     return 1
@@ -735,14 +742,8 @@ download_bios() {
   echo "Downloading Dasharo firmware..."
   if [ "${BIOS_LINK}" == "${BIOS_LINK_COMM}" ] || [ "${BIOS_LINK}" == "${BIOS_LINK_COMM_CAP}" ]; then
     fetch_fw "$BIOS_LINK" "$BIOS_UPDATE_FILE"
-    error_check "Cannot access $FW_STORE_URL while downloading binary. Please
-   check your internet connection"
     fetch_fw "$BIOS_HASH_LINK" "$BIOS_HASH_FILE"
-    error_check "Cannot access $FW_STORE_URL while downloading signature. Please
-   check your internet connection"
     fetch_fw "$BIOS_SIGN_LINK" "$BIOS_SIGN_FILE"
-    error_check "Cannot access $FW_STORE_URL while downloading signature. Please
-   check your internet connection"
   else
     mc get "${DPP_SERVER_USER_ALIAS}/$BIOS_LINK" "$BIOS_UPDATE_FILE" >/dev/null 2>>"$ERR_LOG_FILE"
     error_check "Cannot access $FW_STORE_URL_DPP while downloading binary.
@@ -760,14 +761,8 @@ download_ec() {
   echo "Downloading Dasharo EC firmware..."
   if [ "${EC_LINK}" == "${EC_LINK_COMM}" ]; then
     fetch_fw "$EC_LINK" "$EC_UPDATE_FILE"
-    error_check "Cannot access $FW_STORE_URL while downloading binary. Please
-     check your internet connection"
     fetch_fw "$EC_HASH_LINK" "$EC_HASH_FILE"
-    error_check "Cannot access $FW_STORE_URL while downloading signature. Please
-     check your internet connection"
     fetch_fw "$EC_SIGN_LINK" "$EC_SIGN_FILE"
-    error_check "Cannot access $FW_STORE_URL while downloading signature. Please
-     check your internet connection"
   else
     mc get "${DPP_SERVER_USER_ALIAS}/${EC_LINK}" "$EC_UPDATE_FILE" >/dev/null 2>>"$ERR_LOG_FILE"
     error_check "Cannot access $FW_STORE_URL_DPP while downloading binary. Please
@@ -792,6 +787,9 @@ download_keys() {
 
 get_signing_keys() {
   local platform_keys=$PLATFORM_SIGN_KEY
+  if [ "$FETCH_LOCALLY" = "true" ]; then
+    return 0
+  fi
   echo -n "Getting platform specific GPG key... "
   for key in $platform_keys; do
     wget -q https://raw.githubusercontent.com/3mdeb/3mdeb-secpack/master/$key -O - | gpg --import - >>$ERR_LOG_FILE 2>&1
@@ -842,7 +840,7 @@ verify_artifacts() {
     error_check "Failed to verify $_name firmware checksum"
     print_ok "Verified."
 
-    if [ -n "$PLATFORM_SIGN_KEY" ]; then
+    if [[ -n "$PLATFORM_SIGN_KEY" && "$FETCH_LOCALLY" != "true" ]]; then
       echo -n "Checking $_name firmware signature... "
       _sig_result="$(cat $_hash_file | gpg --verify $_sign_file - >>$ERR_LOG_FILE 2>&1)"
       error_check "Failed to verify $_name firmware signature.$'\n'$_sig_result"
@@ -1930,15 +1928,22 @@ parse_config() {
 
 fetch_fw() {
   # fetch_fw <link> <destination>
-  # used do download fw from remote <link> to local <destination>
+  # Used do download fw from remote ${FW_STORE_URL}/<path> to local <destination>
   # if FETCH_LOCALLY is set to true then function will try to find firmware
   # locally (under '/firmware' after removing 'FW_STORE_URL' prefix) instead of
   # downloading from remote.
   local source="$1"
   local target="$2"
   if [ "$FETCH_LOCALLY" = "true" ]; then
-    :
+    source="${source#"${FW_STORE_URL}"}"
+    if [ -f "/firmware/${source}" ]; then
+      cp "/firmware/${source}" "${target}"
+    else
+      error_exit "Couldn't find firmware locally." 2>&1
+    fi
   else
     curl -sSLf "$source" -o "$target" 2>>"$ERR_LOG_FILE"
+    error_check "Cannot access $FW_STORE_URL while downloading binary. Please
+   check your internet connection"
   fi
 }
