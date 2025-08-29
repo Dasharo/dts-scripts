@@ -1463,6 +1463,53 @@ restore() {
   done
 }
 
+fuse_workflow() {
+  if [[ -z "${EOM_LINK_COMM_CAP}" || -z "${DASHARO_REL_VER_CAP}" ]]; then
+    echo "No release with fusing support is available for your platform."
+    exit "${CANCEL}"
+  fi
+
+  BIOS_LINK="${EOM_LINK_COMM_CAP}"
+  BIOS_HASH_LINK="${EOM_HASH_LINK_COMM_CAP}"
+  BIOS_SIGN_LINK="${EOM_SIGN_LINK_COMM_CAP}"
+  UPDATE_VERSION="${DASHARO_REL_VER_CAP}"
+
+  check_intel_regions
+  check_if_me_disabled
+  if [ "${ME_DISABLED}" -ne 2 ]; then
+    # https://docs.dasharo.com/guides/capsule-update/#how-to-use-uefi-update-capsules
+    error_exit "Cannot fuse platform, ME has to be HAP disabled."
+  fi
+
+  if ! ask_for_confirmation "Fusing is irreversible. Are you sure you want to continue?"; then
+    exit "${CANCEL}"
+  fi
+
+  check_if_ac
+  download_bios
+  verify_artifacts bios
+  # Ask user for confirmation:
+  display_warning
+
+  if ! $CAP_UPD_TOOL "$BIOS_UPDATE_FILE" 2>>"$ERR_LOG_FILE"; then
+    error_exit Failed to queue capsule update!
+  fi
+
+  send_dts_logs
+
+  echo "The computer will reboot automatically in 5 seconds"
+  sleep 0.5
+  _sleep_delay=5
+  echo "Rebooting in ${_sleep_delay} s:"
+  for ((i = _sleep_delay; i > 0; --i)); do
+    echo "${i}..."
+    sleep 1
+  done
+  echo "Rebooting"
+  sleep 1
+  $REBOOT
+}
+
 usage() {
   echo "Usage:"
   echo "  $0 install  - Install Dasharo on this device"
@@ -1537,6 +1584,23 @@ restore)
   ;;
 transition)
   transition_workflow
+  ;;
+fuse)
+  if check_if_fused; then
+    echo "Platform is already fused, nothing to do"
+    exit "${CANCEL}"
+  fi
+  if [ -z "$DASHARO_SUPPORT_CAP_FROM" ]; then
+    echo "Platform doesn't support fusing."
+    exit "${CANCEL}"
+  fi
+  capsule_support_version="$(semver_version_compare "${DASHARO_VERSION}" "${DASHARO_SUPPORT_CAP_FROM}" 2>/dev/null)"
+  if [[ "${capsule_support_version}" == "0" || "${capsule_support_version}" == "1" ]]; then
+    # we support capsules: dasharo_version >= dasharo_support_cap_from
+    fuse_workflow
+  else
+    error_exit "Please update your Dasharo firmware first"
+  fi
   ;;
 *)
   usage
