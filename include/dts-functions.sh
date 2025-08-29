@@ -1378,6 +1378,7 @@ show_main_menu() {
   fi
   if check_if_dasharo; then
     echo -e "${BLUE}**${YELLOW}     ${TRANSITION_OPT})${BLUE} Transition Dasharo Firmware${NORMAL}"
+    echo -e "${BLUE}**${YELLOW}     ${FUSE_OPT})${BLUE} Fuse platform${NORMAL}"
   fi
 }
 
@@ -1546,6 +1547,18 @@ main_menu_options() {
     check_if_dasharo || return 0
 
     ${CMD_DASHARO_DEPLOY} transition
+    result=$?
+    if [ "$result" -ne $OK ] && [ "$result" -ne $CANCEL ]; then
+      send_dts_logs ask && return $OK
+    fi
+    read -p "Press Enter to continue."
+
+    return 0
+    ;;
+  "${FUSE_OPT}")
+    check_if_dasharo || return 0
+
+    ${CMD_DASHARO_DEPLOY} fuse
     result=$?
     if [ "$result" -ne $OK ] && [ "$result" -ne $CANCEL ]; then
       send_dts_logs ask && return $OK
