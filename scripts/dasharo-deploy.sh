@@ -1544,6 +1544,10 @@ fuse)
     echo "There is no release available for your platform that will fuse your platform"
     return "${CANCEL}"
   fi
+  if check_if_fused; then
+    echo "Platform is already fused, nothing to do"
+    return "${CANCEL}"
+  fi
   capsule_support_version="$(semver_version_compare "${DASHARO_VERSION}" "${DASHARO_SUPPORT_CAP_FROM}" 2>/dev/null)"
   if [[ "${capsule_support_version}" == "0" || "${capsule_support_version}" == "1" ]]; then
     # we support capsules: dasharo_version >= dasharo_support_cap_from
