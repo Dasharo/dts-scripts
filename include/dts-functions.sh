@@ -424,8 +424,8 @@ board_config() {
     BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
     EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
     ;;
-  "NovaCustom" | "To Be Filled By O.E.M." | "ASRock Industrial")
-    if [[ "$SYSTEM_VENDOR" == "To Be Filled By O.E.M." || "$SYSTEM_MODEL" == "NUC BOX"* ]]; then
+  "NovaCustom" | "ASRock Industrial")
+    if [[ "$SYSTEM_MODEL" == "NUC BOX"* ]]; then
       SYSTEM_VENDOR="NovaCustom"
       SYSTEM_MODEL="NUC_BOX"
     fi
@@ -694,6 +694,10 @@ board_config() {
       return 1
       ;;
     esac
+    ;;
+  "To Be Filled By O.E.M.")
+    print_error "Cannot determine board vendor"
+    return 1
     ;;
   *)
     print_error "Board vendor: $SYSTEM_VENDOR is currently not supported"
