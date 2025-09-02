@@ -424,7 +424,12 @@ board_config() {
     BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
     EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
     ;;
-  "NovaCustom")
+  "NovaCustom" | "To Be Filled By O.E.M." | "ASRock Industrial")
+    if [[ "$SYSTEM_VENDOR" == "To Be Filled By O.E.M." || "$SYSTEM_MODEL" == "NUC BOX"* ]]; then
+      SYSTEM_VENDOR="NovaCustom"
+      SYSTEM_MODEL="NUC_BOX"
+    fi
+
     if ! parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
       return 1
     fi
