@@ -1937,7 +1937,7 @@ parse_config() {
   # Disabling warning "Quote this to prevent word splitting" to avoid mixing
   # quotes
   # shellcheck disable=SC2046
-  output=$(jq -r --arg m $(echo "$system_model" | tr '[:upper:]' '[:lower:]') '
+  output=$(jq -r --arg m "$(echo "$system_model" | tr '[:upper:]' '[:lower:]')" '
   .models[$m]
   | to_entries[]
   | select(.key != "board_models")
@@ -1956,13 +1956,13 @@ parse_config() {
   # create any new variables
 
   # shellcheck disable=SC2046
-  has_key=$(jq -r --arg m $(echo "$system_model" | tr '[:upper:]' '[:lower:]') '
+  has_key=$(jq -r --arg m "$(echo "$system_model" | tr '[:upper:]' '[:lower:]')" '
   .models[$m] | has("board_models")
   ' $json_file)
 
   if [ "$has_key" == "true" ]; then
     # shellcheck disable=SC2046
-    output=$(jq -r --arg m $(echo "$system_model" | tr '[:upper:]' '[:lower:]') --arg b $(echo "$board_model" | tr '[:upper:]' '[:lower:]') '
+    output=$(jq -r --arg m "$(echo "$system_model" | tr '[:upper:]' '[:lower:]')" --arg b "$(echo "$board_model" | tr '[:upper:]' '[:lower:]')" '
     .models[$m].board_models[$b]
     | to_entries[]
     | "\(.key | ascii_upcase)=\"\(.value|tostring)\""
