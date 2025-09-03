@@ -755,7 +755,7 @@ semver_version_compare() {
 
 download_bios() {
   echo "Downloading Dasharo firmware..."
-  if [ "${BIOS_LINK}" == "${BIOS_LINK_COMM}" ] || [ "${BIOS_LINK}" == "${BIOS_LINK_COMM_CAP}" ]; then
+  if [[ "${BIOS_LINK}" == "${FW_STORE_URL}"* ]]; then
     fetch_fw "$BIOS_LINK" "$BIOS_UPDATE_FILE"
     fetch_fw "$BIOS_HASH_LINK" "$BIOS_HASH_FILE"
     fetch_fw "$BIOS_SIGN_LINK" "$BIOS_SIGN_FILE"
@@ -774,7 +774,7 @@ download_bios() {
 
 download_ec() {
   echo "Downloading Dasharo EC firmware..."
-  if [ "${EC_LINK}" == "${EC_LINK_COMM}" ]; then
+  if [[ "${EC_LINK}" == "${FW_STORE_URL}"* ]]; then
     fetch_fw "$EC_LINK" "$EC_UPDATE_FILE"
     fetch_fw "$EC_HASH_LINK" "$EC_HASH_FILE"
     fetch_fw "$EC_SIGN_LINK" "$EC_SIGN_FILE"
