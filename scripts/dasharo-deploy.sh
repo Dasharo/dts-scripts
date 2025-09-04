@@ -1064,7 +1064,8 @@ update_workflow() {
 
   print_ok "Current Dasharo version: $DASHARO_VERSION"
 
-  if [ "$CAN_SWITCH_TO_HEADS" = "true" ] || [ "$DASHARO_FLAVOR" == "Dasharo (coreboot+heads)" ]; then
+  if { [ "$HAVE_HEADS_FW" = "true" ] && [ "$CAN_SWITCH_TO_HEADS" = "true" ]; } ||
+    [ "$DASHARO_FLAVOR" = "Dasharo (coreboot+heads)" ]; then
     print_ok "Latest available Dasharo version for your subscription: $UPDATE_VERSION (coreboot+Heads)"
   else
     print_ok "Latest available Dasharo version for your subscription: $UPDATE_VERSION"
