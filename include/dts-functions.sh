@@ -313,16 +313,7 @@ board_config() {
       fi
       ;;
     "NV4xPZ")
-      parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"
-      result=$?
-      if [ $result -eq 1 ]; then
-        print_error "Vendor $VENDOR is currently not supported!"
-        return 1
-      elif [ $result -eq 2 ]; then
-        print_error "System model $SYSTEM_MODEL is currently not supported!"
-        return 1
-      elif [ $result -eq 3 ]; then
-        print_error "Board model $BOARD_MODEL is currently now supported"
+      if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
         return 1
       fi
 
@@ -423,6 +414,13 @@ board_config() {
     esac
     BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
     EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
+    ;;
+  "NovaCustom" | "ASRock Industrial")
+    if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
+      return 1
+    fi
+
+    BIOS_LINK_COMM="${FW_STORE_URL}/${DASHARO_REL_NAME}/uefi/v${DASHARO_REL_VER}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
     ;;
   "Micro-Star International Co., Ltd.")
     BUCKET_DPP="dasharo-msi-uefi"
@@ -615,16 +613,7 @@ board_config() {
     esac
     ;;
   "PC Engines")
-    parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"
-    result=$?
-    if [ $result -eq 1 ]; then
-      print_error "Vendor $VENDOR is currently not supported!"
-      return 1
-    elif [ $result -eq 2 ]; then
-      print_error "System model $SYSTEM_MODEL is currently not supported!"
-      return 1
-    elif [ $result -eq 3 ]; then
-      print_error "Board model $BOARD_MODEL is currently now supported"
+    if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
       return 1
     fi
 
@@ -634,16 +623,7 @@ board_config() {
   "HARDKERNEL")
     case "$SYSTEM_MODEL" in
     "ODROID-H4")
-      parse_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"
-      result=$?
-      if [ $result -eq 1 ]; then
-        print_error "Vendor $VENDOR is currently not supported!"
-        return 1
-      elif [ $result -eq 2 ]; then
-        print_error "System model $SYSTEM_MODEL is currently not supported!"
-        return 1
-      elif [ $result -eq 3 ]; then
-        print_error "Board model $BOARD_MODEL is currently now supported"
+      if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
         return 1
       fi
       ;;
@@ -674,6 +654,10 @@ board_config() {
       return 1
       ;;
     esac
+    ;;
+  "To Be Filled By O.E.M.")
+    print_error "Cannot determine board vendor"
+    return 1
     ;;
   *)
     print_error "Board vendor: $SYSTEM_VENDOR is currently not supported"
@@ -1883,6 +1867,24 @@ ask_for_confirmation() {
   done
 }
 
+parse_and_verify_config() {
+  # Arguments: the same as parse_config.
+  # Call parse_config and print error if it fails
+  local vendor="$1"
+  local system_model="$2"
+  local board_model="$3"
+  parse_config "$@"
+  local result=$?
+  if [ $result -eq 1 ]; then
+    print_error "Vendor $vendor is currently not supported!"
+  elif [ $result -eq 2 ]; then
+    print_error "System model $system_model is currently not supported!"
+  elif [ $result -eq 3 ]; then
+    print_error "Board model $board_model is currently now supported"
+  fi
+  return $result
+}
+
 parse_config() {
   local vendor="$1"
   local system_model="$2"
@@ -1926,7 +1928,7 @@ parse_config() {
   # Disabling warning "Quote this to prevent word splitting" to avoid mixing
   # quotes
   # shellcheck disable=SC2046
-  output=$(jq -r --arg m $(echo "$system_model" | tr '[:upper:]' '[:lower:]') '
+  output=$(jq -r --arg m "$(echo "$system_model" | tr '[:upper:]' '[:lower:]')" '
   .models[$m]
   | to_entries[]
   | select(.key != "board_models")
@@ -1945,13 +1947,13 @@ parse_config() {
   # create any new variables
 
   # shellcheck disable=SC2046
-  has_key=$(jq -r --arg m $(echo "$system_model" | tr '[:upper:]' '[:lower:]') '
+  has_key=$(jq -r --arg m "$(echo "$system_model" | tr '[:upper:]' '[:lower:]')" '
   .models[$m] | has("board_models")
   ' $json_file)
 
   if [ "$has_key" == "true" ]; then
     # shellcheck disable=SC2046
-    output=$(jq -r --arg m $(echo "$system_model" | tr '[:upper:]' '[:lower:]') --arg b $(echo "$board_model" | tr '[:upper:]' '[:lower:]') '
+    output=$(jq -r --arg m "$(echo "$system_model" | tr '[:upper:]' '[:lower:]')" --arg b "$(echo "$board_model" | tr '[:upper:]' '[:lower:]')" '
     .models[$m].board_models[$b]
     | to_entries[]
     | "\(.key | ascii_upcase)=\"\(.value|tostring)\""
@@ -1962,5 +1964,4 @@ parse_config() {
     eval "$output"
   fi
   return 0
-
 }
