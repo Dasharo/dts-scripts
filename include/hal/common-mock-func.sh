@@ -697,12 +697,11 @@ setpci_check_me_op_mode_mock() {
 ################################################################################
 # lscpu
 ################################################################################
-TEST_CPU_MODEL="${TEST_CPU_MODEL:-test}"
-
 lscpu_common_mock() {
-  # Emulating CPU model, check update_workflow function. The model should look
-  # like i5-13409:
-  echo "12th Gen Intel(R) Core(TM) $TEST_CPU_MODEL"
+  # Emulating lscpu's "Model name" CPU model listing, check update_workflow
+  # function. The CPU version should look like:
+  # "13th Gen Intel(R) Core(TM) i9-13900K":
+  echo "  Model name:                $TEST_CPU_VERSION"
 
   return 0
 }
