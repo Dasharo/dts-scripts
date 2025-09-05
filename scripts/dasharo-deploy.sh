@@ -1480,6 +1480,7 @@ fuse_workflow() {
     fi
   fi
 
+  # fusing binary will have `_eom` suffix
   BIOS_LINK="${BIOS_LINK%.cap}_eom.cap"
   BIOS_HASH_LINK="${BIOS_HASH_LINK%.cap.sha256}_eom.cap.sha256"
   BIOS_SIGN_LINK="${BIOS_SIGN_LINK%.cap.sha256.sig}_eom.cap.sha256.sig"
@@ -1489,6 +1490,8 @@ fuse_workflow() {
   if [ "${ME_DISABLED}" != "1" ]; then
     error_exit "Cannot fuse platform without updating ME"
   fi
+
+  ask_for_confirmation "Fusing is irreversible. Are you sure you want to continue?"
 
   check_if_ac
   download_bios
