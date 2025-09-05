@@ -1467,17 +1467,9 @@ fuse_workflow() {
     BIOS_SIGN_LINK=$BIOS_SIGN_LINK_COMM_CAP
 
     UPDATE_VERSION="$DASHARO_REL_VER_CAP"
-  fi
-  if [ -n "$DASHARO_REL_VER_DPP_CAP" ]; then
-    if check_for_firmware_access dpp_cap; then
-      BIOS_LINK=$BIOS_LINK_DPP_CAP
-      BIOS_HASH_LINK=$BIOS_HASH_LINK_DPP_CAP
-      BIOS_SIGN_LINK=$BIOS_SIGN_LINK_DPP_CAP
-
-      UPDATE_VERSION="$DASHARO_REL_VER_DPP_CAP"
-    else
-      print_firm_access_warning dpp_cap
-    fi
+  else
+    echo_red "There is no fusing binary available"
+    exit "${CANCEL}"
   fi
 
   # fusing binary will have `_eom` suffix
@@ -1491,7 +1483,9 @@ fuse_workflow() {
     error_exit "Cannot fuse platform without updating ME"
   fi
 
-  ask_for_confirmation "Fusing is irreversible. Are you sure you want to continue?"
+  if ! ask_for_confirmation "Fusing is irreversible. Are you sure you want to continue?"; then
+    exit "${CANCEL}"
+  fi
 
   check_if_ac
   download_bios
