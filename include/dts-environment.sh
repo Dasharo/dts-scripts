@@ -44,6 +44,7 @@ REST_FIRM_OPT="3"
 DPP_KEYS_OPT="4"
 DPP_SUBMENU_OPT="5"
 TRANSITION_OPT="6"
+FUSE_OPT="7"
 BACK_TO_MAIN_MENU_UP="Q"
 BACK_TO_MAIN_MENU_DOWN="$(echo $BACK_TO_MAIN_MENU_UP | awk '{print tolower($0)}')"
 REBOOT_OPT_UP="R"
@@ -216,3 +217,5 @@ fi
 # Try to fetch config and fw binaries locally. Used mainly as a workaround for
 # no internet connection when booting via iPXE on MTL iGPU 0.9.0
 FETCH_LOCALLY="false"
+# is there is separate binary that'll fuse platform
+HAS_FUSING_BINARY="false"
