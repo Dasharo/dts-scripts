@@ -17,7 +17,7 @@ update_result() {
   LOGFILE=$(printf $2 | sed 's/[.].*$//' && echo ".log")
 
   # check if status was set as a unknown
-  if [ -z "$3" ]; then
+  if [[ "$3" == "UNKNOWN" ]]; then
     echo -e [$YELLOW"UNKNOWN"$NORMAL]"\t"$TOOL >>result
     return
   fi
