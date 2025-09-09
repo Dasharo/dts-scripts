@@ -232,7 +232,7 @@ board_config() {
 
   if ! wait_for_network_connection; then
     FETCH_LOCALLY="true"
-    print_warning "DTS couldn't connect to the internet. Using local files instead"
+    print_warning "DTS couldn't connect to the internet! Using local files instead."
   fi
 
   mkdir -p "$BOARD_CONFIG_PATH"
