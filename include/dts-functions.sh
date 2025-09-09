@@ -1947,7 +1947,7 @@ fetch_fw() {
     fi
   else
     curl -sSLf "$source" -o "$target" 2>>"$ERR_LOG_FILE"
-    error_check "Cannot access $FW_STORE_URL while downloading binary. Please
-   check your internet connection"
+    error_check "Download failed: Cannot access $FW_STORE_URL.
+Please check your internet connection"
   fi
 }
