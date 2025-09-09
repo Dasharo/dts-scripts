@@ -1023,20 +1023,7 @@ install_workflow() {
   else
     echo "The computer will reboot automatically in 5 seconds"
   fi
-  sleep 0.5
-  echo "Rebooting in 5s:"
-  echo "5..."
-  sleep 1
-  echo "4..."
-  sleep 1
-  echo "3..."
-  sleep 1
-  echo "2..."
-  sleep 1
-  echo "1..."
-  sleep 0.5
-  echo "Rebooting"
-  sleep 1
+  reboot_countdown
   if [ "$NEED_EC_RESET" == "true" ]; then
     it5570_shutdown
   else
@@ -1143,20 +1130,7 @@ update_workflow() {
   sync
   echo "Done."
   echo "The computer will reboot automatically in 5 seconds"
-  sleep 0.5
-  echo "Rebooting in 5s:"
-  echo "5..."
-  sleep 1
-  echo "4..."
-  sleep 1
-  echo "3..."
-  sleep 1
-  echo "2..."
-  sleep 1
-  echo "1..."
-  sleep 0.5
-  echo "Rebooting"
-  sleep 1
+  reboot_countdown
   ${REBOOT}
 }
 
@@ -1333,15 +1307,7 @@ transition_workflow() {
   send_dts_logs
 
   echo "The computer will reboot automatically in 5 seconds"
-  sleep 0.5
-  _sleep_delay=5
-  echo "Rebooting in ${_sleep_delay} s:"
-  for ((i = _sleep_delay; i > 0; --i)); do
-    echo "${i}..."
-    sleep 1
-  done
-  echo "Rebooting"
-  sleep 1
+  reboot_countdown
   if [ "$NEED_EC_RESET" == "true" ]; then
     it5570_shutdown
   else
@@ -1498,15 +1464,7 @@ fuse_workflow() {
   send_dts_logs
 
   echo "The computer will reboot automatically in 5 seconds"
-  sleep 0.5
-  _sleep_delay=5
-  echo "Rebooting in ${_sleep_delay} s:"
-  for ((i = _sleep_delay; i > 0; --i)); do
-    echo "${i}..."
-    sleep 1
-  done
-  echo "Rebooting"
-  sleep 1
+  reboot_countdown
   $REBOOT
 }
 

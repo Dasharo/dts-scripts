@@ -1983,3 +1983,15 @@ fetch_fw() {
 Please check your internet connection."
   fi
 }
+
+reboot_countdown() {
+  sleep 0.5
+  _sleep_delay=5
+  echo "Rebooting in ${_sleep_delay} s:"
+  for ((i = _sleep_delay; i > 0; --i)); do
+    echo "${i}..."
+    sleep 1
+  done
+  echo "Rebooting"
+  sleep 0.5
+}
