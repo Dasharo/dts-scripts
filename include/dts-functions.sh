@@ -235,11 +235,11 @@ board_config() {
     print_warning "DTS couldn't connect to the internet. Using local files instead"
   fi
 
-  echo "Downloading board configs repository"
   mkdir -p "$BOARD_CONFIG_PATH"
   if [ "$FETCH_LOCALLY" = "true" ]; then
     cp /firmware/dts-configs.tar.gz "$BOARD_CONFIG_PATH.tar.gz"
   else
+    echo "Downloading board configs repository"
     curl -f -L -o "$BOARD_CONFIG_PATH.tar.gz" \
       https://github.com/Dasharo/dts-configs/archive/${DTS_CONFIG_REF}.tar.gz >/dev/null 2>>"$ERR_LOG_FILE"
   fi
@@ -739,7 +739,9 @@ compare_versions() {
 }
 
 download_bios() {
-  echo "Downloading Dasharo firmware..."
+  if [ "${FETCH_LOCALLY}" = "false" ]; then
+    echo "Downloading Dasharo firmware..."
+  fi
   if [ "${BIOS_LINK}" == "${BIOS_LINK_COMM}" ] || [ "${BIOS_LINK}" == "${BIOS_LINK_COMM_CAP}" ]; then
     fetch_fw "$BIOS_LINK" "$BIOS_UPDATE_FILE"
     fetch_fw "$BIOS_HASH_LINK" "$BIOS_HASH_FILE"
@@ -758,7 +760,9 @@ download_bios() {
 }
 
 download_ec() {
-  echo "Downloading Dasharo EC firmware..."
+  if [ "${FETCH_LOCALLY}" = "false" ]; then
+    echo "Downloading Dasharo EC firmware..."
+  fi
   if [ "${EC_LINK}" == "${EC_LINK_COMM}" ]; then
     fetch_fw "$EC_LINK" "$EC_UPDATE_FILE"
     fetch_fw "$EC_HASH_LINK" "$EC_HASH_FILE"
