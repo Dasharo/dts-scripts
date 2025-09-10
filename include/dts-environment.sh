@@ -162,6 +162,11 @@ declare EC_SIGN_LINK_DPP
 declare HEADS_LINK_DPP
 declare HEADS_HASH_LINK_DPP
 declare HEADS_SIGN_LINK_DPP
+
+# path under ${FW_STORE_URL} where binary is stored
+declare BIOS_PATH_COMM
+declare BIOS_PATH_COMM_CAP
+declare EC_PATH_COMM
 # and for capsules:
 declare BIOS_LINK_COMM_CAP
 declare BIOS_HASH_LINK_COMM_CAP

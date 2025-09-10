@@ -352,23 +352,9 @@ board_config() {
         return 1
       fi
 
-      case $BOARD_MODEL in
-      "V560TU")
-        HEADS_EC_LINK_DPP="${BUCKET_DPP_HEADS}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_ec_v${HEADS_REL_VER_DPP}.rom"
-        ;;
-      "V540TU") ;;
-      *)
-        print_error "Board model $BOARD_MODEL is currently not supported"
-        return 1
-        ;;
-      esac
-      local board_model_lowercase=
-      board_model_lowercase="$(echo "$BOARD_MODEL" | tr '[:upper:]' '[:lower:]')"
-      local fw_store_dir="novacustom_v5x0_mtl/novacustom_mtl_igpu/novacustom_${board_model_lowercase}_mtl/uefi/v${DASHARO_REL_VER}"
-      BIOS_LINK_COMM="${FW_STORE_URL}/${fw_store_dir}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_btg_provisioned.rom"
-      BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${fw_store_dir}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_btg_provisioned.cap"
-      EC_LINK_COMM="${FW_STORE_URL}/${fw_store_dir}/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
-      HEADS_LINK_DPP="${BUCKET_DPP_HEADS}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_heads.rom"
+      BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
+      BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${BIOS_PATH_COMM_CAP}"
+      EC_LINK_COMM="${FW_STORE_URL}/${EC_PATH_COMM}"
       ;;
     "V5xTNC_TND_TNE")
       if check_if_dasharo; then
@@ -381,12 +367,9 @@ board_config() {
         return 1
       fi
 
-      local board_model_lowercase=
-      board_model_lowercase="$(echo "$BOARD_MODEL" | tr '[:upper:]' '[:lower:]')"
-      local fw_store_dir="novacustom_v5x0_mtl/novacustom_mtl_dgpu/novacustom_${board_model_lowercase}_mtl/uefi/v${DASHARO_REL_VER}"
-      BIOS_LINK_COMM="${FW_STORE_URL}/${fw_store_dir}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_btg_provisioned.rom"
-      BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${fw_store_dir}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_btg_provisioned.cap"
-      EC_LINK_COMM="${FW_STORE_URL}/${fw_store_dir}/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
+      BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
+      BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${BIOS_PATH_COMM_CAP}"
+      EC_LINK_COMM="${FW_STORE_URL}/${EC_PATH_COMM}"
       ;;
     *)
       print_error "Board model $SYSTEM_MODEL is currently not supported"
