@@ -1544,7 +1544,7 @@ transition)
   transition_workflow
   ;;
 fuse)
-  if check_if_fused; then
+  if check_if_fused &>>"$ERR_LOG_FILE"; then
     echo "Platform is already fused, nothing to do"
     exit "${CANCEL}"
   fi
