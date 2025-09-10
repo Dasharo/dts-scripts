@@ -657,7 +657,8 @@ bootsplash_migration() {
 resign_binary() {
   if [ "$HAVE_VBOOT" -eq 0 ]; then
     if [ "$FETCH_LOCALLY" = "true" ]; then
-      error_exit "vboot resigning doesn't support local key fetching"
+      error_exit "vboot resigning doesn't support local key fetching.
+Please make sure you have internet connection before repeating."
     fi
     download_keys
     sign_firmware.sh $BIOS_UPDATE_FILE $KEYS_DIR $RESIGNED_BIOS_UPDATE_FILE
@@ -695,7 +696,8 @@ check_vboot_keys() {
 
 blob_transmission() {
   if [ "$FETCH_LOCALLY" = "true" ]; then
-    error_exit "Blob transmission doesn't support local file fetching."
+    error_exit "Blob transmission doesn't support local file fetching.
+Please make sure you have internet connection before repeating."
   fi
   echo "Extracting the UEFI image from BIOS update"
   wget -O "$DBT_BIOS_UPDATE_FILENAME" --user-agent='Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)' "$DBT_BIOS_UPDATE_URL" >>$ERR_LOG_FILE 2>&1

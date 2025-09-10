@@ -239,7 +239,7 @@ board_config() {
   if [ "$FETCH_LOCALLY" = "true" ]; then
     cp /firmware/dts-configs.tar.gz "$BOARD_CONFIG_PATH.tar.gz"
   else
-    echo "Downloading board configs repository"
+    echo "Downloading board configs repository..."
     curl -f -L -o "$BOARD_CONFIG_PATH.tar.gz" \
       https://github.com/Dasharo/dts-configs/archive/${DTS_CONFIG_REF}.tar.gz >/dev/null 2>>"$ERR_LOG_FILE"
   fi
@@ -1948,6 +1948,6 @@ fetch_fw() {
   else
     curl -sSLf "$source" -o "$target" 2>>"$ERR_LOG_FILE"
     error_check "Download failed: Cannot access $FW_STORE_URL.
-Please check your internet connection"
+Please check your internet connection."
   fi
 }
