@@ -159,6 +159,7 @@ update_result "ACPI tables" logs/acpidump.err.log
 progress_bar_update
 
 # echo "Dumping Audio devices configuration..."
+# FIXME: https://github.com/Dasharo/dts-scripts/issues/108
 
 # This is a workaround to soundcard's files absence in short time after booting.
 # Thread is continued here https://github.com/Dasharo/dasharo-issues/issues/247
@@ -247,6 +248,7 @@ update_result "I2C bus" logs/i2cdetect.err.log
 progress_bar_update
 
 # echo "Decompiling ACPI tables..."
+# FIXME: https://github.com/Dasharo/dts-scripts/issues/109
 mkdir -p logs/acpi
 if pushd logs/acpi >/dev/null 2>>"$ERR_LOG_FILE"; then
   acpixtract -a ../acpidump.log >/dev/null 2>>"$ERR_LOG_FILE"
@@ -292,6 +294,7 @@ update_result "ME information" logs/intelmetool.err.log
 progress_bar_update
 
 # echo "Getting graphics VBT"
+# FIXME: https://github.com/Dasharo/dts-scripts/issues/110
 files=$(find /sys/kernel/debug/dri -maxdepth 2 -name "i915_vbt")
 for file in $files; do
   # copy $file to logs/dri_<directory>_<filename>
