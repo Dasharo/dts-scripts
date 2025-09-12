@@ -31,6 +31,11 @@ print_ok() {
   echo_green "$1"
 }
 
+# Clears the line, usable for carriage returns to make sure no garbage is left.
+clear_line() {
+  printf '\r\033[K'
+}
+
 check_if_dasharo() {
   if [[ $BIOS_VENDOR == *$DASHARO_VENDOR* &&
     $BIOS_VERSION == *$DASHARO_NAME* ||
