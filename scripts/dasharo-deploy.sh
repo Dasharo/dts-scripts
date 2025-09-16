@@ -1479,7 +1479,7 @@ fi
 # For FUM we start in dasharo-deploy so we need to verify that we have internet
 # connection to download shasums in board_config
 if [ "$FUM" == "fum" ]; then
-  wait_for_network_connection
+  wait_for_network_connection true
 fi
 
 # flashrom does not support QEMU. TODO: this could be handled in a better way:

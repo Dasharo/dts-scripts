@@ -164,6 +164,8 @@ check_network_connection() {
 }
 
 wait_for_network_connection() {
+  # if first argument equals true then print warning else print error
+  local print_warning="$1"
   echo 'Waiting for network connection ...'
   n="10"
 
@@ -175,7 +177,11 @@ wait_for_network_connection() {
 
     n=$((n - 1))
     if [ "${n}" == "0" ]; then
-      print_error "Could not connect to network, please check network connection!"
+      if [ "${print_warning}" = "true" ]; then
+        print_warning "Could not connect to network, please check network connection!"
+      else
+        print_error "Could not connect to network, please check network connection!"
+      fi
       return 1
     fi
     sleep 1
@@ -230,7 +236,7 @@ board_config() {
   # We download firmwares via network. At this point, the network connection
   # must be up already.
 
-  if ! wait_for_network_connection; then
+  if ! wait_for_network_connection true; then
     FETCH_LOCALLY="true"
     print_warning "DTS couldn't connect to the internet! Using local files instead."
   fi
