@@ -1217,11 +1217,13 @@ handle_fw_switching() {
 }
 
 sync_clocks() {
-  echo "Waiting for system clock to be synced ..."
-  chronyc waitsync 10 0 0 5 >/dev/null 2>>"$ERR_LOG_FILE"
-  if [[ $? -ne 0 ]]; then
-    print_warning "Failed to sync system clock with NTP server!"
-    print_warning "Some time critical tasks might fail!"
+  if [ "${FETCH_LOCALLY}" != "true" ]; then
+    echo "Waiting for system clock to be synced ..."
+    chronyc waitsync 10 0 0 5 >/dev/null 2>>"$ERR_LOG_FILE"
+    if [[ $? -ne 0 ]]; then
+      print_warning "Failed to sync system clock with NTP server!"
+      print_warning "Some time critical tasks might fail!"
+    fi
   fi
 }
 
