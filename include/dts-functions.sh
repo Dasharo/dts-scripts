@@ -406,107 +406,11 @@ board_config() {
     BIOS_LINK_COMM="${FW_STORE_URL}/${DASHARO_REL_NAME}/uefi/v${DASHARO_REL_VER}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
     ;;
   "Micro-Star International Co., Ltd.")
-    BUCKET_DPP="dasharo-msi-uefi"
-    BUCKET_DPP_HEADS="dasharo-msi-heads"
-    case "$SYSTEM_MODEL" in
-    "MS-7D25")
-      # Common configuration for all MS-7D25:
-      DASHARO_REL_NAME="msi_ms7d25"
-      DASHARO_REL_VER="1.1.1"
-      DASHARO_REL_VER_DPP="1.1.4"
-      CAN_INSTALL_BIOS="true"
-      HAVE_HEADS_FW="true"
-      HEADS_REL_VER_DPP="0.9.0"
-      HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
-      PLATFORM_SIGN_KEY="dasharo/msi_ms7d25/dasharo-release-1.x-compatible-with-msi-ms-7d25-signing-key.asc \
-             dasharo/msi_ms7d25/dasharo-release-0.x-compatible-with-msi-ms-7d25-signing-key.asc"
-      NEED_SMBIOS_MIGRATION="true"
-      NEED_SMMSTORE_MIGRATION="true"
-      NEED_ROMHOLE_MIGRATION="true"
-
-      # Add capsules:
-      DASHARO_REL_NAME_CAP="$DASHARO_REL_NAME"
-      DASHARO_REL_VER_DPP_CAP="$DASHARO_REL_VER_DPP"
-      DASHARO_SUPPORT_CAP_FROM="1.1.4"
-
-      # flash the whole bios region
-      # TODO: Let DTS determine which parameters are suitable.
-      # FIXME: Can we ever get rid of that? We change so much in each release,
-      # that we almost always need to flash whole BIOS region
-      # because of non-backward compatible or breaking changes.
-      NEED_BOOTSPLASH_MIGRATION="true"
-      FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-
-      case "$BOARD_MODEL" in
-      "PRO Z690-A WIFI DDR4(MS-7D25)" | "PRO Z690-A DDR4(MS-7D25)")
-        BIOS_LINK_COMM="${FW_STORE_URL}/${DASHARO_REL_NAME}/v${DASHARO_REL_VER}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_ddr4.rom"
-        BIOS_LINK_DPP="${BUCKET_DPP}/MS-7D25/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}_ddr4.rom"
-        BIOS_LINK_DPP_CAP="${BUCKET_DPP_HEADS}/MS-7D25/v${DASHARO_REL_VER_DPP_CAP}/${DASHARO_REL_NAME_CAP}_v${DASHARO_REL_VER_DPP_CAP}_ddr4.cap"
-        HEADS_LINK_DPP="${BUCKET_DPP_HEADS}/MS-7D25/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_ddr4_heads.rom"
-        ;;
-      "PRO Z690-A WIFI (MS-7D25)" | "PRO Z690-A (MS-7D25)")
-        BIOS_LINK_COMM="${FW_STORE_URL}/${DASHARO_REL_NAME}/v${DASHARO_REL_VER}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_ddr5.rom"
-        BIOS_LINK_DPP="${BUCKET_DPP}/MS-7D25/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}_ddr5.rom"
-        BIOS_LINK_DPP_CAP="${BUCKET_DPP}/MS-7D25/v${DASHARO_REL_VER_DPP_CAP}/${DASHARO_REL_NAME_CAP}_v${DASHARO_REL_VER_DPP_CAP}_ddr5.cap"
-        HEADS_LINK_DPP="${BUCKET_DPP_HEADS}/MS-7D25/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_ddr5_heads.rom"
-        ;;
-      *)
-        print_error "Board model $BOARD_MODEL is currently not supported"
-        return 1
-        ;;
-      esac
-      ;;
-    "MS-7E06")
-      # Common configuration for all MS-7E06:
-      DASHARO_REL_NAME="msi_ms7e06"
-      #DASHARO_REL_VER=""
-      DASHARO_REL_VER_DPP="0.9.2"
-      CAN_INSTALL_BIOS="true"
-      HAVE_HEADS_FW="true"
-      HEADS_REL_VER_DPP="0.9.0"
-      HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
-      PLATFORM_SIGN_KEY="dasharo/msi_ms7e06/dasharo-release-0.x-compatible-with-msi-ms-7e06-signing-key.asc"
-      NEED_SMMSTORE_MIGRATION="true"
-      NEED_ROMHOLE_MIGRATION="true"
-
-      # Add capsules:
-      DASHARO_REL_NAME_CAP="$DASHARO_REL_NAME"
-      DASHARO_REL_VER_DPP_CAP="$DASHARO_REL_VER_DPP"
-      DASHARO_SUPPORT_CAP_FROM="0.9.2"
-
-      # flash the whole bios region
-      # TODO: Let DTS determine which parameters are suitable.
-      # FIXME: Can we ever get rid of that? We change so much in each release,
-      # that we almost always need to flash whole BIOS region
-      # because of non-backward compatible or breaking changes.
-      NEED_BOOTSPLASH_MIGRATION="true"
-      FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-
-      case "$BOARD_MODEL" in
-      "PRO Z790-P WIFI DDR4(MS-7E06)" | "PRO Z790-P DDR4(MS-7E06)" | "PRO Z790-P WIFI DDR4 (MS-7E06)" | "PRO Z790-P DDR4 (MS-7E06)")
-        #BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_ddr4.rom"
-        BIOS_LINK_DPP="${BUCKET_DPP}/MS-7E06/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}_ddr4.rom"
-        BIOS_LINK_DPP_CAP="${BUCKET_DPP}/MS-7E06/v${DASHARO_REL_VER_DPP_CAP}/${DASHARO_REL_NAME_CAP}_v${DASHARO_REL_VER_DPP_CAP}_ddr4.cap"
-        HEADS_LINK_DPP="${BUCKET_DPP_HEADS}/MS-7E06/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_ddr4_heads.rom"
-        PROGRAMMER_BIOS="internal:boardmismatch=force"
-        ;;
-      "PRO Z790-P WIFI (MS-7E06)" | "PRO Z790-P (MS-7E06)")
-        #BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_ddr5.rom"
-        BIOS_LINK_DPP="${BUCKET_DPP}/MS-7E06/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}_ddr5.rom"
-        BIOS_LINK_DPP_CAP="${BUCKET_DPP}/MS-7E06/v${DASHARO_REL_VER_DPP_CAP}/${DASHARO_REL_NAME_CAP}_v${DASHARO_REL_VER_DPP_CAP}_ddr5.cap"
-        HEADS_LINK_DPP="${BUCKET_DPP_HEADS}/MS-7E06/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_ddr5_heads.rom"
-        ;;
-      *)
-        print_error "Board model $BOARD_MODEL is currently not supported"
-        return 1
-        ;;
-      esac
-      ;;
-    *)
-      print_error "Board model $SYSTEM_MODEL is currently not supported"
+    if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
       return 1
-      ;;
-    esac
+    fi
+
+    BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
     ;;
   "Dell Inc.")
     # Common configuration for all Dell releases:
