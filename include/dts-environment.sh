@@ -44,6 +44,7 @@ REST_FIRM_OPT="3"
 DPP_KEYS_OPT="4"
 DPP_SUBMENU_OPT="5"
 TRANSITION_OPT="6"
+FUSE_OPT="7"
 BACK_TO_MAIN_MENU_UP="Q"
 BACK_TO_MAIN_MENU_DOWN="$(echo $BACK_TO_MAIN_MENU_UP | awk '{print tolower($0)}')"
 REBOOT_OPT_UP="R"
@@ -162,6 +163,11 @@ declare EC_SIGN_LINK_DPP
 declare HEADS_LINK_DPP
 declare HEADS_HASH_LINK_DPP
 declare HEADS_SIGN_LINK_DPP
+
+# path under ${FW_STORE_URL} where binary is stored
+declare BIOS_PATH_COMM
+declare BIOS_PATH_COMM_CAP
+declare EC_PATH_COMM
 # and for capsules:
 declare BIOS_LINK_COMM_CAP
 declare BIOS_HASH_LINK_COMM_CAP
@@ -169,9 +175,9 @@ declare BIOS_SIGN_LINK_COMM_CAP
 declare BIOS_LINK_DPP_CAP
 declare BIOS_HASH_LINK_DPP_CAP
 declare BIOS_SIGN_LINK_DPP_CAP
-declare EC_LINK_COMM_CAP
-declare EC_HASH_LINK_COMM_CAP
-declare EC_SIGN_LINK_COMM_CAP
+declare EOM_LINK_COMM_CAP
+declare EOM_HASH_LINK_COMM_CAP
+declare EOM_SIGN_LINK_COMM_CAP
 # Configs, are used in dasharo-deploy script:
 CAN_INSTALL_BIOS="false"
 HAVE_HEADS_FW="false"
@@ -215,3 +221,7 @@ if [ -d /home/root/.dasharo-gnupg ]; then
 
   export GNUPGHOME
 fi
+
+# Try to fetch config and fw binaries locally. Used mainly as a workaround for
+# no internet connection when booting via iPXE on MTL iGPU 0.9.0
+FETCH_LOCALLY="false"

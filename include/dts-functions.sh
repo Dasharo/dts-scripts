@@ -169,6 +169,8 @@ check_network_connection() {
 }
 
 wait_for_network_connection() {
+  # if first argument equals true then print warning else print error
+  local print_warning="$1"
   echo 'Waiting for network connection ...'
   n="10"
 
@@ -180,7 +182,11 @@ wait_for_network_connection() {
 
     n=$((n - 1))
     if [ "${n}" == "0" ]; then
-      print_error "Could not connect to network, please check network connection!"
+      if [ "${print_warning}" = "true" ]; then
+        print_warning "Could not connect to network, please check network connection!"
+      else
+        print_error "Could not connect to network, please check network connection!"
+      fi
       return 1
     fi
     sleep 1
@@ -235,12 +241,19 @@ board_config() {
   # We download firmwares via network. At this point, the network connection
   # must be up already.
 
-  wait_for_network_connection
+  if ! wait_for_network_connection true; then
+    FETCH_LOCALLY="true"
+    print_warning "DTS couldn't connect to the internet! Using local files instead."
+  fi
 
-  echo "Downloading board configs repository"
   mkdir -p "$BOARD_CONFIG_PATH"
-  curl -f -L -o "$BOARD_CONFIG_PATH.tar.gz" \
-    https://github.com/Dasharo/dts-configs/archive/${DTS_CONFIG_REF}.tar.gz >/dev/null 2>>"$ERR_LOG_FILE"
+  if [ "$FETCH_LOCALLY" = "true" ]; then
+    cp /firmware/dts-configs.tar.gz "$BOARD_CONFIG_PATH.tar.gz"
+  else
+    echo "Downloading board configs repository..."
+    curl -f -L -o "$BOARD_CONFIG_PATH.tar.gz" \
+      https://github.com/Dasharo/dts-configs/archive/${DTS_CONFIG_REF}.tar.gz >/dev/null 2>>"$ERR_LOG_FILE"
+  fi
   if [ $? -ne 0 ]; then
     print_error "Failed to download configs."
     return 1
@@ -353,36 +366,13 @@ board_config() {
           sed -r 's|.*novacustom/(.*)|\1|' | awk '{print toupper($1)}')
       fi
 
-      # Common configuration for all V54x_6x_TU:
-      DASHARO_REL_VER="0.9.0"
-      COMPATIBLE_EC_FW_VERSION="2024-07-17_4ae73b9"
-      NEED_BOOTSPLASH_MIGRATION="true"
-
-      case $BOARD_MODEL in
-      "V540TU")
-        DASHARO_REL_NAME="novacustom_v54x_mtl"
-        FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-        HAVE_HEADS_FW="true"
-        HEADS_REL_VER_DPP="0.9.0"
-        COMPATIBLE_HEADS_EC_FW_VERSION="2024-07-17_4ae73b9"
-        HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
-        ;;
-      "V560TU")
-        DASHARO_REL_NAME="novacustom_v56x_mtl"
-        FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-        HAVE_HEADS_FW="true"
-        HEADS_REL_VER_DPP="0.9.0"
-        COMPATIBLE_HEADS_EC_FW_VERSION="2024-12-20_368e08e"
-        HEADS_SWITCH_FLASHROM_OPT_OVERRIDE="--ifd -i bios"
-        HEADS_EC_LINK_DPP="${BUCKET_DPP_HEADS}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_ec_v${HEADS_REL_VER_DPP}.rom"
-        ;;
-      *)
-        print_error "Board model $BOARD_MODEL is currently not supported"
+      if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
         return 1
-        ;;
-      esac
+      fi
 
-      HEADS_LINK_DPP="${BUCKET_DPP_HEADS}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_heads.rom"
+      BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
+      BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${BIOS_PATH_COMM_CAP}"
+      EC_LINK_COMM="${FW_STORE_URL}/${EC_PATH_COMM}"
       ;;
     "V5xTNC_TND_TNE")
       if check_if_dasharo; then
@@ -391,34 +381,22 @@ board_config() {
         ask_for_model V540TNx V560TNx
       fi
 
-      NEED_BOOTSPLASH_MIGRATION="true"
-
-      case $BOARD_MODEL in
-      "V540TNx")
-        DASHARO_REL_NAME="novacustom_v54x_mtl"
-        DASHARO_REL_VER="0.9.1"
-        COMPATIBLE_EC_FW_VERSION="2024-09-10_3786c8c"
-        FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-        ;;
-      "V560TNx")
-        DASHARO_REL_NAME="novacustom_v56x_mtl"
-        DASHARO_REL_VER="0.9.1"
-        COMPATIBLE_EC_FW_VERSION="2024-09-10_3786c8c"
-        FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-        ;;
-      *)
-        print_error "Board model $BOARD_MODEL is currently not supported"
+      if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
         return 1
-        ;;
-      esac
+      fi
+
+      BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
+      BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${BIOS_PATH_COMM_CAP}"
+      EC_LINK_COMM="${FW_STORE_URL}/${EC_PATH_COMM}"
       ;;
     *)
       print_error "Board model $SYSTEM_MODEL is currently not supported"
       return 1
       ;;
     esac
-    BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
-    EC_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"
+    BIOS_LINK_COMM=${BIOS_LINK_COMM:-"$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"}
+    EC_LINK_COMM=${EC_LINK_COMM:-"$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"}
+    [ -n "${EOM_PATH_COMM_CAP}" ] && EOM_LINK_COMM_CAP="${FW_STORE_URL}/${EOM_PATH_COMM_CAP}"
     ;;
   "NovaCustom" | "ASRock Industrial")
     if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
@@ -693,10 +671,10 @@ board_config() {
   [ -z "$BIOS_SIGN_LINK_COMM_CAP" ] && BIOS_SIGN_LINK_COMM_CAP="${BIOS_HASH_LINK_COMM_CAP}.sig"
   [ -z "$BIOS_HASH_LINK_DPP_CAP" ] && BIOS_HASH_LINK_DPP_CAP="${BIOS_LINK_DPP_CAP}.sha256"
   [ -z "$BIOS_SIGN_LINK_DPP_CAP" ] && BIOS_SIGN_LINK_DPP_CAP="${BIOS_HASH_LINK_DPP_CAP}.sig"
-  [ -z "$EC_HASH_LINK_COMM_CAP" ] && EC_HASH_LINK_COMM_CAP="${EC_LINK_COMM_CAP}.sha256"
-  [ -z "$EC_SIGN_LINK_COMM_CAP" ] && EC_SIGN_LINK_COMM_CAP="${EC_HASH_LINK_COMM_CAP}.sig"
   [ -z "$EC_HASH_LINK_DPP_CAP" ] && EC_HASH_LINK_DPP_CAP="${EC_LINK_DPP_CAP}.sha256"
   [ -z "$EC_SIGN_LINK_DPP_CAP" ] && EC_SIGN_LINK_DPP_CAP="${EC_HASH_LINK_DPP_CAP}.sig"
+  [ -z "$EOM_HASH_LINK_COMM_CAP" ] && EOM_HASH_LINK_COMM_CAP="${EOM_LINK_COMM_CAP}.sha256"
+  [ -z "$EOM_SIGN_LINK_COMM_CAP" ] && EOM_SIGN_LINK_COMM_CAP="${EOM_HASH_LINK_COMM_CAP}.sig"
 
   rm -rf "$BOARD_CONFIG_PATH"
 }
@@ -744,16 +722,30 @@ check_flash_chip() {
 }
 
 compare_versions() {
+  # compare_versions ver1 ver2
   # return 1 if ver2 > ver1
   # return 0 otherwise
-  local ver1=
-  local ver2=
+  local ver1="$1"
+  local ver2="$2"
+
+  if [ "$(semver_version_compare "$1" "$2")" -eq -1 ]; then
+    return 1
+  else
+    return 0
+  fi
+}
+
+semver_version_compare() {
+  # semver_version_compare ver1 ver2
+  # echo 0 if ver1 == ver2, 1 if ver1 > ver2 and -1 if ver1 < ver2
+  local ver1="$1"
+  local ver2="$2"
   local compare=
   # convert version ending with '-rc<x>' to '-rc.<x>' where <x> is number
   # as semantic versioning compares whole 'rc<x>' as alphanumeric identifier
   # which results in rc2 > rc12. More information at https://semver.org/
-  ver1=$(sed -r "s/-rc([0-9]+)$/-rc.\1/" <<<"$1")
-  ver2=$(sed -r "s/-rc([0-9]+)$/-rc.\1/" <<<"$2")
+  ver1=$(sed -r "s/-rc([0-9]+)$/-rc.\1/" <<<"$ver1")
+  ver2=$(sed -r "s/-rc([0-9]+)$/-rc.\1/" <<<"$ver2")
 
   # convert SeaBIOS versioning x.x.x.x to x.x.x-x so it can be used with semver
   # checker. Also remove leading zeroes as it's not allowed in semver
@@ -766,26 +758,17 @@ compare_versions() {
   if ! python3 -m semver check "$ver1" || ! python3 -m semver check "$ver2"; then
     error_exit "Incorrect version format"
   fi
-  compare=$(python3 -m semver compare "$ver1" "$ver2")
-  if [ "$compare" -eq -1 ]; then
-    return 1
-  else
-    return 0
-  fi
+  python3 -m semver compare "$ver1" "$ver2"
 }
 
 download_bios() {
-  echo "Downloading Dasharo firmware..."
-  if [ "${BIOS_LINK}" == "${BIOS_LINK_COMM}" ] || [ "${BIOS_LINK}" == "${BIOS_LINK_COMM_CAP}" ]; then
-    curl -s -S -L -f "$BIOS_LINK" -o $BIOS_UPDATE_FILE 2>>"$ERR_LOG_FILE"
-    error_check "Cannot access $FW_STORE_URL while downloading binary. Please
-   check your internet connection"
-    curl -s -S -L -f "$BIOS_HASH_LINK" -o $BIOS_HASH_FILE 2>>"$ERR_LOG_FILE"
-    error_check "Cannot access $FW_STORE_URL while downloading signature. Please
-   check your internet connection"
-    curl -s -S -L -f "$BIOS_SIGN_LINK" -o $BIOS_SIGN_FILE 2>>"$ERR_LOG_FILE"
-    error_check "Cannot access $FW_STORE_URL while downloading signature. Please
-   check your internet connection"
+  if [ "${FETCH_LOCALLY}" = "false" ]; then
+    echo "Downloading Dasharo firmware..."
+  fi
+  if [[ "${BIOS_LINK}" == "${FW_STORE_URL}"* ]]; then
+    fetch_fw "$BIOS_LINK" "$BIOS_UPDATE_FILE"
+    fetch_fw "$BIOS_HASH_LINK" "$BIOS_HASH_FILE"
+    fetch_fw "$BIOS_SIGN_LINK" "$BIOS_SIGN_FILE"
   else
     mc get "${DPP_SERVER_USER_ALIAS}/$BIOS_LINK" "$BIOS_UPDATE_FILE" >/dev/null 2>>"$ERR_LOG_FILE"
     error_check "Cannot access $FW_STORE_URL_DPP while downloading binary.
@@ -800,17 +783,13 @@ download_bios() {
 }
 
 download_ec() {
-  echo "Downloading Dasharo EC firmware..."
-  if [ "${EC_LINK}" == "${EC_LINK_COMM}" ]; then
-    curl -s -S -L -f "$EC_LINK" -o "$EC_UPDATE_FILE" 2>>"$ERR_LOG_FILE"
-    error_check "Cannot access $FW_STORE_URL while downloading binary. Please
-     check your internet connection"
-    curl -s -S -L -f "$EC_HASH_LINK" -o $EC_HASH_FILE 2>>"$ERR_LOG_FILE"
-    error_check "Cannot access $FW_STORE_URL while downloading signature. Please
-     check your internet connection"
-    curl -s -S -L -f "$EC_SIGN_LINK" -o $EC_SIGN_FILE 2>>"$ERR_LOG_FILE"
-    error_check "Cannot access $FW_STORE_URL while downloading signature. Please
-     check your internet connection"
+  if [ "${FETCH_LOCALLY}" = "false" ]; then
+    echo "Downloading Dasharo EC firmware..."
+  fi
+  if [[ "${EC_LINK}" == "${FW_STORE_URL}"* ]]; then
+    fetch_fw "$EC_LINK" "$EC_UPDATE_FILE"
+    fetch_fw "$EC_HASH_LINK" "$EC_HASH_FILE"
+    fetch_fw "$EC_SIGN_LINK" "$EC_SIGN_FILE"
   else
     mc get "${DPP_SERVER_USER_ALIAS}/${EC_LINK}" "$EC_UPDATE_FILE" >/dev/null 2>>"$ERR_LOG_FILE"
     error_check "Cannot access $FW_STORE_URL_DPP while downloading binary. Please
@@ -835,6 +814,9 @@ download_keys() {
 
 get_signing_keys() {
   local platform_keys=$PLATFORM_SIGN_KEY
+  if [ "$FETCH_LOCALLY" = "true" ]; then
+    return 0
+  fi
   echo -n "Getting platform specific GPG key... "
   for key in $platform_keys; do
     wget -q https://raw.githubusercontent.com/3mdeb/3mdeb-secpack/master/$key -O - | gpg --import - >>$ERR_LOG_FILE 2>&1
@@ -885,7 +867,7 @@ verify_artifacts() {
     error_check "Failed to verify $_name firmware checksum"
     print_ok "Verified."
 
-    if [ -n "$PLATFORM_SIGN_KEY" ]; then
+    if [[ -n "$PLATFORM_SIGN_KEY" && "$FETCH_LOCALLY" != "true" ]]; then
       echo -n "Checking $_name firmware signature... "
       _sig_result="$(cat $_hash_file | gpg --verify $_sign_file - >>$ERR_LOG_FILE 2>&1)"
       error_check "Failed to verify $_name firmware signature.$'\n'$_sig_result"
@@ -948,12 +930,11 @@ check_blobs_in_binary() {
 }
 
 check_if_me_disabled() {
-
   ME_DISABLED=0
 
   if [ $BOARD_HAS_ME_REGION -eq 0 ]; then
     # No ME region
-    ME_DISABLED=1
+    ME_DISABLED=2
     return
   fi
 
@@ -964,7 +945,7 @@ check_if_me_disabled() {
       return
     elif [ $ME_OPMODE == "2" ]; then
       echo "ME is disabled (HAP/Debug Mode)" >>$ERR_LOG_FILE
-      ME_DISABLED=1
+      ME_DISABLED=2
       return
     elif [ $ME_OPMODE == "3" ]; then
       echo "ME is soft disabled (HECI)" >>$ERR_LOG_FILE
@@ -996,7 +977,7 @@ check_if_me_disabled() {
     $CBMEM check_if_me_disabled_mock -1 |
       grep "ME is disabled" &>/dev/null && ME_DISABLED=1 && return # HECI (soft) disabled
     $CBMEM check_if_me_disabled_mock -1 |
-      grep "ME is HAP disabled" &>/dev/null && ME_DISABLED=1 && return # HAP disabled
+      grep "ME is HAP disabled" &>/dev/null && ME_DISABLED=2 && return # HAP disabled
     # TODO: If proprietary BIOS, then also try to check SMBIOS for ME FWSTS
     # BTW we could do the same in coreboot, expose FWSTS in SMBIOS before it
     # gets disabled
@@ -1091,7 +1072,7 @@ set_intel_regions_update_params() {
     if [ $BINARY_HAS_ME -ne 0 ]; then
       if [ $BOARD_ME_REGION_RW -ne 0 ]; then
         # ME writable and the binary provides ME, safe to flash if ME disabled
-        if [ $ME_DISABLED -eq 1 ]; then
+        if [ $ME_DISABLED -ne 0 ]; then
           FLASHROM_ADD_OPT_REGIONS+=" -i me"
         else
           echo "The firmware binary to be flashed contains Management Engine (ME), but ME is not disabled!" >>$ERR_LOG_FILE
@@ -1258,11 +1239,13 @@ handle_fw_switching() {
 }
 
 sync_clocks() {
-  echo "Waiting for system clock to be synced ..."
-  chronyc waitsync 10 0 0 5 >/dev/null 2>>"$ERR_LOG_FILE"
-  if [[ $? -ne 0 ]]; then
-    print_warning "Failed to sync system clock with NTP server!"
-    print_warning "Some time critical tasks might fail!"
+  if [ "${FETCH_LOCALLY}" != "true" ]; then
+    echo "Waiting for system clock to be synced ..."
+    chronyc waitsync 10 0 0 5 >/dev/null 2>>"$ERR_LOG_FILE"
+    if [[ $? -ne 0 ]]; then
+      print_warning "Failed to sync system clock with NTP server!"
+      print_warning "Some time critical tasks might fail!"
+    fi
   fi
 }
 
@@ -1408,6 +1391,7 @@ show_main_menu() {
   fi
   if check_if_dasharo; then
     echo -e "${BLUE}**${YELLOW}     ${TRANSITION_OPT})${BLUE} Transition Dasharo Firmware${NORMAL}"
+    echo -e "${BLUE}**${YELLOW}     ${FUSE_OPT})${BLUE} Fuse platform${NORMAL}"
   fi
 }
 
@@ -1576,6 +1560,18 @@ main_menu_options() {
     check_if_dasharo || return 0
 
     ${CMD_DASHARO_DEPLOY} transition
+    result=$?
+    if [ "$result" -ne $OK ] && [ "$result" -ne $CANCEL ]; then
+      send_dts_logs ask && return $OK
+    fi
+    read -p "Press Enter to continue."
+
+    return 0
+    ;;
+  "${FUSE_OPT}")
+    check_if_dasharo || return 0
+
+    ${CMD_DASHARO_DEPLOY} fuse
     result=$?
     if [ "$result" -ne $OK ] && [ "$result" -ne $CANCEL ]; then
       send_dts_logs ask && return $OK
@@ -1969,4 +1965,38 @@ parse_config() {
     eval "$output"
   fi
   return 0
+}
+
+fetch_fw() {
+  # fetch_fw <link> <destination>
+  # Used do download fw from remote ${FW_STORE_URL}/<path> to local <destination>
+  # if FETCH_LOCALLY is set to true then function will try to find firmware
+  # locally (under '/firmware' after removing 'FW_STORE_URL' prefix) instead of
+  # downloading from remote.
+  local source="$1"
+  local target="$2"
+  if [ "$FETCH_LOCALLY" = "true" ]; then
+    source="${source#"${FW_STORE_URL}"}"
+    if [ -f "/firmware/${source}" ]; then
+      cp "/firmware/${source}" "${target}"
+    else
+      error_exit "Couldn't find firmware locally." 2>&1
+    fi
+  else
+    curl -sSLf "$source" -o "$target" 2>>"$ERR_LOG_FILE"
+    error_check "Download failed: Cannot access $FW_STORE_URL.
+Please check your internet connection."
+  fi
+}
+
+reboot_countdown() {
+  sleep 0.5
+  _sleep_delay=5
+  echo "Rebooting in ${_sleep_delay} s:"
+  for ((i = _sleep_delay; i > 0; --i)); do
+    echo "${i}..."
+    sleep 1
+  done
+  echo "Rebooting"
+  sleep 0.5
 }

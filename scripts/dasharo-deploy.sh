@@ -370,10 +370,10 @@ prepare_env() {
     UPDATE_VERSION="$DASHARO_REL_VER_CAP"
 
     # Check EC link additionally, not all platforms have Embedded Controllers:
-    if [ -n "$EC_LINK_COMM_CAP" ]; then
-      EC_LINK=$EC_LINK_COMM_CAP
-      EC_HASH_LINK=$EC_HASH_LINK_COMM_CAP
-      EC_SIGN_LINK=$EC_SIGN_LINK_COMM_CAP
+    if [ -n "$EC_LINK_COMM" ]; then
+      EC_LINK=$EC_LINK_COMM
+      EC_HASH_LINK=$EC_HASH_LINK_COMM
+      EC_SIGN_LINK=$EC_SIGN_LINK_COMM
     fi
 
     return 0
@@ -656,6 +656,10 @@ bootsplash_migration() {
 
 resign_binary() {
   if [ "$HAVE_VBOOT" -eq 0 ]; then
+    if [ "$FETCH_LOCALLY" = "true" ]; then
+      error_exit "vboot resigning doesn't support local key fetching.
+Please make sure you have internet connection before repeating."
+    fi
     download_keys
     sign_firmware.sh $BIOS_UPDATE_FILE $KEYS_DIR $RESIGNED_BIOS_UPDATE_FILE
     error_check "Cannot resign binary file. Please, make sure if you have proper keys. Aborting..."
@@ -691,6 +695,10 @@ check_vboot_keys() {
 }
 
 blob_transmission() {
+  if [ "$FETCH_LOCALLY" = "true" ]; then
+    error_exit "Blob transmission doesn't support local file fetching.
+Please make sure you have internet connection before repeating."
+  fi
   echo "Extracting the UEFI image from BIOS update"
   wget -O "$DBT_BIOS_UPDATE_FILENAME" --user-agent='Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)' "$DBT_BIOS_UPDATE_URL" >>$ERR_LOG_FILE 2>&1
   error_file_check "$DBT_BIOS_UPDATE_FILENAME" "Failed to download BIOS for $SYSTEM_MODEL. Please make sure Ethernet cable is connected and try again."
@@ -760,11 +768,7 @@ deploy_ec_firmware() {
     # The EC firmware could be updated in two ways: via UEFI Capsule Update or
     # via binaries and flashrom:
     if [ "$FIRMWARE_VERSION" == "community_cap" ] || [ "$FIRMWARE_VERSION" == "dpp_cap" ]; then
-      # Linux Kernel driver is responsible for handling UEFI Capsule Updates, so
-      # the capsule should be fed to a specific device:
-      $CAP_UPD_TOOL "$EC_UPDATE_FILE"
-      # Return after updating. The below code is for flashrom updates (using
-      # binaries) only
+      # EC will be updated by coreboot after rebooting
       return 0
     fi
 
@@ -1048,20 +1052,7 @@ install_workflow() {
   else
     echo "The computer will reboot automatically in 5 seconds"
   fi
-  sleep 0.5
-  echo "Rebooting in 5s:"
-  echo "5..."
-  sleep 1
-  echo "4..."
-  sleep 1
-  echo "3..."
-  sleep 1
-  echo "2..."
-  sleep 1
-  echo "1..."
-  sleep 0.5
-  echo "Rebooting"
-  sleep 1
+  reboot_countdown
   if [ "$NEED_EC_RESET" == "true" ]; then
     it5570_shutdown
   else
@@ -1153,20 +1144,7 @@ update_workflow() {
   sync
   echo "Done."
   echo "The computer will reboot automatically in 5 seconds"
-  sleep 0.5
-  echo "Rebooting in 5s:"
-  echo "5..."
-  sleep 1
-  echo "4..."
-  sleep 1
-  echo "3..."
-  sleep 1
-  echo "2..."
-  sleep 1
-  echo "1..."
-  sleep 0.5
-  echo "Rebooting"
-  sleep 1
+  reboot_countdown
   ${REBOOT}
 }
 
@@ -1343,15 +1321,7 @@ transition_workflow() {
   send_dts_logs
 
   echo "The computer will reboot automatically in 5 seconds"
-  sleep 0.5
-  _sleep_delay=5
-  echo "Rebooting in ${_sleep_delay} s:"
-  for ((i = _sleep_delay; i > 0; --i)); do
-    echo "${i}..."
-    sleep 1
-  done
-  echo "Rebooting"
-  sleep 1
+  reboot_countdown
   if [ "$NEED_EC_RESET" == "true" ]; then
     it5570_shutdown
   else
@@ -1473,6 +1443,45 @@ restore() {
   done
 }
 
+fuse_workflow() {
+  if [[ -z "${EOM_LINK_COMM_CAP}" || -z "${DASHARO_REL_VER_CAP}" ]]; then
+    echo "No release with fusing support is available for your platform."
+    exit "${CANCEL}"
+  fi
+
+  BIOS_LINK="${EOM_LINK_COMM_CAP}"
+  BIOS_HASH_LINK="${EOM_HASH_LINK_COMM_CAP}"
+  BIOS_SIGN_LINK="${EOM_SIGN_LINK_COMM_CAP}"
+  UPDATE_VERSION="${DASHARO_REL_VER_CAP}"
+
+  check_intel_regions
+  check_if_me_disabled
+  if [ "${ME_DISABLED}" -ne 2 ]; then
+    # https://docs.dasharo.com/guides/capsule-update/#how-to-use-uefi-update-capsules
+    error_exit "Cannot fuse platform, ME has to be HAP disabled."
+  fi
+
+  if ! ask_for_confirmation "Fusing is irreversible. Are you sure you want to continue?"; then
+    exit "${CANCEL}"
+  fi
+
+  check_if_ac
+  download_bios
+  verify_artifacts bios
+  # Ask user for confirmation:
+  display_warning
+
+  if ! $CAP_UPD_TOOL "$BIOS_UPDATE_FILE" 2>>"$ERR_LOG_FILE"; then
+    error_exit Failed to queue capsule update!
+  fi
+
+  send_dts_logs
+
+  echo "The computer will reboot automatically in 5 seconds"
+  reboot_countdown
+  $REBOOT
+}
+
 usage() {
   echo "Usage:"
   echo "  $0 install  - Install Dasharo on this device"
@@ -1489,7 +1498,7 @@ fi
 # For FUM we start in dasharo-deploy so we need to verify that we have internet
 # connection to download shasums in board_config
 if [ "$FUM" == "fum" ]; then
-  wait_for_network_connection
+  wait_for_network_connection true
 fi
 
 # flashrom does not support QEMU. TODO: this could be handled in a better way:
@@ -1547,6 +1556,23 @@ restore)
   ;;
 transition)
   transition_workflow
+  ;;
+fuse)
+  if check_if_fused &>>"$ERR_LOG_FILE"; then
+    echo "Platform is already fused, nothing to do"
+    exit "${CANCEL}"
+  fi
+  if [ -z "$DASHARO_SUPPORT_CAP_FROM" ]; then
+    echo "Platform doesn't support fusing."
+    exit "${CANCEL}"
+  fi
+  capsule_support_version="$(semver_version_compare "${DASHARO_VERSION}" "${DASHARO_SUPPORT_CAP_FROM}" 2>/dev/null)"
+  if [[ "${capsule_support_version}" == "0" || "${capsule_support_version}" == "1" ]]; then
+    # we support capsules: dasharo_version >= dasharo_support_cap_from
+    fuse_workflow
+  else
+    error_exit "Please update your Dasharo firmware first"
+  fi
   ;;
 *)
   usage
