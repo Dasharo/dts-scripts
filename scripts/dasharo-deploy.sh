@@ -656,6 +656,10 @@ bootsplash_migration() {
 
 resign_binary() {
   if [ "$HAVE_VBOOT" -eq 0 ]; then
+    if [ "$FETCH_LOCALLY" = "true" ]; then
+      error_exit "vboot resigning doesn't support local key fetching.
+Please make sure you have internet connection before repeating."
+    fi
     download_keys
     sign_firmware.sh $BIOS_UPDATE_FILE $KEYS_DIR $RESIGNED_BIOS_UPDATE_FILE
     error_check "Cannot resign binary file. Please, make sure if you have proper keys. Aborting..."
@@ -691,6 +695,10 @@ check_vboot_keys() {
 }
 
 blob_transmission() {
+  if [ "$FETCH_LOCALLY" = "true" ]; then
+    error_exit "Blob transmission doesn't support local file fetching.
+Please make sure you have internet connection before repeating."
+  fi
   echo "Extracting the UEFI image from BIOS update"
   wget -O "$DBT_BIOS_UPDATE_FILENAME" --user-agent='Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)' "$DBT_BIOS_UPDATE_URL" >>$ERR_LOG_FILE 2>&1
   error_file_check "$DBT_BIOS_UPDATE_FILENAME" "Failed to download BIOS for $SYSTEM_MODEL. Please make sure Ethernet cable is connected and try again."
@@ -1471,7 +1479,7 @@ fi
 # For FUM we start in dasharo-deploy so we need to verify that we have internet
 # connection to download shasums in board_config
 if [ "$FUM" == "fum" ]; then
-  wait_for_network_connection
+  wait_for_network_connection true
 fi
 
 # flashrom does not support QEMU. TODO: this could be handled in a better way:

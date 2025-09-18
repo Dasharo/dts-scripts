@@ -217,3 +217,7 @@ if [ -d /home/root/.dasharo-gnupg ]; then
 
   export GNUPGHOME
 fi
+
+# Try to fetch config and fw binaries locally. Used mainly as a workaround for
+# no internet connection when booting via iPXE on MTL iGPU 0.9.0
+FETCH_LOCALLY="false"
