@@ -127,10 +127,6 @@ declare DASHARO_REL_VER_DPP_SEABIOS
 declare DASHARO_REL_VER_DPP_SLIMUEFI
 declare COMPATIBLE_EC_FW_VERSION
 
-# path under ${FW_STORE_URL} where binary is stored
-declare BIOS_PATH_COMM
-declare BIOS_PATH_COMM_CAP
-declare EC_PATH_COMM
 # and for capsules:
 declare DASHARO_REL_VER_CAP
 declare DASHARO_REL_VER_DPP_CAP
