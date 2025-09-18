@@ -391,6 +391,7 @@ board_config() {
     esac
     BIOS_LINK_COMM=${BIOS_LINK_COMM:-"$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"}
     EC_LINK_COMM=${EC_LINK_COMM:-"$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"}
+    [ -n "${EOM_PATH_COMM_CAP}" ] && EOM_LINK_COMM_CAP="${FW_STORE_URL}/${EOM_PATH_COMM_CAP}"
     ;;
   "NovaCustom" | "ASRock Industrial")
     if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
@@ -667,6 +668,8 @@ board_config() {
   [ -z "$BIOS_SIGN_LINK_DPP_CAP" ] && BIOS_SIGN_LINK_DPP_CAP="${BIOS_HASH_LINK_DPP_CAP}.sig"
   [ -z "$EC_HASH_LINK_DPP_CAP" ] && EC_HASH_LINK_DPP_CAP="${EC_LINK_DPP_CAP}.sha256"
   [ -z "$EC_SIGN_LINK_DPP_CAP" ] && EC_SIGN_LINK_DPP_CAP="${EC_HASH_LINK_DPP_CAP}.sig"
+  [ -z "$EOM_HASH_LINK_COMM_CAP" ] && EOM_HASH_LINK_COMM_CAP="${EOM_LINK_COMM_CAP}.sha256"
+  [ -z "$EOM_SIGN_LINK_COMM_CAP" ] && EOM_SIGN_LINK_COMM_CAP="${EOM_HASH_LINK_COMM_CAP}.sig"
 
   rm -rf "$BOARD_CONFIG_PATH"
 }
@@ -714,16 +717,30 @@ check_flash_chip() {
 }
 
 compare_versions() {
+  # compare_versions ver1 ver2
   # return 1 if ver2 > ver1
   # return 0 otherwise
-  local ver1=
-  local ver2=
+  local ver1="$1"
+  local ver2="$2"
+
+  if [ "$(semver_version_compare "$1" "$2")" -eq -1 ]; then
+    return 1
+  else
+    return 0
+  fi
+}
+
+semver_version_compare() {
+  # semver_version_compare ver1 ver2
+  # echo 0 if ver1 == ver2, 1 if ver1 > ver2 and -1 if ver1 < ver2
+  local ver1="$1"
+  local ver2="$2"
   local compare=
   # convert version ending with '-rc<x>' to '-rc.<x>' where <x> is number
   # as semantic versioning compares whole 'rc<x>' as alphanumeric identifier
   # which results in rc2 > rc12. More information at https://semver.org/
-  ver1=$(sed -r "s/-rc([0-9]+)$/-rc.\1/" <<<"$1")
-  ver2=$(sed -r "s/-rc([0-9]+)$/-rc.\1/" <<<"$2")
+  ver1=$(sed -r "s/-rc([0-9]+)$/-rc.\1/" <<<"$ver1")
+  ver2=$(sed -r "s/-rc([0-9]+)$/-rc.\1/" <<<"$ver2")
 
   # convert SeaBIOS versioning x.x.x.x to x.x.x-x so it can be used with semver
   # checker. Also remove leading zeroes as it's not allowed in semver
@@ -736,19 +753,14 @@ compare_versions() {
   if ! python3 -m semver check "$ver1" || ! python3 -m semver check "$ver2"; then
     error_exit "Incorrect version format"
   fi
-  compare=$(python3 -m semver compare "$ver1" "$ver2")
-  if [ "$compare" -eq -1 ]; then
-    return 1
-  else
-    return 0
-  fi
+  python3 -m semver compare "$ver1" "$ver2"
 }
 
 download_bios() {
   if [ "${FETCH_LOCALLY}" = "false" ]; then
     echo "Downloading Dasharo firmware..."
   fi
-  if [ "${BIOS_LINK}" == "${BIOS_LINK_COMM}" ] || [ "${BIOS_LINK}" == "${BIOS_LINK_COMM_CAP}" ]; then
+  if [[ "${BIOS_LINK}" == "${FW_STORE_URL}"* ]]; then
     fetch_fw "$BIOS_LINK" "$BIOS_UPDATE_FILE"
     fetch_fw "$BIOS_HASH_LINK" "$BIOS_HASH_FILE"
     fetch_fw "$BIOS_SIGN_LINK" "$BIOS_SIGN_FILE"
@@ -769,7 +781,7 @@ download_ec() {
   if [ "${FETCH_LOCALLY}" = "false" ]; then
     echo "Downloading Dasharo EC firmware..."
   fi
-  if [ "${EC_LINK}" == "${EC_LINK_COMM}" ]; then
+  if [[ "${EC_LINK}" == "${FW_STORE_URL}"* ]]; then
     fetch_fw "$EC_LINK" "$EC_UPDATE_FILE"
     fetch_fw "$EC_HASH_LINK" "$EC_HASH_FILE"
     fetch_fw "$EC_SIGN_LINK" "$EC_SIGN_FILE"
@@ -913,12 +925,11 @@ check_blobs_in_binary() {
 }
 
 check_if_me_disabled() {
-
   ME_DISABLED=0
 
   if [ $BOARD_HAS_ME_REGION -eq 0 ]; then
     # No ME region
-    ME_DISABLED=1
+    ME_DISABLED=2
     return
   fi
 
@@ -929,7 +940,7 @@ check_if_me_disabled() {
       return
     elif [ $ME_OPMODE == "2" ]; then
       echo "ME is disabled (HAP/Debug Mode)" >>$ERR_LOG_FILE
-      ME_DISABLED=1
+      ME_DISABLED=2
       return
     elif [ $ME_OPMODE == "3" ]; then
       echo "ME is soft disabled (HECI)" >>$ERR_LOG_FILE
@@ -961,7 +972,7 @@ check_if_me_disabled() {
     $CBMEM check_if_me_disabled_mock -1 |
       grep "ME is disabled" &>/dev/null && ME_DISABLED=1 && return # HECI (soft) disabled
     $CBMEM check_if_me_disabled_mock -1 |
-      grep "ME is HAP disabled" &>/dev/null && ME_DISABLED=1 && return # HAP disabled
+      grep "ME is HAP disabled" &>/dev/null && ME_DISABLED=2 && return # HAP disabled
     # TODO: If proprietary BIOS, then also try to check SMBIOS for ME FWSTS
     # BTW we could do the same in coreboot, expose FWSTS in SMBIOS before it
     # gets disabled
@@ -1056,7 +1067,7 @@ set_intel_regions_update_params() {
     if [ $BINARY_HAS_ME -ne 0 ]; then
       if [ $BOARD_ME_REGION_RW -ne 0 ]; then
         # ME writable and the binary provides ME, safe to flash if ME disabled
-        if [ $ME_DISABLED -eq 1 ]; then
+        if [ $ME_DISABLED -ne 0 ]; then
           FLASHROM_ADD_OPT_REGIONS+=" -i me"
         else
           echo "The firmware binary to be flashed contains Management Engine (ME), but ME is not disabled!" >>$ERR_LOG_FILE
@@ -1375,6 +1386,7 @@ show_main_menu() {
   fi
   if check_if_dasharo; then
     echo -e "${BLUE}**${YELLOW}     ${TRANSITION_OPT})${BLUE} Transition Dasharo Firmware${NORMAL}"
+    echo -e "${BLUE}**${YELLOW}     ${FUSE_OPT})${BLUE} Fuse platform${NORMAL}"
   fi
 }
 
@@ -1543,6 +1555,18 @@ main_menu_options() {
     check_if_dasharo || return 0
 
     ${CMD_DASHARO_DEPLOY} transition
+    result=$?
+    if [ "$result" -ne $OK ] && [ "$result" -ne $CANCEL ]; then
+      send_dts_logs ask && return $OK
+    fi
+    read -p "Press Enter to continue."
+
+    return 0
+    ;;
+  "${FUSE_OPT}")
+    check_if_dasharo || return 0
+
+    ${CMD_DASHARO_DEPLOY} fuse
     result=$?
     if [ "$result" -ne $OK ] && [ "$result" -ne $CANCEL ]; then
       send_dts_logs ask && return $OK
@@ -1958,4 +1982,16 @@ fetch_fw() {
     error_check "Download failed: Cannot access $FW_STORE_URL.
 Please check your internet connection."
   fi
+}
+
+reboot_countdown() {
+  sleep 0.5
+  _sleep_delay=5
+  echo "Rebooting in ${_sleep_delay} s:"
+  for ((i = _sleep_delay; i > 0; --i)); do
+    echo "${i}..."
+    sleep 1
+  done
+  echo "Rebooting"
+  sleep 0.5
 }
