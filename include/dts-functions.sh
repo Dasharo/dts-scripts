@@ -1668,18 +1668,19 @@ send_dts_logs_main() {
       echo "Logs sent."
     fi
   fi
-  if [ "$ask" = "ask" ]; then
-    read -p "Press Enter to continue."
-  fi
 }
 
 # send_dts_logs [ask]
 # Create and upload archive with logs if SEND_LOGS_ACTIVE is true or first
 # argument is "ask" and user confirms that he wants to send logs
 send_dts_logs() {
+  local ask="$1"
   if ! send_dts_logs_main "$@"; then
     print_warning "You can still upload the logs manually by following:
 https://docs.dasharo.com/osf-trivia-list/dts/#how-can-i-help-the-support-team-diagnose-my-problem-faster"
+  fi
+  if [ "$ask" = "ask" ]; then
+    read -p "Press Enter to continue."
   fi
 }
 
