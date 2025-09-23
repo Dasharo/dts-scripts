@@ -913,17 +913,19 @@ deploy_firmware() {
       # using the `check_blobs_in_binary` function.
       set_intel_regions_update_params "$FLASHROM_ADD_OPT_UPDATE_OVERRIDE"
       FLASHROM_ADD_OPT_UPDATE_OVERRIDE="$FLASHROM_ADD_OPT_REGIONS"
-      $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE_OVERRIDE} -w "$BIOS_UPDATE_FILE" >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
-      error_check "Failed to update Dasharo firmware"
+      flashrom_write_and_check "Failed to update Dasharo firmware" \
+        -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE_OVERRIDE} \
+        -w "$BIOS_UPDATE_FILE"
     else
       set_intel_regions_update_params "-N --ifd"
-      $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE} -w "$BIOS_UPDATE_FILE" >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
-      error_check "Failed to update Dasharo firmware"
-
+      flashrom_write_and_check "Failed to update Dasharo firmware" \
+        -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE} \
+        -w "$BIOS_UPDATE_FILE"
       if [ $BINARY_HAS_RW_B -eq 0 ]; then
         echo "Updating second firmware partition..."
-        $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} --fmap -N -i RW_SECTION_B -w "$BIOS_UPDATE_FILE" >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
-        error_check "Failed to update second firmware partition"
+        flashrom_write_and_check "Failed to update second firmware partition" \
+          -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} --fmap -N -i RW_SECTION_B \
+          -w "$BIOS_UPDATE_FILE"
       fi
     fi
 
@@ -948,8 +950,9 @@ deploy_firmware() {
         UPDATE_STRING+="Management Engine"
       fi
       echo "Updating $UPDATE_STRING"
-      $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "$BIOS_UPDATE_FILE" >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
-      error_check "Failed to update $UPDATE_STRING"
+      flashrom_write_and_check "Failed to update $UPDATE_STRING" \
+        -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} \
+        -w "$BIOS_UPDATE_FILE"
     fi
 
     return 0
@@ -963,10 +966,10 @@ deploy_firmware() {
     if [ "${BIOS_LINK}" = "${BIOS_LINK_DPP_SEABIOS}" ]; then
       _flashrom_extra_args="--fmap -i COREBOOT"
     fi
-    $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "$BIOS_UPDATE_FILE" ${_flashrom_extra_args} >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
-    error_check "Failed to install Dasharo firmware"
+    flashrom_write_and_check "Failed to install Dasharo firmware" \
+      -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} \
+      -w "$BIOS_UPDATE_FILE" ${_flashrom_extra_args}
     print_ok "Successfully installed Dasharo firmware"
-
     return 0
   fi
 

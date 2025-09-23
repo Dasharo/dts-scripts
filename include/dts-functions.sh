@@ -118,6 +118,9 @@ error_exit() {
   exit $exit_code
 }
 
+# error_check <error_msg>
+# if return code of previous command isn't 0 then print red <error_msg> and
+# return code of that command, and then exit with the same code
 error_check() {
   _error_code=$?
   _error_msg="$1"
@@ -1934,4 +1937,18 @@ reboot_countdown() {
   done
   echo "Rebooting"
   sleep 0.5
+}
+
+# flashrom_write_and_check <error_msg> [flashrom_args]...
+# Pass '[flashrom_args]...' to flashrom and if it fails print <error_msg> and
+# recovery information (and in the future try to restore from backup) and exit
+flashrom_write_and_check() {
+  local err_msg="$1"
+  shift
+  $FLASHROM "$@" >>"$FLASHROM_LOG_FILE" 2>>"$ERR_LOG_FILE"
+  error_check "${err_msg}
+
+Flashing failed, your firmware might be in unknown state.
+Don't reboot or your platform might get bricked.
+Contact us to receive help at https://docs.dasharo.com/#community"
 }
