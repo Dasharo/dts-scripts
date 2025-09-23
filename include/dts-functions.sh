@@ -953,8 +953,7 @@ set_flashrom_update_params() {
       grep -q "RW_SECTION_B" <<<$BINARY_FMAP_LAYOUT && BINARY_HAS_RW_B=0
     fi
   else
-    print_warning "Could not read the FMAP region"
-    echo "Could not read the FMAP region" >>$ERR_LOG_FILE
+    error_exit "Couldn't read flash"
   fi
 }
 
