@@ -1654,7 +1654,7 @@ send_dts_logs_main() {
       ALIAS="public-hcl"
       if [ -z "$(mc alias list | grep ${ALIAS})" ]; then
         if ! mc alias set "$ALIAS" "$DPP_SERVER_ADDRESS" "$BASE_HCL_USERNAME" "$BASE_HCL_PASSWORD" &>>"$ERR_LOG_FILE"; then
-          print_error "Failed to send logs, cannot connect to MinIO server."
+          print_error "Failed to send logs, cannot connect to 3mdeb server."
           return 1
         fi
       fi
@@ -1662,7 +1662,7 @@ send_dts_logs_main() {
     fi
 
     if ! mc cp "$log_dir.tar.gz" "${ALIAS}/${LOGS_LINK}/" &>>"$ERR_LOG_FILE"; then
-      print_error "Failed to send logs to MinIO."
+      print_error "Failed to send logs to 3mdeb."
       return 1
     else
       echo "Logs sent."
