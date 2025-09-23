@@ -635,11 +635,16 @@ smbios_migration() {
 
 smmstore_migration() {
   echo -n "Backing up firmware configuration... "
-  $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r /tmp/dasharo_dump.rom ${FLASHROM_ADD_OPT_READ} --fmap -i FMAP -i SMMSTORE >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
-  $CBFSTOOL read_smmstore_mock /tmp/dasharo_dump.rom read -r SMMSTORE -f /tmp/smmstore.bin >>$ERR_LOG_FILE 2>&1 ||
-    print_warning "Failed! Default settings will be used."
-  $CBFSTOOL write_smmstore_mock "$BIOS_UPDATE_FILE" write -r SMMSTORE -f /tmp/smmstore.bin -u >>$ERR_LOG_FILE 2>&1 ||
-    print_warning "Failed! Default settings will be used."
+  if ! $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r /tmp/dasharo_dump.rom ${FLASHROM_ADD_OPT_READ} --fmap -i FMAP -i SMMSTORE >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE ||
+    ! $CBFSTOOL read_smmstore_mock /tmp/dasharo_dump.rom read -r SMMSTORE -f /tmp/smmstore.bin >>$ERR_LOG_FILE 2>&1 ||
+    ! $CBFSTOOL write_smmstore_mock "$BIOS_UPDATE_FILE" write -r SMMSTORE -f /tmp/smmstore.bin -u >>$ERR_LOG_FILE 2>&1; then
+    if ask_for_confirmation "Couldn't migrate BIOS configuration.
+Do you want to continue update, which will result in restoring all BIOS configuration to default?"; then
+      print_warning "Continuing update without migrating BIOS configuration"
+    else
+      error_exit "Aborting..."
+    fi
+  fi
   print_ok Done.
 }
 
@@ -811,7 +816,9 @@ firmware_pre_updating_routine() {
     error_check "Device does not have Dasharo EC firmware - cannot continue update!"
   fi
 
-  if [ "$NEED_SMMSTORE_MIGRATION" = "true" ]; then
+  # FIXME: remove FIRMWARE_VERSION check after moving Heads transition to
+  # separate workflow
+  if [ "$NEED_SMMSTORE_MIGRATION" = "true" ] && [ "$FIRMWARE_VERSION" != "heads" ]; then
     smmstore_migration
   fi
 
