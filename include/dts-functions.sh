@@ -1949,7 +1949,13 @@ flashrom_write_and_check() {
   $FLASHROM "$@" >>"$FLASHROM_LOG_FILE" 2>>"$ERR_LOG_FILE"
   error_check "${err_msg}
 
-Flashing failed, your firmware might be in unknown state.
-Don't reboot or your platform might get bricked.
-Contact us to receive help at https://docs.dasharo.com/#community"
+Unexpected firmware update issue!
+
+The firmware in the flash chip might be corrupted, and rebooting your device at
+this point might result in a brick. Unless you have an external programmer and
+are not afraid of using it, keep your device powered on and contact us - there
+is still a chance to recover from this state:
+
+- Matrix chat: https://docs.dasharo.com/#community
+- e-mail: support@dasharo.com"
 }
