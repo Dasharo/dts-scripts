@@ -19,14 +19,20 @@ function echo_yellow() {
   echo -e "$YELLOW""$1""$NORMAL"
 }
 
+# print_warning <msg>
+# Print yellow warning <msg>
 print_warning() {
   echo_yellow "$1"
 }
 
+# print_error <msg>
+# Print red error <msg>
 print_error() {
   echo_red "$1"
 }
 
+# print_error <msg>
+# Print green <msg>
 print_ok() {
   echo_green "$1"
 }
@@ -96,6 +102,8 @@ fum_exit() {
   fi
 }
 
+# error_exit <msg> [error_code]
+# Print red <msg> error on screen and exit with [error_code] (1 by default)
 error_exit() {
   _error_msg="$1"
   local exit_code=1
@@ -1756,6 +1764,8 @@ check_if_intel() {
   fi
 }
 
+# ask_for_confirmation <prompt>
+# Return 0 if user confirmed, else return non-zero
 ask_for_confirmation() {
   local text="$1"
 
