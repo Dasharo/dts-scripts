@@ -1678,7 +1678,7 @@ send_dts_logs_main() {
 # argument is "ask" and user confirms that he wants to send logs
 send_dts_logs() {
   if ! send_dts_logs_main "$@"; then
-    print_warning "You can read how to share logs on:
+    print_warning "You can still upload the logs manually by following:
 https://docs.dasharo.com/osf-trivia-list/dts/#how-can-i-help-the-support-team-diagnose-my-problem-faster"
   fi
 }
