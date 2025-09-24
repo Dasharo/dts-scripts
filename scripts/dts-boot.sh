@@ -27,7 +27,7 @@ ERR_LOG_FILE_REALPATH="/var/local/dts-err_$(basename "$(tty)").log"
 DTS_LOG_FILE="$TMP_LOG_DIR/dts_$(basename "$(tty)").log"
 DTS_VERBOSE_LOG_FILE="$TMP_LOG_DIR/dts-verbose_$(basename "$(tty)").log"
 
-# shellcheck source=./logging
+# shellcheck source=./logging.sh
 source "$BASH_ENV"
 start_trace_logging
 start_logging
