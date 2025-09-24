@@ -648,15 +648,16 @@ smmstore_migrate() {
 smmstore_migration() {
   echo -n "Backing up firmware configuration... "
   if ! smmstore_migrate; then
-    if ask_for_confirmation "Couldn't migrate BIOS configuration.
-Updating BIOS will result in all configuration being restored to default.
-Do you want to continue update?"; then
+    print_warning "\nCouldn't migrate BIOS configuration.
+Updating BIOS will result in all configuration being restored to default."
+    if ask_for_confirmation "Do you want to proceed with update?"; then
       print_warning "Continuing update without migrating BIOS configuration"
     else
       error_exit "Aborting..."
     fi
+  else
+    print_ok Done.
   fi
-  print_ok Done.
 }
 
 bootsplash_migration() {
