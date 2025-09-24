@@ -1588,7 +1588,7 @@ footer_options() {
 # send_dts_logs_main [ask]
 # Use send_dts_logs which calls this function.
 # Create and upload archive with logs if SEND_LOGS_ACTIVE is true or first
-# argument is "ask" and user confirms that he wants to send logs
+# argument is "ask" and user confirms that they want to send logs
 send_dts_logs_main() {
   local ask="$1"
   local send_logs="false"
@@ -1672,7 +1672,7 @@ send_dts_logs_main() {
 
 # send_dts_logs [ask]
 # Create and upload archive with logs if SEND_LOGS_ACTIVE is true or first
-# argument is "ask" and user confirms that he wants to send logs
+# argument is "ask" and user confirms that they want to send logs
 send_dts_logs() {
   local ask="$1"
   if ! send_dts_logs_main "$@"; then

@@ -633,13 +633,24 @@ smbios_migration() {
   [[ "$_the_image_was_changed" == "true" ]] && return 0 || return 1
 }
 
+# smmstore_migrate
+# helper function for smmstore_migration. Returns non-zero if any command failed
+smmstore_migrate() {
+  $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} \
+    -r /tmp/dasharo_dump.rom ${FLASHROM_ADD_OPT_READ} --fmap -i FMAP \
+    -i SMMSTORE >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE &&
+    $CBFSTOOL read_smmstore_mock /tmp/dasharo_dump.rom read -r SMMSTORE \
+      -f /tmp/smmstore.bin >>$ERR_LOG_FILE 2>&1 &&
+    $CBFSTOOL write_smmstore_mock "$BIOS_UPDATE_FILE" write -r SMMSTORE \
+      -f /tmp/smmstore.bin -u >>$ERR_LOG_FILE 2>&1
+}
+
 smmstore_migration() {
   echo -n "Backing up firmware configuration... "
-  if ! $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r /tmp/dasharo_dump.rom ${FLASHROM_ADD_OPT_READ} --fmap -i FMAP -i SMMSTORE >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE ||
-    ! $CBFSTOOL read_smmstore_mock /tmp/dasharo_dump.rom read -r SMMSTORE -f /tmp/smmstore.bin >>$ERR_LOG_FILE 2>&1 ||
-    ! $CBFSTOOL write_smmstore_mock "$BIOS_UPDATE_FILE" write -r SMMSTORE -f /tmp/smmstore.bin -u >>$ERR_LOG_FILE 2>&1; then
+  if ! smmstore_migrate; then
     if ask_for_confirmation "Couldn't migrate BIOS configuration.
-Do you want to continue update, which will result in restoring all BIOS configuration to default?"; then
+Updating BIOS will result in all configuration being restored to default.
+Do you want to continue update?"; then
       print_warning "Continuing update without migrating BIOS configuration"
     else
       error_exit "Aborting..."
