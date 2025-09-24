@@ -638,11 +638,20 @@ smbios_migration() {
 smmstore_migrate() {
   $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} \
     -r /tmp/dasharo_dump.rom ${FLASHROM_ADD_OPT_READ} --fmap -i FMAP \
-    -i SMMSTORE >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE &&
-    $CBFSTOOL read_smmstore_mock /tmp/dasharo_dump.rom read -r SMMSTORE \
-      -f /tmp/smmstore.bin >>$ERR_LOG_FILE 2>&1 &&
-    $CBFSTOOL write_smmstore_mock "$BIOS_UPDATE_FILE" write -r SMMSTORE \
-      -f /tmp/smmstore.bin -u >>$ERR_LOG_FILE 2>&1
+    -i SMMSTORE >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
+  if [ $? -ne 0 ]; then
+    return 1
+  fi
+  $CBFSTOOL read_smmstore_mock /tmp/dasharo_dump.rom read -r SMMSTORE \
+    -f /tmp/smmstore.bin &>>$ERR_LOG_FILE
+  if [ $? -ne 0 ]; then
+    return 1
+  fi
+  $CBFSTOOL write_smmstore_mock "$BIOS_UPDATE_FILE" write -r SMMSTORE \
+    -f /tmp/smmstore.bin -u &>>$ERR_LOG_FILE
+  if [ $? -ne 0 ]; then
+    return 1
+  fi
 }
 
 smmstore_migration() {
