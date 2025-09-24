@@ -1959,3 +1959,41 @@ is still a chance to recover from this state:
 - Matrix chat: https://docs.dasharo.com/#community
 - e-mail: support@dasharo.com"
 }
+
+# ask_for_choice <prompt> [<choice_opt> <choice_msg>]...
+# Ask user to choose one of the choices by writing <choice_opt> and confirming
+# User facing output is printed to stderr, while on stdout will be printed
+# <choice_opt> chosen by user. <choice_opt> can't be empty string
+ask_for_choice() {
+  local prompt="$1"
+  shift
+  # used to print keys in the same order as passed to this function
+  local keys=()
+  declare -A choices
+  while [ $# -gt 0 ]; do
+    if [ -z "$1" ]; then
+      shift 2
+      continue
+    fi
+    choices["$1"]="$2"
+    keys+=("$1")
+    shift 2
+  done
+
+  while :; do
+    echo "${prompt}:" >&2
+    for key in "${keys[@]}"; do
+      echo "  ${key}: ${choices["${key}"]}" >&2
+    done
+
+    echo >&2
+    read -rp "Select an option: " OPTION >&2
+    echo >&2
+
+    # if key exists in array
+    if [[ -n "${OPTION}" && -n "${choices["${OPTION}"]+isset}" ]]; then
+      echo "${OPTION}"
+      return
+    fi
+  done
+}
