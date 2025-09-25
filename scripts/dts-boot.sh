@@ -48,7 +48,15 @@ source $DTS_HAL
 mkdir -p "$TEMP_DIR"
 
 if [ -f $FUM_EFIVAR ]; then
-  $SBIN_DIR/dasharo-deploy update fum
+  choice="$(
+    ask_for_choice "You have entered Firmware Update Mode." \
+      "1" "If wou wish to continue with unattended firmware update process" \
+      "9" "If you wish to go back to Dasharo Tools Suite menu"
+  )"
+  case "$choice" in
+  1) $SBIN_DIR/dasharo-deploy update fum ;;
+  9) $SBIN_DIR/dts ;;
+  esac
 else
   $SBIN_DIR/dts
 fi
