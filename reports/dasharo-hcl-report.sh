@@ -361,7 +361,7 @@ fi
 
 if [ "$SEND_LOGS" = "true" ]; then
   if [ $DEPLOY_REPORT = "false" ]; then
-    echo "Sending logs to 3mdeb MinIO"
+    echo "Sending logs to 3mdeb."
   fi
 
   DPP_HCL_BUCKET="dasharo-hcl-reports"
@@ -394,7 +394,7 @@ if [ "$SEND_LOGS" = "true" ]; then
 
   mc cp "$(readlink -f $filename.tar.gz)" "${ALIAS}/${DPP_HCL_LINK}/"
   if [ "$?" -ne "0" ]; then
-    echo "Failed to send logs to MinIO"
+    echo "Failed to send logs to 3mdeb."
     exit 1
   fi
   if [ $DEPLOY_REPORT = "false" ]; then

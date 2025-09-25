@@ -19,14 +19,20 @@ function echo_yellow() {
   echo -e "$YELLOW""$1""$NORMAL"
 }
 
+# print_warning <msg>
+# Print yellow warning <msg>
 print_warning() {
   echo_yellow "$1"
 }
 
+# print_error <msg>
+# Print red error <msg>
 print_error() {
   echo_red "$1"
 }
 
+# print_error <msg>
+# Print green <msg>
 print_ok() {
   echo_green "$1"
 }
@@ -96,6 +102,8 @@ fum_exit() {
   fi
 }
 
+# error_exit <msg> [error_code]
+# Print red <msg> error on screen and exit with [error_code] (1 by default)
 error_exit() {
   _error_msg="$1"
   local exit_code=1
@@ -110,6 +118,9 @@ error_exit() {
   exit $exit_code
 }
 
+# error_check <error_msg>
+# if return code of previous command isn't 0 then print red <error_msg> and
+# return code of that command, and then exit with the same code
 error_check() {
   _error_code=$?
   _error_msg="$1"
@@ -945,8 +956,7 @@ set_flashrom_update_params() {
       grep -q "RW_SECTION_B" <<<$BINARY_FMAP_LAYOUT && BINARY_HAS_RW_B=0
     fi
   else
-    print_warning "Could not read the FMAP region"
-    echo "Could not read the FMAP region" >>$ERR_LOG_FILE
+    error_exit "Couldn't read flash"
   fi
 }
 
@@ -1575,78 +1585,101 @@ footer_options() {
   return 1
 }
 
-send_dts_logs() {
+# send_dts_logs_main [ask]
+# Use send_dts_logs which calls this function.
+# Create and upload archive with logs if SEND_LOGS_ACTIVE is true or first
+# argument is "ask" and user confirms that they want to send logs
+send_dts_logs_main() {
+  local ask="$1"
   local send_logs="false"
   if [ "${SEND_LOGS_ACTIVE}" = "true" ]; then
     send_logs="true"
-  elif [ "$1" = "ask" ] && ask_for_confirmation "Do you want to send console logs to 3mdeb?"; then
+  elif [ "$ask" = "ask" ] && ask_for_confirmation "Do you want to send console logs to 3mdeb?"; then
     send_logs="true"
   fi
   if [ "$send_logs" = "true" ]; then
-    echo "Sending logs..."
-
+    echo "Creating archive with logs..."
     log_dir=$(dmidecode -s system-manufacturer)_$(dmidecode -s system-product-name)_$(dmidecode -s bios-version)
 
-    uuid_string="$(cat /sys/class/net/"$(ip route show default | head -1 | awk '/default/ {print $5}')"/address)"
+    interface="$(ip route show default | head -1 | awk '/default/ {print $5}')"
+    uuid_string="$(cat "/sys/class/net/${interface}/address" 2>/dev/null)"
     uuid_string+="_$(dmidecode -s system-product-name)"
     uuid_string+="_$(dmidecode -s system-manufacturer)"
 
-    uuid=$(uuidgen -n @x500 -N $uuid_string -s)
+    uuid=$(uuidgen -n @x500 -N "$uuid_string" -s)
 
     log_dir+="_${uuid}_$(date +'%Y_%m_%d_%H_%M_%S_%N')"
     log_dir="${log_dir// /_}"
     log_dir="${log_dir//\//_}"
     log_dir="${TMP_LOG_DIR}/${log_dir}"
 
-    mkdir -p $log_dir
-    cp ${DTS_LOG_FILE} $log_dir
-    cp ${DTS_VERBOSE_LOG_FILE} $log_dir
+    mkdir -p "$log_dir"
+    cp "${DTS_LOG_FILE}" "$log_dir"
+    cp "${DTS_VERBOSE_LOG_FILE}" "$log_dir"
 
-    if [ -f ${ERR_LOG_FILE_REALPATH} ]; then
-      cp ${ERR_LOG_FILE_REALPATH} $log_dir
+    if [ -f "${ERR_LOG_FILE_REALPATH}" ]; then
+      cp "${ERR_LOG_FILE_REALPATH}" "$log_dir"
     fi
 
-    if [ -f ${FLASHROM_LOG_FILE} ]; then
-      cp ${FLASHROM_LOG_FILE} $log_dir
+    if [ -f "${FLASHROM_LOG_FILE}" ]; then
+      cp "${FLASHROM_LOG_FILE}" "$log_dir"
     fi
-    tar czf "${log_dir}.tar.gz" -C "$(dirname "$log_dir")" "$(basename "$log_dir")"
+    if ! tar czf "${log_dir}.tar.gz" -C "$(dirname "$log_dir")" "$(basename "$log_dir")" &>>"$ERR_LOG_FILE"; then
+      print_error "Couldn't create archive with logs."
+      return 1
+    fi
+
+    echo "You can find archived logs at: "
+    echo "${log_dir}.tar.gz"
+    echo ""
+    echo "Sending logs..."
 
     DPP_LOGS_BUCKET="dts-logs"
     PUBLIC_LOGS_BUCKET="dts-logs-public"
-    if [ -f "${DPP_CREDENTIAL_FILE}" ]; then
-      DPP_EMAIL=$(sed -n '1p' <${DPP_CREDENTIAL_FILE} | tr -d '\n')
-      DPP_PASSWORD=$(sed -n '2p' <${DPP_CREDENTIAL_FILE} | tr -d '\n')
+    send_public="true"
 
-      if [ -z "$DPP_EMAIL" ]; then
-        error_exit "DPP e-mail is empty"
+    if [ -f "${DPP_CREDENTIAL_FILE}" ]; then
+      DPP_EMAIL=$(sed -n '1p' "${DPP_CREDENTIAL_FILE}" | tr -d '\n')
+      DPP_PASSWORD=$(sed -n '2p' "${DPP_CREDENTIAL_FILE}" | tr -d '\n')
+
+      if [[ -n "$DPP_EMAIL" && -n "$DPP_PASSWORD" && -n "$(mc alias list | grep "${DPP_EMAIL}")" ]] &&
+        mc alias set "$DPP_SERVER_USER_ALIAS" "$DPP_SERVER_ADDRESS" "$DPP_EMAIL" "$DPP_PASSWORD" &>>"$ERR_LOG_FILE"; then
+        LOGS_LINK="${DPP_LOGS_BUCKET}/${DPP_EMAIL}"
+        ALIAS=$DPP_SERVER_USER_ALIAS
+        send_public="false"
       fi
-      if [ -z "$(mc alias list | grep ${DPP_EMAIL})" ]; then
-        if ! mc alias set $DPP_SERVER_USER_ALIAS $DPP_SERVER_ADDRESS $DPP_EMAIL $DPP_PASSWORD >>$ERR_LOG_FILE 2>&1; then
-          error_exit "Cannot create MinIO alias for your DPP credentials"
-        fi
-      fi
-      LOGS_LINK="${DPP_LOGS_BUCKET}/${DPP_EMAIL}"
-      ALIAS=$DPP_SERVER_USER_ALIAS
-    else
+    fi
+
+    if [ "${send_public}" = "true" ]; then
       ALIAS="public-hcl"
       if [ -z "$(mc alias list | grep ${ALIAS})" ]; then
-        if ! mc alias set $ALIAS $DPP_SERVER_ADDRESS $BASE_HCL_USERNAME $BASE_HCL_PASSWORD >>$ERR_LOG_FILE 2>&1; then
-          error_exit "Cannot create MinIO alias"
+        if ! mc alias set "$ALIAS" "$DPP_SERVER_ADDRESS" "$BASE_HCL_USERNAME" "$BASE_HCL_PASSWORD" &>>"$ERR_LOG_FILE"; then
+          print_error "Failed to send logs, cannot connect to 3mdeb server."
+          return 1
         fi
       fi
       LOGS_LINK="${PUBLIC_LOGS_BUCKET}"
     fi
 
-    FULL_DTS_URL="https://cloud.3mdeb.com/index.php/s/"${BASE_DTS_LOGS_URL}
-
-    mc cp "$log_dir.tar.gz" "${ALIAS}/${LOGS_LINK}/"
-
-    if [ "$?" -ne "0" ]; then
-      echo "Failed to send logs to MinIO"
+    if ! mc cp "$log_dir.tar.gz" "${ALIAS}/${LOGS_LINK}/" &>>"$ERR_LOG_FILE"; then
+      print_error "Failed to send logs to 3mdeb."
       return 1
+    else
+      echo "Logs sent."
     fi
   fi
-  if [ "$1" = "ask" ]; then
+}
+
+# send_dts_logs [ask]
+# Create and upload archive with logs if SEND_LOGS_ACTIVE is true or first
+# argument is "ask" and user confirms that they want to send logs
+send_dts_logs() {
+  local ask="$1"
+  if ! send_dts_logs_main "$@"; then
+    print_warning "You can still upload the logs manually by following:
+https://docs.dasharo.com/osf-trivia-list/dts/#how-can-i-help-the-support-team-diagnose-my-problem-faster"
+  fi
+  if [ "$ask" = "ask" ]; then
     read -p "Press Enter to continue."
   fi
 }
@@ -1756,6 +1789,8 @@ check_if_intel() {
   fi
 }
 
+# ask_for_confirmation <prompt>
+# Return 0 if user confirmed, else return non-zero
 ask_for_confirmation() {
   local text="$1"
 
@@ -1903,4 +1938,62 @@ reboot_countdown() {
   done
   echo "Rebooting"
   sleep 0.5
+}
+
+# flashrom_write_and_check <error_msg> [flashrom_args]...
+# Pass '[flashrom_args]...' to flashrom and if it fails print <error_msg> and
+# recovery information (and in the future try to restore from backup) and exit
+flashrom_write_and_check() {
+  local err_msg="$1"
+  shift
+  $FLASHROM "$@" >>"$FLASHROM_LOG_FILE" 2>>"$ERR_LOG_FILE"
+  error_check "${err_msg}
+
+Unexpected firmware update issue!
+
+The firmware in the flash chip might be corrupted, and rebooting your device at
+this point might result in a brick. Unless you have an external programmer and
+are not afraid of using it, keep your device powered on and contact us - there
+is still a chance to recover from this state:
+
+- Matrix chat: https://docs.dasharo.com/#community
+- e-mail: support@dasharo.com"
+}
+
+# ask_for_choice <prompt> [<choice_opt> <choice_msg>]...
+# Ask user to choose one of the choices by writing <choice_opt> and confirming
+# User facing output is printed to stderr, while on stdout will be printed
+# <choice_opt> chosen by user. <choice_opt> can't be empty string
+ask_for_choice() {
+  local prompt="$1"
+  shift
+  # used to print keys in the same order as passed to this function
+  local keys=()
+  declare -A choices
+  while [ $# -gt 0 ]; do
+    if [ -z "$1" ]; then
+      shift 2
+      continue
+    fi
+    choices["$1"]="$2"
+    keys+=("$1")
+    shift 2
+  done
+
+  while :; do
+    echo "${prompt}:" >&2
+    for key in "${keys[@]}"; do
+      echo "  ${key}: ${choices["${key}"]}" >&2
+    done
+
+    echo >&2
+    read -rp "Select an option: " OPTION >&2
+    echo >&2
+
+    # if key exists in array
+    if [[ -n "${OPTION}" && -n "${choices["${OPTION}"]+isset}" ]]; then
+      echo "${OPTION}"
+      return
+    fi
+  done
 }

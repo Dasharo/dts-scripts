@@ -27,7 +27,7 @@ ERR_LOG_FILE_REALPATH="/var/local/dts-err_$(basename "$(tty)").log"
 DTS_LOG_FILE="$TMP_LOG_DIR/dts_$(basename "$(tty)").log"
 DTS_VERBOSE_LOG_FILE="$TMP_LOG_DIR/dts-verbose_$(basename "$(tty)").log"
 
-# shellcheck source=./logging
+# shellcheck source=./logging.sh
 source "$BASH_ENV"
 start_trace_logging
 start_logging
@@ -48,7 +48,15 @@ source $DTS_HAL
 mkdir -p "$TEMP_DIR"
 
 if [ -f $FUM_EFIVAR ]; then
-  $SBIN_DIR/dasharo-deploy update fum
+  choice="$(
+    ask_for_choice "You have entered Firmware Update Mode." \
+      "1" "If wou wish to continue with unattended firmware update process" \
+      "9" "If you wish to go back to Dasharo Tools Suite menu"
+  )"
+  case "$choice" in
+  1) $SBIN_DIR/dasharo-deploy update fum ;;
+  9) $SBIN_DIR/dts ;;
+  esac
 else
   $SBIN_DIR/dts
 fi

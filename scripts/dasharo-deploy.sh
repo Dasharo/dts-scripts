@@ -633,14 +633,40 @@ smbios_migration() {
   [[ "$_the_image_was_changed" == "true" ]] && return 0 || return 1
 }
 
+# smmstore_migrate
+# helper function for smmstore_migration. Returns non-zero if any command failed
+smmstore_migrate() {
+  $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} \
+    -r /tmp/dasharo_dump.rom ${FLASHROM_ADD_OPT_READ} --fmap -i FMAP \
+    -i SMMSTORE >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
+  if [ $? -ne 0 ]; then
+    return 1
+  fi
+  $CBFSTOOL read_smmstore_mock /tmp/dasharo_dump.rom read -r SMMSTORE \
+    -f /tmp/smmstore.bin &>>$ERR_LOG_FILE
+  if [ $? -ne 0 ]; then
+    return 1
+  fi
+  $CBFSTOOL write_smmstore_mock "$BIOS_UPDATE_FILE" write -r SMMSTORE \
+    -f /tmp/smmstore.bin -u &>>$ERR_LOG_FILE
+  if [ $? -ne 0 ]; then
+    return 1
+  fi
+}
+
 smmstore_migration() {
   echo -n "Backing up firmware configuration... "
-  $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r /tmp/dasharo_dump.rom ${FLASHROM_ADD_OPT_READ} --fmap -i FMAP -i SMMSTORE >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
-  $CBFSTOOL read_smmstore_mock /tmp/dasharo_dump.rom read -r SMMSTORE -f /tmp/smmstore.bin >>$ERR_LOG_FILE 2>&1 ||
-    print_warning "Failed! Default settings will be used."
-  $CBFSTOOL write_smmstore_mock "$BIOS_UPDATE_FILE" write -r SMMSTORE -f /tmp/smmstore.bin -u >>$ERR_LOG_FILE 2>&1 ||
-    print_warning "Failed! Default settings will be used."
-  print_ok Done.
+  if ! smmstore_migrate; then
+    print_warning "\nCouldn't migrate BIOS configuration.
+Updating BIOS will result in all configuration being restored to default."
+    if ask_for_confirmation "Do you want to proceed with update?"; then
+      print_warning "Continuing update without migrating BIOS configuration"
+    else
+      error_exit "Aborting..."
+    fi
+  else
+    print_ok Done.
+  fi
 }
 
 bootsplash_migration() {
@@ -811,7 +837,9 @@ firmware_pre_updating_routine() {
     error_check "Device does not have Dasharo EC firmware - cannot continue update!"
   fi
 
-  if [ "$NEED_SMMSTORE_MIGRATION" = "true" ]; then
+  # FIXME: remove FIRMWARE_VERSION check after moving Heads transition to
+  # separate workflow
+  if [ "$NEED_SMMSTORE_MIGRATION" = "true" ] && [ "$FIRMWARE_VERSION" != "heads" ]; then
     smmstore_migration
   fi
 
@@ -906,17 +934,19 @@ deploy_firmware() {
       # using the `check_blobs_in_binary` function.
       set_intel_regions_update_params "$FLASHROM_ADD_OPT_UPDATE_OVERRIDE"
       FLASHROM_ADD_OPT_UPDATE_OVERRIDE="$FLASHROM_ADD_OPT_REGIONS"
-      $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE_OVERRIDE} -w "$BIOS_UPDATE_FILE" >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
-      error_check "Failed to update Dasharo firmware"
+      flashrom_write_and_check "Failed to update Dasharo firmware" \
+        -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE_OVERRIDE} \
+        -w "$BIOS_UPDATE_FILE"
     else
       set_intel_regions_update_params "-N --ifd"
-      $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE} -w "$BIOS_UPDATE_FILE" >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
-      error_check "Failed to update Dasharo firmware"
-
+      flashrom_write_and_check "Failed to update Dasharo firmware" \
+        -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE} \
+        -w "$BIOS_UPDATE_FILE"
       if [ $BINARY_HAS_RW_B -eq 0 ]; then
         echo "Updating second firmware partition..."
-        $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} --fmap -N -i RW_SECTION_B -w "$BIOS_UPDATE_FILE" >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
-        error_check "Failed to update second firmware partition"
+        flashrom_write_and_check "Failed to update second firmware partition" \
+          -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} --fmap -N -i RW_SECTION_B \
+          -w "$BIOS_UPDATE_FILE"
       fi
     fi
 
@@ -941,8 +971,9 @@ deploy_firmware() {
         UPDATE_STRING+="Management Engine"
       fi
       echo "Updating $UPDATE_STRING"
-      $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "$BIOS_UPDATE_FILE" >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
-      error_check "Failed to update $UPDATE_STRING"
+      flashrom_write_and_check "Failed to update $UPDATE_STRING" \
+        -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} \
+        -w "$BIOS_UPDATE_FILE"
     fi
 
     return 0
@@ -956,10 +987,10 @@ deploy_firmware() {
     if [ "${BIOS_LINK}" = "${BIOS_LINK_DPP_SEABIOS}" ]; then
       _flashrom_extra_args="--fmap -i COREBOOT"
     fi
-    $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "$BIOS_UPDATE_FILE" ${_flashrom_extra_args} >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
-    error_check "Failed to install Dasharo firmware"
+    flashrom_write_and_check "Failed to install Dasharo firmware" \
+      -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} \
+      -w "$BIOS_UPDATE_FILE" ${_flashrom_extra_args}
     print_ok "Successfully installed Dasharo firmware"
-
     return 0
   fi
 
