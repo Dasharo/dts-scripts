@@ -50,7 +50,7 @@ mkdir -p "$TEMP_DIR"
 if [ -f $FUM_EFIVAR ]; then
   choice="$(
     ask_for_choice "You have entered Firmware Update Mode." \
-      "1" "If wou wish to continue with unattended firmware update process" \
+      "1" "If you wish to continue with unattended firmware update process" \
       "9" "If you wish to go back to Dasharo Tools Suite menu"
   )"
   case "$choice" in
