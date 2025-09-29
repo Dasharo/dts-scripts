@@ -441,85 +441,60 @@ prepare_env() {
 display_warning() {
   # This function shows user some inf. about platform and binaries and asks if the
   # deployment process should be continued.
-  local _option
+  echo
+  print_warning "Please verify detected hardware!"
+  echo
 
-  while :; do
-    echo
-    print_warning "Please verify detected hardware!"
-    echo
+  if [ -n "$SYSTEM_VENDOR" ]; then
+    echo "Board vendor: $SYSTEM_VENDOR"
+  fi
+  if [ -n "$SYSTEM_MODEL" ]; then
+    echo "System model: $SYSTEM_MODEL"
+  fi
+  if [ -n "$BOARD_MODEL" ]; then
+    echo "Board model: $BOARD_MODEL"
+  fi
 
-    if [ -n "$SYSTEM_VENDOR" ]; then
-      echo "Board vendor: $SYSTEM_VENDOR"
-    fi
-    if [ -n "$SYSTEM_MODEL" ]; then
-      echo "System model: $SYSTEM_MODEL"
-    fi
-    if [ -n "$BOARD_MODEL" ]; then
-      echo "Board model: $BOARD_MODEL"
-    fi
+  echo
+  if ! ask_for_confirmation "Does it match your actual specification?"; then
+    echo "Returning to main menu..."
+    exit 0
+  fi
 
-    echo
-    read -r -p "Does it match your actual specification? (Y|n) " _option
-    echo
+  echo "Following firmware will be used to deploy Dasharo:"
 
-    case ${_option} in
-    "" | yes | y | Y | Yes | YES)
-      break
-      ;;
-    n | N | no | NO | No)
-      echo "Returning to main menu..."
-      exit 0
-      ;;
-    *) ;;
-    esac
-  done
+  if [ -n "$BIOS_LINK" ]; then
+    local _bios_hash
+    _bios_hash="$(cat $BIOS_HASH_FILE | cut -d ' ' -f 1)"
+    echo "Dasharo BIOS firmware:"
+    echo "  - link: $BIOS_LINK"
+    echo "  - hash: $_bios_hash"
+  fi
 
-  while :; do
-    echo "Following firmware will be used to deploy Dasharo:"
+  if [ -n "$EC_LINK" ]; then
+    local _ec_hash
+    _ec_hash="$(cat $EC_HASH_FILE | cut -d ' ' -f 1)"
+    echo "Dasharo EC firmware:"
+    echo "  - link: $EC_LINK"
+    echo "  - hash: $_ec_hash"
+  fi
 
-    if [ -n "$BIOS_LINK" ]; then
-      local _bios_hash
-      _bios_hash="$(cat $BIOS_HASH_FILE | cut -d ' ' -f 1)"
-      echo "Dasharo BIOS firmware:"
-      echo "  - link: $BIOS_LINK"
-      echo "  - hash: $_bios_hash"
-    fi
+  echo
+  echo "You can learn more about this release on: https://docs.dasharo.com/"
 
-    if [ -n "$EC_LINK" ]; then
-      local _ec_hash
-      _ec_hash="$(cat $EC_HASH_FILE | cut -d ' ' -f 1)"
-      echo "Dasharo EC firmware:"
-      echo "  - link: $EC_LINK"
-      echo "  - hash: $_ec_hash"
-    fi
+  if ! check_if_dasharo &&
+    [ "$CAN_INSTALL_BIOS" = "false" ] &&
+    [ "$HAVE_EC" = "true" ]; then
+    print_warning "$SYSTEM_VENDOR $SYSTEM_MODEL supports only EC firmware deployment!"
+    print_warning "Dasharo BIOS will have to be flashed manually. More on:"
+    print_warning "https://docs.dasharo.com/unified/novacustom/initial-deployment/"
+  fi
 
-    echo
-    echo "You can learn more about this release on: https://docs.dasharo.com/"
-
-    if ! check_if_dasharo &&
-      [ "$CAN_INSTALL_BIOS" = "false" ] &&
-      [ "$HAVE_EC" = "true" ]; then
-      print_warning "$SYSTEM_VENDOR $SYSTEM_MODEL supports only EC firmware deployment!"
-      print_warning "Dasharo BIOS will have to be flashed manually. More on:"
-      print_warning "https://docs.dasharo.com/unified/novacustom/initial-deployment/"
-    fi
-
-    echo
-    read -r -p "Do you want to deploy this Dasharo Firmware on your platform (Y|n) " _option
-    echo
-
-    case ${_option} in
-    "" | yes | y | Y | Yes | YES)
-      break
-      ;;
-    n | N | no | NO | No)
-      echo "Returning to main menu..."
-      exit 0
-      ;;
-    *) ;;
-    esac
-  done
-
+  echo
+  if ! ask_for_confirmation "Do you want to deploy this Dasharo Firmware on your platform"; then
+    echo "Returning to main menu..."
+    exit 0
+  fi
   return 0
 }
 
@@ -1406,9 +1381,7 @@ restore() {
         echo "Restoring BIOS firmware..."
         if [ -f "/tmp/logs/rom.bin" ]; then
           print_ok "Found $HCL_REPORT_PACKAGE"
-          read -p "Do you want to restore firmware from the given HCL report? [N/y] "
-          case ${REPLY} in
-          yes | y | Y | Yes | YES)
+          if ask_for_confirmation "Do you want to restore firmware from the given HCL report?"; then
             # Ideally we would like to write the entire flash when restoring,
             # but in reality we may face locked or unaccessible regions.
             # To be on the safe side, flash whatever can be flashed by determining
@@ -1423,12 +1396,10 @@ restore() {
             print_ok "Successfully restored firmware"
             echo "Returning to main menu..."
             exit 0
-            ;;
-          *)
+          else
             echo "Returning to main menu..."
             exit 0
-            ;;
-          esac
+          fi
         else
           print_error "Report does not have firmware backup!"
         fi

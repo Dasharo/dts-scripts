@@ -907,22 +907,12 @@ force_me_update() {
   print_warning "Recovering from such state may require removal of AC power supply and resetting CMOS battery."
   print_warning "Keeping an older version of ME may cause a CPU to perform less efficient, e.g. if upgraded the CPU to a newer generation."
   print_warning "You have been warned."
-  while :; do
-    echo
-    read -r -p "Skip ME flashing and proceed with BIOS/firmware flashing/updating? (Y|n) " OPTION
-    echo
-
-    case ${OPTION} in
-    yes | y | Y | Yes | YES)
-      print_warning "Proceeding without ME flashing, because we were asked to."
-      break
-      ;;
-    n | N)
-      error_exit "Cancelling flashing process..."
-      ;;
-    *) ;;
-    esac
-  done
+  echo
+  if ask_for_confirmation "Skip ME flashing and proceed with BIOS/firmware flashing/updating?"; then
+    print_warning "Proceeding without ME flashing, because we were asked to."
+  else
+    error_exit "Cancelling flashing process..."
+  fi
 }
 
 set_flashrom_update_params() {
@@ -1011,28 +1001,73 @@ handle_fw_switching() {
   local _can_switch_to_heads=$1
 
   if [ "$_can_switch_to_heads" == "true" ] && [ "$DASHARO_FLAVOR" != "Dasharo (coreboot+heads)" ]; then
-    while :; do
-      echo
-      read -r -p "Would you like to switch to Dasharo heads firmware? (Y|n) " OPTION
-      echo
+    if ask_for_confirmation "Would you like to switch to Dasharo heads firmware?"; then
+      UPDATE_VERSION=$HEADS_REL_VER_DPP
+      FLASHROM_ADD_OPT_UPDATE_OVERRIDE=$HEADS_SWITCH_FLASHROM_OPT_OVERRIDE
+      BIOS_HASH_LINK="${HEADS_HASH_LINK_DPP}"
+      BIOS_SIGN_LINK="${HEADS_SIGN_LINK_DPP}"
+      BIOS_LINK="$HEADS_LINK_DPP"
 
-      case ${OPTION} in
-      yes | y | Y | Yes | YES)
-        UPDATE_VERSION=$HEADS_REL_VER_DPP
+      # Check EC link additionally, not all platforms have Embedded Controllers:
+      if [ -n "$HEADS_EC_LINK_DPP" ]; then
+        EC_LINK=$HEADS_EC_LINK_DPP
+        EC_HASH_LINK=$HEADS_EC_HASH_LINK_DPP
+        EC_SIGN_LINK=$HEADS_EC_SIGN_LINK_DPP
+        if [ -n "$COMPATIBLE_HEADS_EC_FW_VERSION" ]; then
+          COMPATIBLE_EC_FW_VERSION="$COMPATIBLE_HEADS_EC_FW_VERSION"
+        fi
+      elif [ -n "$EC_LINK_DPP" ]; then
+        EC_LINK=$EC_LINK_DPP
+        EC_HASH_LINK=$EC_HASH_LINK_DPP
+        EC_SIGN_LINK=$EC_SIGN_LINK_DPP
+      elif [ -n "$EC_LINK_COMM" ]; then
+        EC_LINK=$EC_LINK_COMM
+        EC_HASH_LINK=$EC_HASH_LINK_COMM
+        EC_SIGN_LINK=$EC_SIGN_LINK_COMM
+      fi
+
+      export SWITCHING_TO="heads"
+      echo
+      echo "Switching to Dasharo heads firmware v$UPDATE_VERSION"
+    else
+      echo "Will not install Dasharo heads firmware. Proceeding with regular Dasharo firmware update."
+      return $CANCEL
+    fi
+  elif [ -n "$DPP_IS_LOGGED" ] && [ -n "$HEADS_LINK_DPP" ]; then
+    local _heads_dpp=1
+    curl -sSfI -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$HEADS_LINK_DPP" -o /dev/null 2>>"$ERR_LOG_FILE"
+    _heads_dpp=$?
+    # We are on heads, offer switch back or perform update if DPP gives access to heads
+    if [ "$DASHARO_FLAVOR" == "Dasharo (coreboot+heads)" ]; then
+      echo
+      print_warning 'If you are running heads firmware variant and want to update, say "n" here.'
+      print_warning 'You will be asked for heads update confirmation in a moment.'
+      print_warning 'Say "Y" only if you want to migrate from heads to UEFI firmware variant.'
+
+      if ask_for_confirmation "Would you like to switch back to the regular (UEFI) Dasharo firmware variant"; then
+        echo
+        echo "Switching back to regular Dasharo firmware v$UPDATE_VERSION"
+        echo
         FLASHROM_ADD_OPT_UPDATE_OVERRIDE=$HEADS_SWITCH_FLASHROM_OPT_OVERRIDE
+        export SWITCHING_TO="uefi"
+      else
+        echo
+        if [ $_heads_dpp -ne 0 ]; then
+          error_exit "No update available for your machine"
+        fi
+        UPDATE_VERSION=$HEADS_REL_VER_DPP
+        compare_versions $DASHARO_VERSION $UPDATE_VERSION
+        if [ $? -ne 1 ]; then
+          error_exit "No update available for your machine" $CANCEL
+        fi
+        echo "Will not switch back to regular Dasharo firmware. Proceeding with Dasharo heads firmware update to $UPDATE_VERSION."
+        FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
         BIOS_HASH_LINK="${HEADS_HASH_LINK_DPP}"
         BIOS_SIGN_LINK="${HEADS_SIGN_LINK_DPP}"
         BIOS_LINK="$HEADS_LINK_DPP"
 
         # Check EC link additionally, not all platforms have Embedded Controllers:
-        if [ -n "$HEADS_EC_LINK_DPP" ]; then
-          EC_LINK=$HEADS_EC_LINK_DPP
-          EC_HASH_LINK=$HEADS_EC_HASH_LINK_DPP
-          EC_SIGN_LINK=$HEADS_EC_SIGN_LINK_DPP
-          if [ -n "$COMPATIBLE_HEADS_EC_FW_VERSION" ]; then
-            COMPATIBLE_EC_FW_VERSION="$COMPATIBLE_HEADS_EC_FW_VERSION"
-          fi
-        elif [ -n "$EC_LINK_DPP" ]; then
+        if [ -n "$EC_LINK_DPP" ]; then
           EC_LINK=$EC_LINK_DPP
           EC_HASH_LINK=$EC_HASH_LINK_DPP
           EC_SIGN_LINK=$EC_SIGN_LINK_DPP
@@ -1041,73 +1076,7 @@ handle_fw_switching() {
           EC_HASH_LINK=$EC_HASH_LINK_COMM
           EC_SIGN_LINK=$EC_SIGN_LINK_COMM
         fi
-
-        export SWITCHING_TO="heads"
-        echo
-        echo "Switching to Dasharo heads firmware v$UPDATE_VERSION"
-        break
-        ;;
-      n | N)
-        echo "Will not install Dasharo heads firmware. Proceeding with regular Dasharo firmware update."
-        return $CANCEL
-        ;;
-      *) ;;
-      esac
-    done
-  elif [ -n "$DPP_IS_LOGGED" ] && [ -n "$HEADS_LINK_DPP" ]; then
-    local _heads_dpp=1
-    curl -sSfI -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$HEADS_LINK_DPP" -o /dev/null 2>>"$ERR_LOG_FILE"
-    _heads_dpp=$?
-    # We are on heads, offer switch back or perform update if DPP gives access to heads
-    if [ "$DASHARO_FLAVOR" == "Dasharo (coreboot+heads)" ]; then
-      while :; do
-        echo
-        print_warning 'If you are running heads firmware variant and want to update, say "n" here.'
-        print_warning 'You will be asked for heads update confirmation in a moment.'
-        print_warning 'Say "Y" only if you want to migrate from heads to UEFI firmware variant.'
-        read -r -p "Would you like to switch back to the regular (UEFI) Dasharo firmware variant? (Y|n) " OPTION
-        echo
-
-        case ${OPTION} in
-        yes | y | Y | Yes | YES)
-          echo
-          echo "Switching back to regular Dasharo firmware v$UPDATE_VERSION"
-          echo
-          FLASHROM_ADD_OPT_UPDATE_OVERRIDE=$HEADS_SWITCH_FLASHROM_OPT_OVERRIDE
-          export SWITCHING_TO="uefi"
-          break
-          ;;
-        n | N)
-          if [ $_heads_dpp -ne 0 ]; then
-            error_exit "No update available for your machine"
-          fi
-          UPDATE_VERSION=$HEADS_REL_VER_DPP
-          compare_versions $DASHARO_VERSION $UPDATE_VERSION
-          if [ $? -ne 1 ]; then
-            error_exit "No update available for your machine" $CANCEL
-          fi
-          echo "Will not switch back to regular Dasharo firmware. Proceeding with Dasharo heads firmware update to $UPDATE_VERSION."
-          FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-          BIOS_HASH_LINK="${HEADS_HASH_LINK_DPP}"
-          BIOS_SIGN_LINK="${HEADS_SIGN_LINK_DPP}"
-          BIOS_LINK="$HEADS_LINK_DPP"
-
-          # Check EC link additionally, not all platforms have Embedded Controllers:
-          if [ -n "$EC_LINK_DPP" ]; then
-            EC_LINK=$EC_LINK_DPP
-            EC_HASH_LINK=$EC_HASH_LINK_DPP
-            EC_SIGN_LINK=$EC_SIGN_LINK_DPP
-          elif [ -n "$EC_LINK_COMM" ]; then
-            EC_LINK=$EC_LINK_COMM
-            EC_HASH_LINK=$EC_HASH_LINK_COMM
-            EC_SIGN_LINK=$EC_SIGN_LINK_COMM
-          fi
-
-          break
-          ;;
-        *) ;;
-        esac
-      done
+      fi
     fi
   elif [ -z "$DPP_IS_LOGGED" ] && [ "$DASHARO_FLAVOR" == "Dasharo (coreboot+heads)" ]; then
     # Not logged with DPP and we are on heads, offer switch back
@@ -1119,28 +1088,17 @@ handle_fw_switching() {
     echo
     echo "Latest available Dasharo version: $HEADS_REL_VER_DPP"
     echo
-    while :; do
+    if ask_for_confirmation "Would you like to switch back to the regular Dasharo firmware?"; then
       echo
-      read -r -p "Would you like to switch back to the regular Dasharo firmware? (Y|n) " OPTION
+      echo "Switching back to regular Dasharo firmware v$UPDATE_VERSION"
       echo
-
-      case ${OPTION} in
-      yes | y | Y | Yes | YES)
-        echo
-        echo "Switching back to regular Dasharo firmware v$UPDATE_VERSION"
-        echo
-        FLASHROM_ADD_OPT_UPDATE_OVERRIDE=$HEADS_SWITCH_FLASHROM_OPT_OVERRIDE
-        export SWITCHING_TO="uefi"
-        break
-        ;;
-      n | N)
-        print_warning "No update currently possible. Aborting update process..."
-        exit 0
-        break
-        ;;
-      *) ;;
-      esac
-    done
+      FLASHROM_ADD_OPT_UPDATE_OVERRIDE=$HEADS_SWITCH_FLASHROM_OPT_OVERRIDE
+      export SWITCHING_TO="uefi"
+    else
+      echo
+      print_warning "No update currently possible. Aborting update process..."
+      exit 0
+    fi
   else
     if [ -z "$UPDATE_VERSION" ]; then
       error_exit "No update available for your machine"
@@ -1316,18 +1274,14 @@ main_menu_options() {
   case ${OPTION} in
   "${HCL_REPORT_OPT}")
     print_disclaimer
-    read -p "Do you want to support Dasharo development by sending us logs with your hardware configuration? [N/y] "
-    case ${REPLY} in
-    yes | y | Y | Yes | YES)
+    if ask_for_confirmation "Do you want to support Dasharo development by sending us logs with your hardware configuration?"; then
       export SEND_LOGS="true"
       echo "Thank you for contributing to the Dasharo development!"
-      ;;
-    *)
+    else
       export SEND_LOGS="false"
       echo "Logs will be saved in root directory."
       echo "Please consider supporting Dasharo by sending the logs next time."
-      ;;
-    esac
+    fi
     if [ "${SEND_LOGS}" == "true" ]; then
       # DEPLOY_REPORT variable is used in dasharo-hcl-report to determine
       # which logs should be printed in the terminal, in the future whole
@@ -1794,7 +1748,7 @@ check_if_intel() {
 ask_for_confirmation() {
   local text="$1"
 
-  while read -p "$text [n/y]: "; do
+  while read -p "$text [y|n]: "; do
     case ${REPLY} in
     y | Y | yes | Yes | YES)
       return 0
