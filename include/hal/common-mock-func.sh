@@ -73,6 +73,7 @@ TEST_FLASH_CHIP_SIZE="${TEST_FLASH_CHIP_SIZE:-$((2 * 1024 * 1024))}"
 TEST_INTERNAL_PROGRAMMER_CHIPNAME="${TEST_INTERNAL_PROGRAMMER_CHIPNAME:-}"
 TEST_INTERNAL_MULTIPLE_DEFINITIONS="${TEST_INTERNAL_MULTIPLE_DEFINITIONS:-}"
 TEST_BOARD_HAS_BOOTSPLASH="${TEST_BOARD_HAS_BOOTSPLASH:-true}"
+TEST_LAYOUT_READ_SHOULD_FAIL="${TEST_LAYOUT_READ_SHOULD_FAIL:-false}"
 
 flashrom_verify_internal_chip() {
   # if TEST_INTERNAL_MULTIPLE_DEFINITIONS is true then flashrom command
@@ -178,6 +179,9 @@ flashrom_read_flash_layout_mock() {
   flashrom_verify_internal_chip "$@" || return 1
   _file_to_write_into=$(parse_for_arg_return_next "-r" "$@")
 
+  if [ "${TEST_LAYOUT_READ_SHOULD_FAIL}" = "true" ]; then
+    return 1
+  fi
   echo "Testing..." >"$_file_to_write_into"
 
   return 0
@@ -511,7 +515,7 @@ cbfstool_read_bootsplash_mock() {
   return 0
 }
 
-cbfstool_write_smmstore_mock() {
+cbfstool_smmstore_mock() {
   # Emulate writing smmstore to file
   local _file_to_check="$1"
   local _file_to_write_into
@@ -583,6 +587,7 @@ TEST_MEI_CONF_PRESENT="${TEST_MEI_CONF_PRESENT:-true}"
 TEST_INTEL_IS_FUSED="${TEST_INTEL_IS_FUSED:-}"
 TEST_SOUND_CARD_PRESENT="${TEST_SOUND_CARD_PRESENT:-true}"
 TEST_EFI_PRESENT="${TEST_EFI_PRESENT:-true}"
+TEST_FUM="${TEST_FUM:-false}"
 
 fsread_tool_common_mock() {
   # This functionn emulates read hardware specific file system resources or its
@@ -615,6 +620,11 @@ fsread_tool_test_mock() {
     # Here we emulate MEI controller status file presence, check check_if_fused
     # func for more inf.:
     [ "$TEST_MEI_CONF_PRESENT" = "true" ] && return 0
+  fi
+
+  if [ "$_arg_f" = "${FUM_EFIVAR}" ]; then
+    # Emulate Firmware Update Mode (FUM)
+    [ "$TEST_FUM" = "true" ] && return 0
   fi
 
   if [ "$_arg_e" = "/sys/class/power_supply/AC/online" ]; then

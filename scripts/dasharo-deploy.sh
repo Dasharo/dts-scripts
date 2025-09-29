@@ -642,12 +642,12 @@ smmstore_migrate() {
   if [ $? -ne 0 ]; then
     return 1
   fi
-  $CBFSTOOL read_smmstore_mock /tmp/dasharo_dump.rom read -r SMMSTORE \
+  $CBFSTOOL smmstore_mock /tmp/dasharo_dump.rom read -r SMMSTORE \
     -f /tmp/smmstore.bin &>>$ERR_LOG_FILE
   if [ $? -ne 0 ]; then
     return 1
   fi
-  $CBFSTOOL write_smmstore_mock "$BIOS_UPDATE_FILE" write -r SMMSTORE \
+  $CBFSTOOL smmstore_mock "$BIOS_UPDATE_FILE" write -r SMMSTORE \
     -f /tmp/smmstore.bin -u &>>$ERR_LOG_FILE
   if [ $? -ne 0 ]; then
     return 1
