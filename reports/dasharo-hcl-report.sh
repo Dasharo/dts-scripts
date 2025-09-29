@@ -418,9 +418,7 @@ Do you want to participate in this project?\r
 order to participate)\r
 "
 
-read -p "[N/y] "
-case ${REPLY} in
-yes | y | Y | Yes | YES)
+if ask_for_confirmation; then
   $HW_PROBE -all -upload
   if [ $? -eq 0 ]; then
     echo "Thank you for contributing to the \"Hardware for Linux\" project!"
@@ -428,12 +426,10 @@ yes | y | Y | Yes | YES)
     echo "couldn't probe/upload. Check your internet connection..."
     exit 1
   fi
-  ;;
-*)
+else
   echo -e \
     "Please consider contributing to the \"Hardware for Linux\" project in the future.\r
     All you have to do is run this command:\r
     hw-probe --all --upload\r
     "
-  ;;
-esac
+fi
