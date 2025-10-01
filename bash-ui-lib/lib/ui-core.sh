@@ -88,11 +88,18 @@ ui_set_post_render_callback() {
 ui_read_input() {
   UI_INPUT=""
 
+  # Check if terminal is interactive
+  if ! [[ -t 0 ]]; then
+    # Not interactive, exit the loop
+    ui_exit 1
+    return 1
+  fi
+
   if [[ "$UI_INPUT_MODE" == "single" ]]; then
-    read -r -n 1 UI_INPUT
+    read -r -n 1 UI_INPUT || { ui_exit 1; return 1; }
     echo
   else
-    read -r UI_INPUT
+    read -r UI_INPUT || { ui_exit 1; return 1; }
   fi
 }
 

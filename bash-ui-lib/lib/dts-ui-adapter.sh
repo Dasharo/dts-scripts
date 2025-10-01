@@ -137,13 +137,8 @@ _setup_default_dts_menu() {
 # show_footer
 # Show footer with actions using UI library
 show_footer() {
-  # Check if footer is set up
-  if [[ "${#UI_FOOTER_ACTIONS_KEYS[@]}" -eq 0 ]]; then
-    _setup_default_dts_footer
-  fi
-
-  # Render footer using UI library
-  ui_render_footer
+  # Render DTS-style footer directly (don't call ui_render_footer to avoid recursion)
+  _setup_default_dts_footer
 }
 
 # _setup_default_dts_footer
@@ -155,7 +150,13 @@ _setup_default_dts_footer() {
   echo -ne "${RED}${POWEROFF_OPT_UP:-P}${NORMAL} to poweroff  ${NORMAL}"
   echo -e "${RED}${SHELL_OPT_UP:-S}${NORMAL} to enter shell  ${NORMAL}"
 
-  if systemctl is-active sshd.service >/dev/null 2>&1; then
+  # Safely check SSH status - avoid segfault from systemctl issues
+  local ssh_status="inactive"
+  if command -v systemctl &>/dev/null; then
+    ssh_status=$(systemctl is-active sshd.service 2>/dev/null || echo "inactive")
+  fi
+
+  if [[ "$ssh_status" == "active" ]]; then
     echo -ne "${RED}${SSH_OPT_UP:-K}${NORMAL} to stop SSH server  ${NORMAL}"
   else
     echo -ne "${RED}${SSH_OPT_UP:-K}${NORMAL} to launch SSH server  ${NORMAL}"

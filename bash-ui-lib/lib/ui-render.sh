@@ -296,6 +296,11 @@ ui_render_screen() {
 ui_handle_menu_selection() {
   local key="$1"
 
+  # Return early if key is empty or invalid
+  if [[ -z "$key" ]]; then
+    return 1
+  fi
+
   # Check if key exists in menu items
   if [[ -n "${UI_MENU_ITEMS_HANDLER[$key]+isset}" ]]; then
     local condition="${UI_MENU_ITEMS_CONDITION[$key]}"
@@ -326,6 +331,11 @@ ui_handle_menu_selection() {
 # Returns 0 if handled, 1 if not found
 ui_handle_footer_selection() {
   local key="$1"
+
+  # Return early if key is empty or invalid
+  if [[ -z "$key" ]]; then
+    return 1
+  fi
 
   # Check if key exists in footer actions
   if [[ -n "${UI_FOOTER_ACTIONS_HANDLER[$key]+isset}" ]]; then

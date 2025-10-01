@@ -11,6 +11,7 @@ A reusable Bash library for creating interactive text-based user interfaces with
 - **Submenus**: Support for nested menu structures
 - **Customizable**: Override default rendering with custom callbacks
 - **Well-Tested**: Comprehensive test suite using BATS
+- **Safe**: Gracefully handles non-interactive terminals
 
 ## Installation
 
@@ -23,6 +24,14 @@ git clone <repository-url>
 # Or copy the lib directory to your project
 cp -r bash-ui-lib/lib /path/to/your/project/
 ```
+
+## Requirements
+
+- **Interactive Terminal**: The library requires a TTY (interactive terminal) to function properly
+- **Bash 4.0+**: Uses associative arrays and other modern bash features
+- **Standard utilities**: `tput`, `grep`, `sed` (usually pre-installed)
+
+**Note**: The library will detect non-interactive terminals and exit gracefully with appropriate warnings.
 
 ## Quick Start
 

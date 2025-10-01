@@ -141,7 +141,13 @@ ui_confirm() {
 # Pause and wait for user to press Enter
 ui_pause() {
   local message="${1:-Press Enter to continue.}"
-  read -r -p "$message"
+  # Check if stdin is available and terminal is interactive
+  if [[ -t 0 ]]; then
+    read -r -p "$message" || true
+  else
+    # Non-interactive, just print message and return
+    echo "$message"
+  fi
 }
 
 # ui_wait_seconds <seconds> [message]
