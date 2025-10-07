@@ -47,7 +47,7 @@ source $DTS_HAL
 
 mkdir -p "$TEMP_DIR"
 
-if [ -f $FUM_EFIVAR ]; then
+if $FSREAD_TOOL test -f "${FUM_EFIVAR}"; then
   choice="$(
     ask_for_choice "You have entered Firmware Update Mode." \
       "1" "If you wish to continue with unattended firmware update process" \
