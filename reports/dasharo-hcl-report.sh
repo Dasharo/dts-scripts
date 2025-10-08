@@ -255,6 +255,12 @@ if [ ! -f "$firmware_dump_path" ] && [ -d "/firmware/external" ]; then
   fi
 fi
 psptool -E $firmware_dump_path >>logs/psptool.log 2>>logs/psptool.err.log
+# FIXME: The following will always result in UNKNOWN
+# There are two reasons for this:
+# * The tool always returns 0, even if binary is for intel or just all zeros.
+# * The warnings are redirected to stderr, running on "bad" binaries will just
+#   print warnings, not errors.
+# This needs to be fixed at tool level.
 update_result "PSPTool" logs/psptool.err.log
 progress_bar_update
 
