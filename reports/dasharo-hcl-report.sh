@@ -13,7 +13,11 @@ source $DTS_HAL
 
 # Vars for controlling progress bar
 progress_bar_cntr=0
-PROGRESS_BAR_TASKS_TOTAL=27
+PROGRESS_BAR_TASKS_TOTAL=28
+
+# Helper vars
+FW_DUMP_DEFAULT_PATH="logs/rom.bin"
+fw_bin_path="$FW_DUMP_DEFAULT_PATH"
 
 progress_bar_update() {
   local BAR_WIDTH=67
@@ -64,7 +68,7 @@ update_result() {
   fi
   # specific check for firmware dump
   if [ $LOGFILE == "logs/flashrom_read.log" ]; then
-    if [ $LOG -ne 0 ] && [ -f "logs/rom.bin" ]; then
+    if [ $LOG -ne 0 ] && [ -f "$FW_DUMP_DEFAULT_PATH" ]; then
       echo -e [$GREEN"OK"$NORMAL]"\t\t"$TOOL >>result
     else
       echo -e [$RED"ERROR"$NORMAL]"\t\t"$TOOL >>result
@@ -228,7 +232,7 @@ if [ "${SYSTEM_VENDOR}" != "QEMU" ] && [ "${SYSTEM_VENDOR}" != "Emulation" ]; th
     FLASHROM_ADD_OPT_READ=""
   fi
 
-  $FLASHROM -V -p internal:laptop=force_I_want_a_brick ${FLASH_CHIP_SELECT} -r logs/rom.bin ${FLASHROM_ADD_OPT_READ} >logs/flashrom_read.log 2>logs/flashrom_read.err.log
+  $FLASHROM -V -p internal:laptop=force_I_want_a_brick ${FLASH_CHIP_SELECT} -r "${FW_DUMP_DEFAULT_PATH}" ${FLASHROM_ADD_OPT_READ} >logs/flashrom_read.log 2>logs/flashrom_read.err.log
   if [ $? -ne 0 ]; then
     clear_line
     print_error 'CRITICAL ERROR: cannot dump firmware!'
@@ -236,6 +240,29 @@ if [ "${SYSTEM_VENDOR}" != "QEMU" ] && [ "${SYSTEM_VENDOR}" != "Emulation" ]; th
   update_result "Firmware image" logs/flashrom_read.err.log
 fi
 ## Update progress bar anyway
+progress_bar_update
+
+# Run psptool on dumped or external firmware
+if [ ! -f "$fw_bin_path" ] && [ -d "/firmware/external" ]; then
+  count=$(ls -1A /firmware/external | wc -l)
+
+  if [ "$count" -eq 1 ]; then
+    clear_line
+    print_warning "Firmware dump not found, but found user-supplied external binary."
+    fw_bin_path="/firmware/external/$(ls -1A /firmware/external)"
+  elif [ "$count" -gt 1 ]; then
+    clear_line
+    print_error "Multiple files found in /firmware/external! Make sure only a single file is present!"
+  fi
+fi
+psptool -E "$fw_bin_path" >>logs/psptool.log 2>>logs/psptool.err.log
+# FIXME: The following will always result in UNKNOWN
+# There are two reasons for this:
+# * The tool always returns 0, even if binary is for intel or just all zeros.
+# * The warnings are redirected to stderr, running on "bad" binaries will just
+#   print warnings, not errors.
+# This needs to be fixed at tool level.
+update_result "PSPTool" logs/psptool.err.log
 progress_bar_update
 
 # echo "Probing all I2C buses..."
