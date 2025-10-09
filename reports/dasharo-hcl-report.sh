@@ -13,7 +13,7 @@ source $DTS_HAL
 
 # Vars for controlling progress bar
 progress_bar_cntr=0
-PROGRESS_BAR_TASKS_TOTAL=28
+PROGRESS_BAR_TASKS_TOTAL=29
 
 # Helper vars
 FW_DUMP_DEFAULT_PATH="logs/rom.bin"
@@ -142,6 +142,11 @@ progress_bar_update
 # echo "Dumping Intel configuration registers..."
 inteltool -a >logs/inteltool.log 2>logs/inteltool.err.log
 update_result "Intel configuration registers" logs/inteltool.err.log
+progress_bar_update
+
+# echo "Dumping AMD configuration registers..."
+$AMDTOOL -a >logs/amdtool.log 2>logs/amdtool.err.log
+update_result "AMD configuration registers" logs/amdtool.err.log
 progress_bar_update
 
 # echo "Generating GPIO configuration C header files for coreboot..."

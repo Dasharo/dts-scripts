@@ -52,6 +52,7 @@ IOTOOLS="tool_wrapper iotools"
 FSREAD_TOOL="tool_wrapper fsread_tool"
 CAP_UPD_TOOL="tool_wrapper cap_upd_tool"
 LSCPU="tool_wrapper lscpu"
+AMDTOOL="tool_wrapper amdtool"
 # System commands:
 POWEROFF="tool_wrapper poweroff"
 REBOOT="tool_wrapper reboot"
