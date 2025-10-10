@@ -262,7 +262,7 @@ psptool -E "$fw_bin_path" >>logs/psptool.log 2>>logs/psptool.err.log
 # * The warnings are redirected to stderr, running on "bad" binaries will just
 #   print warnings, not errors.
 # This needs to be fixed at tool level.
-update_result "PSPTool" logs/psptool.err.log
+update_result "PSP firmware entries" logs/psptool.err.log
 progress_bar_update
 
 # echo "Probing all I2C buses..."
