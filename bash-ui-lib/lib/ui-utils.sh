@@ -315,3 +315,32 @@ ui_escape_ansi() {
   # Handle both actual escape sequences and literal \033 strings
   echo "$text" | sed -e 's/\x1b\[[0-9;]*m//g' -e 's/\\033\[[0-9;]*m//g'
 }
+
+# ui_print_simple_line <text>
+# Print a simple text line without formatting
+# This is a primitive for backends to use instead of raw echo
+ui_print_simple_line() {
+  local text="$1"
+  echo -e "${NORMAL}${text}${NORMAL}"
+}
+
+# ui_print_header_line <text>
+# Print a header line with frame using separator character
+# Format: **                TEXT
+# Uses UI_SEPARATOR_CHAR (default: *) for frame
+ui_print_header_line() {
+  local text="$1"
+  local sep_char="${UI_SEPARATOR_CHAR:-*}"
+  echo -e "${BLUE}${sep_char}${sep_char}${NORMAL}${text}${NORMAL}"
+}
+
+# ui_print_information_line <label> <value>
+# Print an information line with label and value
+# Format: **     Label: Value
+# Uses UI_SEPARATOR_CHAR (default: *) for frame
+ui_print_information_line() {
+  local label="$1"
+  local value="$2"
+  local sep_char="${UI_SEPARATOR_CHAR:-*}"
+  echo -e "${BLUE}${sep_char}${sep_char}${YELLOW}${label}:${NORMAL} ${value}${NORMAL}"
+}

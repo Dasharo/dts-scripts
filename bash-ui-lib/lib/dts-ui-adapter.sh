@@ -42,63 +42,68 @@ show_header() {
   _os_version=$(grep "VERSION_ID" "${OS_VERSION_FILE:-/etc/os-release}" 2>/dev/null | cut -d "=" -f 2- || echo "unknown")
 
   printf "\ec"
-  echo -e "${NORMAL}\n Dasharo Tools Suite Script ${_os_version} ${NORMAL}"
-  echo -e "${NORMAL} (c) Dasharo <contact@dasharo.com> ${NORMAL}"
-  echo -e "${NORMAL} Report issues at: https://github.com/Dasharo/dasharo-issues ${NORMAL}"
+  echo "" # Blank line
+  ui_print_simple_line " Dasharo Tools Suite Script ${_os_version}"
+  ui_print_simple_line " (c) Dasharo <contact@dasharo.com>"
+  ui_print_simple_line " Report issues at: https://github.com/Dasharo/dasharo-issues"
 }
 
 # show_hardsoft_inf
 # Show hardware and firmware information
 show_hardsoft_inf() {
-  echo -e "${BLUE}*********************************************************${NORMAL}"
-  echo -e "${BLUE}**${NORMAL}                HARDWARE INFORMATION ${NORMAL}"
-  echo -e "${BLUE}*********************************************************${NORMAL}"
-  echo -e "${BLUE}**${YELLOW}    System Inf.: ${NORMAL}${SYSTEM_VENDOR:-Unknown} ${SYSTEM_MODEL:-Unknown}"
-  echo -e "${BLUE}**${YELLOW} Baseboard Inf.: ${NORMAL}${SYSTEM_VENDOR:-Unknown} ${BOARD_MODEL:-Unknown}"
-  echo -e "${BLUE}**${YELLOW}       CPU Inf.: ${NORMAL}${CPU_VERSION:-Unknown}"
+  ui_render_separator
+  ui_print_header_line "                HARDWARE INFORMATION "
+  ui_render_separator
+  ui_print_information_line "    System Inf." "${SYSTEM_VENDOR:-Unknown} ${SYSTEM_MODEL:-Unknown}"
+  ui_print_information_line " Baseboard Inf." "${SYSTEM_VENDOR:-Unknown} ${BOARD_MODEL:-Unknown}"
+  ui_print_information_line "       CPU Inf." "${CPU_VERSION:-Unknown}"
 
   if type -t show_ram_inf &>/dev/null; then
     show_ram_inf
   fi
 
-  echo -e "${BLUE}*********************************************************${NORMAL}"
-  echo -e "${BLUE}**${NORMAL}                FIRMWARE INFORMATION ${NORMAL}"
-  echo -e "${BLUE}*********************************************************${NORMAL}"
-  echo -e "${BLUE}**${YELLOW} BIOS Inf.: ${NORMAL}${BIOS_VENDOR:-Unknown} ${BIOS_VERSION:-Unknown}"
-  echo -e "${BLUE}*********************************************************${NORMAL}"
+  ui_render_separator
+  ui_print_header_line "                FIRMWARE INFORMATION "
+  ui_render_separator
+  ui_print_information_line " BIOS Inf." "${BIOS_VENDOR:-Unknown} ${BIOS_VERSION:-Unknown}"
+  ui_render_separator
 }
 
 # show_dpp_credentials
 # Show DPP credentials (if logged in)
 show_dpp_credentials() {
   if [[ -n "${DPP_IS_LOGGED}" ]]; then
-    echo -e "${BLUE}**${NORMAL}                DPP credentials ${NORMAL}"
-    echo -e "${BLUE}*********************************************************${NORMAL}"
+    ui_print_header_line "                DPP credentials "
+    ui_render_separator
     if [[ "${DISPLAY_CREDENTIALS}" == "true" ]]; then
-      echo -e "${BLUE}**${YELLOW}      Email: ${NORMAL}${DPP_EMAIL:-Unknown}"
-      echo -e "${BLUE}**${YELLOW}   Password: ${NORMAL}${DPP_PASSWORD:-****}"
+      ui_print_information_line "      Email" "${DPP_EMAIL:-Unknown}"
+      ui_print_information_line "   Password" "${DPP_PASSWORD:-****}"
     else
-      echo -e "${BLUE}**${YELLOW}      Email: ***************"
-      echo -e "${BLUE}**${YELLOW}   Password: ***************"
+      ui_print_information_line "      Email" "***************"
+      ui_print_information_line "   Password" "***************"
     fi
-    echo -e "${BLUE}*********************************************************${NORMAL}"
+    ui_render_separator
   fi
 }
 
 # show_ssh_info
 # Show SSH server status and IP addresses
 show_ssh_info() {
-  if systemctl is-active sshd.service >/dev/null 2>&1; then
+  local ssh_status="inactive"
+  if command -v systemctl &>/dev/null; then
+    ssh_status=$(systemctl is-active sshd.service 2>/dev/null || echo "inactive")
+  fi
+
+  if [[ "$ssh_status" == "active" ]]; then
     local ip=""
     ip=$(ip -br -f inet a show scope global 2>/dev/null | grep UP | awk '{ print $3 }' | tr '\n' ' ')
 
     if [[ -z "$ip" ]]; then
-      echo -e "${BLUE}**${NORMAL}    SSH status: ${GREEN}ON${NORMAL} IP: ${RED}check your connection${NORMAL}"
-      echo -e "${BLUE}*********************************************************${NORMAL}"
+      ui_print_information_line "    SSH status" "${GREEN}ON${NORMAL} IP: ${RED}check your connection"
     else
-      echo -e "${BLUE}**${NORMAL}    SSH status: ${GREEN}ON${NORMAL} IP: ${ip}${NORMAL}"
-      echo -e "${BLUE}*********************************************************${NORMAL}"
+      ui_print_information_line "    SSH status" "${GREEN}ON${NORMAL} IP: ${ip}"
     fi
+    ui_render_separator
   fi
 }
 
@@ -144,13 +149,14 @@ show_footer() {
 # _setup_default_dts_footer
 # Set up default DTS footer actions (internal helper)
 _setup_default_dts_footer() {
-  echo -e "${BLUE}*********************************************************${NORMAL}"
+  ui_render_separator
 
+  # Build footer line by line
   echo -ne "${RED}${REBOOT_OPT_UP:-R}${NORMAL} to reboot  ${NORMAL}"
   echo -ne "${RED}${POWEROFF_OPT_UP:-P}${NORMAL} to poweroff  ${NORMAL}"
   echo -e "${RED}${SHELL_OPT_UP:-S}${NORMAL} to enter shell  ${NORMAL}"
 
-  # Safely check SSH status - avoid segfault from systemctl issues
+  # Safely check SSH status
   local ssh_status="inactive"
   if command -v systemctl &>/dev/null; then
     ssh_status=$(systemctl is-active sshd.service 2>/dev/null || echo "inactive")
@@ -176,7 +182,7 @@ _setup_default_dts_footer() {
     fi
   fi
 
-  echo -ne "${YELLOW}\nEnter an option:${UI_COLORS[NORMAL]} "
+  echo -ne "${YELLOW}\nEnter an option:${NORMAL} "
 }
 
 # Wrapper for DTS main_menu_options

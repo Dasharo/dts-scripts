@@ -140,9 +140,10 @@ dts_custom_header() {
   _os_version=$(grep "VERSION_ID" "${OS_VERSION_FILE}" 2>/dev/null | cut -d "=" -f 2- | tr -d '"' || echo "unknown")
 
   printf "\ec"
-  echo -e "${NORMAL}\n Dasharo Tools Suite Script ${_os_version} ${NORMAL}"
-  echo -e "${NORMAL} (c) Dasharo <contact@dasharo.com> ${NORMAL}"
-  echo -e "${NORMAL} Report issues at: https://github.com/Dasharo/dasharo-issues ${NORMAL}"
+  echo "" # Blank line
+  ui_print_simple_line " Dasharo Tools Suite Script ${_os_version}"
+  ui_print_simple_line " (c) Dasharo <contact@dasharo.com>"
+  ui_print_simple_line " Report issues at: https://github.com/Dasharo/dasharo-issues"
 }
 
 # Set up DTS-style UI using the library

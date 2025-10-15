@@ -138,3 +138,31 @@ setup() {
   result=$(ui_escape_ansi "$text")
   [ "$result" = "test" ]
 }
+
+@test "ui_print_simple_line: prints simple text line" {
+  run ui_print_simple_line "Test message"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ "Test message" ]]
+}
+
+@test "ui_print_header_line: prints header with frame" {
+  run ui_print_header_line "TEST HEADER"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ "**" ]]
+  [[ "$output" =~ "TEST HEADER" ]]
+}
+
+@test "ui_print_information_line: prints label and value" {
+  run ui_print_information_line "Label" "Value"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ "**" ]]
+  [[ "$output" =~ "Label:" ]]
+  [[ "$output" =~ "Value" ]]
+}
+
+@test "ui_print_information_line: handles multi-word values" {
+  run ui_print_information_line "System" "Test Vendor Test Model"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ "System:" ]]
+  [[ "$output" =~ "Test Vendor Test Model" ]]
+}
