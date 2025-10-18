@@ -107,6 +107,11 @@ get_dpp_creds() {
   echo ""
   read -p "Enter password:    " 'DPP_PASSWORD'
 
+  if [[ -z "${DPP_PASSWORD}" ]]; then
+    print_warning "No password was provided."
+    return 1
+  fi
+
   # Export DPP creds to a file for future use. Currently these are being used
   # for both: MinIO (and its mc CLI) and cloudsend (deprecated, all DPP
   # sibscribtions will be megrated to MinIO):
