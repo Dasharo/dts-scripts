@@ -9,6 +9,8 @@
 source $DTS_HAL
 # shellcheck source=../include/dts-functions.sh
 source $DTS_FUNCS
+# shellcheck disable=SC1090
+source "$DTS_TUI_LIB"
 
 # Text colors:
 NORMAL='\033[0m'

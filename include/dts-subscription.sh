@@ -102,10 +102,8 @@ check_dts_extensions_access() {
 }
 
 get_dpp_creds() {
-  echo ""
-  read -p "Enter DPP email:   " 'DPP_EMAIL'
-  echo ""
-  read -p "Enter password:    " 'DPP_PASSWORD'
+  DPP_EMAIL=$(tui_read_prompt "Enter DPP email")
+  DPP_PASSWORD=$(tui_read_prompt "Enter password")
 
   # Export DPP creds to a file for future use. Currently these are being used
   # for both: MinIO (and its mc CLI) and cloudsend (deprecated, all DPP
@@ -113,7 +111,7 @@ get_dpp_creds() {
   echo ${DPP_EMAIL} >>${DPP_CREDENTIAL_FILE}
   echo ${DPP_PASSWORD} >>${DPP_CREDENTIAL_FILE}
 
-  print_ok "Dasharo DPP credentials have been saved"
+  tui_echo_green "Dasharo DPP credentials have been saved"
 }
 
 login_to_dpp_server() {
@@ -143,10 +141,10 @@ subscription_routine() {
   if [ -e "${DPP_CREDENTIAL_FILE}" ]; then
     DPP_EMAIL=$(sed -n '1p' <${DPP_CREDENTIAL_FILE} | tr -d '\n')
     DPP_PASSWORD=$(sed -n '2p' <${DPP_CREDENTIAL_FILE} | tr -d '\n')
-    export DPP_IS_LOGGED="true"
+    set_global_state "DPP_IS_LOGGED" "true"
   else
     unset DPP_EMAIL
-    unset DPP_IS_LOGGED
+    set_global_state DPP_IS_LOGGED
     return 1
   fi
 
@@ -181,7 +179,7 @@ download_dpp_package() {
   # Make sure all paths exist:
   check_dasharo_package_env
 
-  echo "Downloading package $package_name..."
+  tui_echo_normal "Downloading package $package_name..."
 
   # Get package link:
   local download_link
@@ -208,7 +206,7 @@ install_dpp_package() {
 
   check_dasharo_package_env
 
-  echo "Installing package $package_name..."
+  tui_echo_normal "Installing package $package_name..."
 
   update_package_list || return 1
 
@@ -231,7 +229,7 @@ install_dpp_package() {
 }
 
 install_all_dpp_packages() {
-  echo "Installing available DTS extensions..."
+  tui_echo_normal "Installing available DTS extensions..."
 
   update_package_list || return 1
 
@@ -240,7 +238,7 @@ install_all_dpp_packages() {
   packages_to_download=$(jq -r '.key' "$DPP_AVAIL_PACKAGES_LIST")
 
   if [ -z "$packages_to_download" ]; then
-    echo "No packages to install."
+    tui_echo_normal "No packages to install."
     return 1
   fi
 
@@ -256,7 +254,7 @@ install_all_dpp_packages() {
 }
 
 check_avail_dpp_packages() {
-  echo "Checking for available DTS extensions..."
+  tui_echo_normal "Checking for available DTS extensions..."
   AVAILABLE_PACKAGES=$(mc find --name "*.rpm" $DPP_SERVER_USER_ALIAS)
 
   if [ -z "$AVAILABLE_PACKAGES" ]; then

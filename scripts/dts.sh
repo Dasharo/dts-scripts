@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: 2024 3mdeb <contact@3mdeb.com>
 #
 # SPDX-License-Identifier: Apache-2.0
+# shellcheck disable=SC2034
 
 # shellcheck source=../include/dts-environment.sh
 source $DTS_ENV
@@ -11,47 +12,65 @@ source $DTS_FUNCS
 # shellcheck source=../include/dts-subscription.sh
 source $DTS_SUBS
 
-trap : 2
-trap : 3
-trap wait_for_input EXIT
+# those won't change
+DTS_VERSION=$(grep "VERSION_ID" ${OS_VERSION_FILE} | cut -d "=" -f 2-)
+RAM_INFO="$(show_ram_inf)"
+SHOW_DASHARO_FIRMWARE="true"
+if check_if_dasharo; then
+  SHOW_TRANSITION="true"
+  SHOW_FUSE="true"
+else
+  SHOW_TRANSITION="false"
+  SHOW_FALSE="false"
+fi
 
-wait_for_input() {
-  code=$?
-  if [[ $code -ne 0 ]]; then
-    read -p "Press Enter to continue."
+set_menu_vars() {
+  DPP_IS_LOGGED=$(get_global_state DPP_IS_LOGGED)
+  DISPLAY_CREDENTIALS=$(get_global_state DISPLAY_CREDENTIALS)
+
+  if check_if_dasharo; then
+    DASHARO_FIRMWARE_LABEL="Update Dasharo Firmware"
+  else
+    DASHARO_FIRMWARE_LABEL="Install Dasharo Firmware"
   fi
-  exit $code
+  if [ "${SYSTEM_VENDOR}" != "QEMU" ] && [ "${SYSTEM_VENDOR}" != "Emulation" ]; then
+    SHOW_RESTORE_FIRMWARE="true"
+  else
+    SHOW_RESTORE_FIRMWARE="false"
+  fi
+
+  if [ "${DPP_IS_LOGGED}" = "true" ]; then
+    DPP_KEYS_LABEL="Edit your DPP keys"
+  else
+    DPP_KEYS_LABEL="Load your DPP keys"
+  fi
+  if systemctl is-active sshd &>/dev/null; then
+    SSH_STATUS="$(tui_echo_green ON)"
+    SSH_IP="$(show_ssh_info)"
+    SSH_LABEL="stop SSH server"
+    SSH_ACTIVE="true"
+  else
+    SSH_LABEL="launch SSH server"
+    SSH_ACTIVE="false"
+  fi
+  SEND_LOGS_ACTIVE=$(get_global_state SEND_LOGS_ACTIVE)
+  if [ "${SEND_LOGS_ACTIVE}" = "true" ]; then
+    SEND_LOGS_LABEL="disable sending DTS logs"
+  else
+    SEND_LOGS_LABEL="enable sending DTS logs"
+  fi
+
+  if [ "${DISPLAY_CREDENTIALS}" = "true" ]; then
+    DPP_EMAIL_DISPLAY=$(mc alias ls premium --json | jq -r '.accessKey')
+    DPP_PASSWORD_DISPLAY=$(mc alias ls premium --json | jq -r '.secretKey')
+    DISPLAY_CRED_LABEL="hide DPP credentials"
+  else
+    DPP_EMAIL_DISPLAY="***************"
+    DPP_PASSWORD_DISPLAY="***************"
+    DISPLAY_CRED_LABEL="display DPP credentials"
+  fi
 }
 
-while :; do
-  clear
-  # Do some subscription routine each time menu is rendered:
-  subscription_routine
-
-  # Header should always be printed:
-  show_header
-  if [ -z "$DPP_SUBMENU_ACTIVE" ]; then
-    show_hardsoft_inf
-    show_dpp_credentials
-    show_ssh_info
-    show_main_menu
-  elif [ -n "$DPP_SUBMENU_ACTIVE" ]; then
-    show_dpp_submenu
-  fi
-  show_footer
-
-  echo
-  read -n 1 OPTION
-  echo
-
-  # If OPTION is being matched with smth inside *_options functions the
-  # functions return 0 and loop start over, if not: next *_options function is
-  # being checked:
-  if [ -z "$DPP_SUBMENU_ACTIVE" ]; then
-    main_menu_options $OPTION && continue
-  elif [ -n "$DPP_SUBMENU_ACTIVE" ]; then
-    dpp_submenu_options $OPTION && continue
-  fi
-
-  footer_options $OPTION
-done
+tui_register_refresh_callback subscription_routine
+tui_register_refresh_callback set_menu_vars
+tui_run "$DTS_TUI_CONF"

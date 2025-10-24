@@ -56,12 +56,12 @@ print_firm_access_warning() {
   esac
 
   # Just a new line:
-  echo
-  echo " Dasharo Pro Package version (${_firm_type_print}) is also available."
-  echo " If you are interested, please visit"
-  echo " https://shop.3mdeb.com/product-category/dasharo-pro-package/"
-  # Just a new line:
-  echo
+  tui_echo_normal "
+ Dasharo Pro Package version (${_firm_type_print}) is also available.
+ If you are interested, please visit
+ https://shop.3mdeb.com/product-category/dasharo-pro-package/
+
+"
 
   return 0
 }

@@ -1,0 +1,96 @@
+---
+header:
+  title: " Dasharo Tools Suite Script ${DTS_VERSION} "
+  subtitle: " (c) Dasharo <contact@dasharo.com> "
+  link: "https://github.com/Dasharo/dasharo-issues"
+
+sections:
+  - label: "HARDWARE INFORMATION"
+    entries:
+      - label: "System Inf."
+        value: "${SYSTEM_VENDOR} ${SYSTEM_MODEL}"
+      - label: "Baseboard Inf."
+        value: "${SYSTEM_VENDOR} ${BOARD_MODEL}"
+      - label: "CPU Inf."
+        value: "${CPU_VERSION}"
+      - label: "RAM Virtual"
+        value: "${RAM_INFO:-Not Specified}"
+
+  - label: "FIRMWARE INFORMATION"
+    entries:
+      - label: "BIOS Inf."
+        value: "${BIOS_VENDOR} ${BIOS_VERSION}"
+
+  - label: "DPP credentials"
+    condition: "${DPP_IS_LOGGED}"
+    entries:
+      - label: "Email"
+        value: "${DPP_EMAIL_DISPLAY}"
+      - label: "Password"
+        value: "${DPP_PASSWORD_DISPLAY}"
+
+  - label: "SSH status: ${SSH_STATUS}"
+    condition: "${SSH_ACTIVE}"
+    entries:
+      - label: "IP"
+        value: "${SSH_IP}"
+
+menu:
+  - key: "1"
+    label: "Dasharo HCL report"
+    callback: "${SBIN_DIR}/tui_callbacks/hcl-report.sh"
+
+  - key: "2"
+    label: "${DASHARO_FIRMWARE_LABEL}"
+    callback: "${SBIN_DIR}/tui_callbacks/dasharo-firmware.sh"
+    condition: "${SHOW_DASHARO_FIRMWARE}"
+
+  - key: "3"
+    label: "Restore firmware from Dasharo HCL report"
+    callback: "${SBIN_DIR}/tui_callbacks/restore-firmware.sh"
+    condition: "${SHOW_RESTORE_FIRMWARE}"
+
+  - key: "4"
+    label: "${DPP_KEYS_LABEL}"
+    callback: "${SBIN_DIR}/tui_callbacks/dpp-keys.sh"
+
+  - key: "5"
+    label: "DTS extensions"
+    callback: "${SBIN_DIR}/tui_callbacks/dts-extensions.sh"
+    condition: "${SHOW_DTS_EXTENSIONS}"
+
+  - key: "6"
+    label: "Transition Dasharo Firmware"
+    callback: "${SBIN_DIR}/tui_callbacks/transition.sh"
+    condition: "${SHOW_TRANSITION}"
+
+  - key: "7"
+    label: "Fuse platform"
+    callback: "${SBIN_DIR}/tui_callbacks/fuse.sh"
+    condition: "${SHOW_FUSE}"
+
+footer:
+  - key: "R"
+    label: "reboot"
+    callback: "${SBIN_DIR}/tui_callbacks/reboot.sh"
+
+  - key: "P"
+    label: "poweroff"
+    callback: "${SBIN_DIR}/tui_callbacks/poweroff.sh"
+
+  - key: "S"
+    label: "enter shell"
+    callback: "${SBIN_DIR}/tui_callbacks/shell.sh"
+
+  - key: "K"
+    label: "${SSH_LABEL}"
+    callback: "${SBIN_DIR}/tui_callbacks/ssh-toggle.sh"
+
+  - key: "L"
+    label: "${SEND_LOGS_LABEL}"
+    callback: "${SBIN_DIR}/tui_callbacks/toggle-logs.sh"
+
+  - key: "C"
+    label: "${DISPLAY_CRED_LABEL}"
+    callback: "${SBIN_DIR}/tui_callbacks/toggle-credentials.sh"
+    condition: "${DPP_IS_LOGGED}"
