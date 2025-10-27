@@ -71,6 +71,8 @@ set_menu_vars() {
   fi
 }
 
-tui_register_refresh_callback subscription_routine
-tui_register_refresh_callback set_menu_vars
+tui_register_pre_render_callback subscription_routine
+tui_register_pre_render_callback set_menu_vars
+tui_register_pre_render_callback stop_trace_logging
+tui_register_post_render_callback start_trace_logging
 tui_run "$DTS_TUI_CONF"

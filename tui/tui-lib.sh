@@ -28,9 +28,11 @@ declare -a TUI_ENTRIES_DATA=()  # section_idx|condition|label|value
 declare -a TUI_MENU_DATA=()   # key|condition|label|callback
 declare -a TUI_FOOTER_DATA=() # key|condition|label|callback
 
-declare -A TUI_REFRESH_CALLBACKS=()
+declare -A TUI_PRE_RENDER_CALLBACKS=()
+declare -A TUI_POST_RENDER_CALLBACKS=()
 # used to call callbacks in the same order as they were registered
-TUI_REFRESH_CALLBACKS_ORDER=()
+TUI_PRE_RENDER_CALLBACKS_ORDER=()
+TUI_POST_RENDER_CALLBACKS_ORDER=()
 
 # Terminal control
 tui_clear_screen() {
@@ -568,10 +570,13 @@ tui_run() {
   TUI_RUNNING=true
 
   while $TUI_RUNNING; do
-    for callback in "${TUI_REFRESH_CALLBACKS_ORDER[@]}"; do
-      eval "${callback}" "${TUI_REFRESH_CALLBACKS["${callback}"]}"
+    for callback in "${TUI_PRE_RENDER_CALLBACKS_ORDER[@]}"; do
+      eval "${callback}" "${TUI_PRE_RENDER_CALLBACKS["${callback}"]}"
     done
     tui_render
+    for callback in "${TUI_POST_RENDER_CALLBACKS_ORDER[@]}"; do
+      eval "${callback}" "${TUI_POST_RENDER_CALLBACKS["${callback}"]}"
+    done
     tui_handle_input
   done
 
@@ -586,11 +591,19 @@ tui_stop() {
 
 # register callbacks called during each UI refresh (before showing UI) e.g.
 # tui_register_refresh_callback my_callback_func callback_arg_1 callback_arg_2
-tui_register_refresh_callback() {
+tui_register_pre_render_callback() {
   local callback="$1"
   shift
-  TUI_REFRESH_CALLBACKS["${callback}"]="$*"
-  TUI_REFRESH_CALLBACKS_ORDER+=("${callback}")
+  TUI_PRE_RENDER_CALLBACKS["${callback}"]="$*"
+  TUI_PRE_RENDER_CALLBACKS_ORDER+=("${callback}")
+}
+
+# register callbacks called during each UI refresh (after showing UI)
+tui_register_post_render_callback() {
+  local callback="$1"
+  shift
+  TUI_POST_RENDER_CALLBACKS["${callback}"]="$*"
+  TUI_POST_RENDER_CALLBACKS_ORDER+=("${callback}")
 }
 
 # Export functions for use in other scripts
