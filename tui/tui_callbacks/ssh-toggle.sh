@@ -13,3 +13,5 @@ else
   systemctl start sshd
   tui_echo_green "Listening on IPs: $(ip -br -f inet a show scope global | grep UP | awk '{ print $3 }' | tr '\n' ' ')"
 fi
+
+tui_read_key_to_continue

@@ -4,7 +4,6 @@
 
 SBINDIR ?= /usr/sbin
 SYSCONFDIR ?= /etc
-LIBDIR ?= /usr/lib
 
 install:
 	install -d $(DESTDIR)$(SBINDIR)/tui_callbacks
@@ -29,6 +28,3 @@ install:
 	install -d $(DESTDIR)$(SYSCONFDIR)/profile.d $(DESTDIR)$(SYSCONFDIR)/dts
 	install -m 0755 dts-profile.sh $(DESTDIR)$(SYSCONFDIR)/profile.d
 	install -m 0644 tui/dts-tui.yaml $(DESTDIR)$(SYSCONFDIR)/dts/dts-tui.yaml
-
-	install -d $(DESTDIR)$(LIBDIR)/dts
-	install -m 0644 tui/tui-lib.sh $(DESTDIR)$(LIBDIR)/dts/tui-lib.sh
