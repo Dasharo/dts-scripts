@@ -26,6 +26,7 @@ fi
 
 set_menu_vars() {
   DPP_IS_LOGGED=$(get_global_state DPP_IS_LOGGED)
+  export DPP_IS_LOGGED
   DISPLAY_CREDENTIALS=$(get_global_state DISPLAY_CREDENTIALS)
 
   if check_if_dasharo; then
@@ -54,6 +55,7 @@ set_menu_vars() {
     SSH_ACTIVE="false"
   fi
   SEND_LOGS_ACTIVE=$(get_global_state SEND_LOGS_ACTIVE)
+  export SEND_LOGS_ACTIVE
   if [ "${SEND_LOGS_ACTIVE}" = "true" ]; then
     SEND_LOGS_LABEL="disable sending DTS logs"
   else
