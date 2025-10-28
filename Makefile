@@ -27,4 +27,4 @@ install:
 
 	install -d $(DESTDIR)$(SYSCONFDIR)/profile.d $(DESTDIR)$(SYSCONFDIR)/dts
 	install -m 0755 dts-profile.sh $(DESTDIR)$(SYSCONFDIR)/profile.d
-	install -m 0644 tui/dts-tui.yaml $(DESTDIR)$(SYSCONFDIR)/dts/dts-tui.yaml
+	install -m 0644 tui/*.yaml $(DESTDIR)$(SYSCONFDIR)/dts/

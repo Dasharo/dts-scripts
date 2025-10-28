@@ -71,6 +71,9 @@ set_menu_vars() {
     DPP_PASSWORD_DISPLAY="***************"
     DISPLAY_CRED_LABEL="display DPP credentials"
   fi
+  if [ -f "${DPP_SUBMENU_JSON}" ]; then
+    SHOW_DTS_EXTENSIONS="true"
+  fi
 }
 
 tui_register_pre_render_callback subscription_routine
