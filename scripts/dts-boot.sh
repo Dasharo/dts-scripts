@@ -4,14 +4,20 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-SBIN_DIR="/usr/sbin"
+export SBIN_DIR="/usr/sbin"
 FUM_EFIVAR="/sys/firmware/efi/efivars/FirmwareUpdateMode-d15b327e-ff2d-4fc1-abf6-c12bd08c1359"
 
+export CONF_DIR="/etc/dts"
+export RUN_DIR="/var/run/dts"
 export DTS_FUNCS="$SBIN_DIR/dts-functions.sh"
 export DTS_ENV="$SBIN_DIR/dts-environment.sh"
 export DTS_SUBS="$SBIN_DIR/dts-subscription.sh"
 export DTS_HAL="$SBIN_DIR/dts-hal.sh"
 export DTS_MOCK_COMMON="$SBIN_DIR/common-mock-func.sh"
+export DTS_TUI_LIB="/usr/lib/tui/tui-lib.sh"
+export DTS_TUI_CONF="$CONF_DIR/dts-tui.yaml"
+export DTS_STATE="$RUN_DIR/state.sh"
+export DTS_STATE_LOCKFILE="/var/lock/dts-state"
 export BASH_ENV="$SBIN_DIR/logging"
 export TMP_LOG_DIR="/tmp/logs"
 export ERR_LOG_FILE_REALPATH
@@ -21,6 +27,7 @@ export ERR_LOG_FILE
 export SHELLOPTS
 
 mkdir -p "$TMP_LOG_DIR"
+mkdir -p "$RUN_DIR"
 # $ERR_LOG_FILE is fd that can only be written to: '>()'. To copy logs
 # we need underlying file that can be copied
 ERR_LOG_FILE_REALPATH="/var/local/dts-err_$(basename "$(tty)").log"
