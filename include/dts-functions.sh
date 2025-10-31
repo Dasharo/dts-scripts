@@ -414,7 +414,7 @@ board_config() {
       return 1
     fi
 
-    BIOS_LINK_COMM="${FW_STORE_URL}/${DASHARO_REL_NAME}/uefi/v${DASHARO_REL_VER}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
+    BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
     ;;
   "Micro-Star International Co., Ltd.")
     if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
@@ -424,134 +424,25 @@ board_config() {
     BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
     ;;
   "Dell Inc.")
-    # Common configuration for all Dell releases:
-    BUCKET_DPP="dasharo-optiplex-uefi"
-    DASHARO_REL_NAME="dell_optiplex_7010_9010"
-    DASHARO_REL_VER_DPP="0.1.1"
-    BIOS_LINK_DPP="$BUCKET_DPP/v$DASHARO_REL_VER_DPP/${DASHARO_REL_NAME}_v$DASHARO_REL_VER_DPP.rom"
-    CAN_INSTALL_BIOS="true"
-    NEED_SMBIOS_MIGRATION="true"
-    NEED_BLOB_TRANSMISSION="true"
-    SINIT_ACM_FILENAME="SNB_IVB_SINIT_20190708_PW.bin"
-    SINIT_ACM_HASH_FILENAME="${SINIT_ACM_FILENAME}.sha256"
-    ACM_MIRROR_URL="https://dl.3mdeb.com/mirror/intel/acm"
-    SINIT_ACM_URL="${ACM_MIRROR_URL}/${SINIT_ACM_FILENAME}"
-    SINIT_ACM_HASH_URL="${ACM_MIRROR_URL}/${SINIT_ACM_HASH_FILENAME}"
-    SINIT_ACM="/tmp/${SINIT_ACM_FILENAME}"
-    FLASHROM_ADD_OPT_DEPLOY="--ifd -i bios"
-    FLASHROM_ADD_OPT_UPDATE="--fmap -i RW_SECTION_A"
-
-    case "$SYSTEM_MODEL" in
-    "OptiPlex 7010")
-      DBT_BIOS_UPDATE_FILENAME="/tmp/O7010A29.exe"
-      DBT_BIOS_UPDATE_URL="https://dl.dell.com/FOLDER05066036M/1/O7010A29.exe"
-      DBT_BIOS_UPDATE_HASH="ceb82586c67cd8d5933ac858c12e0cb52f6e0e4cb3249f964f1c0cfc06d16f52  $DBT_BIOS_UPDATE_FILENAME"
-      DBT_UEFI_IMAGE="/tmp/_O7010A29.exe.extracted/65C10"
-      SCH5545_FW="/tmp/_O7010A29.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x50000/file-d386beb8-4b54-4e69-94f5-06091f67e0d3/section0.raw"
-      ACM_BIN="/tmp/_O7010A29.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x500000/file-2d27c618-7dcd-41f5-bb10-21166be7e143/object-0.raw"
-      ;;
-    "OptiPlex 9010")
-      DBT_BIOS_UPDATE_FILENAME="/tmp/O9010A30.exe"
-      DBT_BIOS_UPDATE_URL="https://dl.dell.com/FOLDER05066009M/1/O9010A30.exe"
-      DBT_BIOS_UPDATE_HASH="b11952f43d0ad66f3ce79558b8c5dd43f30866158ed8348e3b2dae1bbb07701b  $DBT_BIOS_UPDATE_FILENAME"
-      DBT_UEFI_IMAGE="/tmp/_O9010A30.exe.extracted/65C10"
-      SCH5545_FW="/tmp/_O9010A30.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x50000/file-d386beb8-4b54-4e69-94f5-06091f67e0d3/section0.raw"
-      ACM_BIN="/tmp/_O9010A30.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x500000/file-2d27c618-7dcd-41f5-bb10-21166be7e143/object-0.raw"
-      ;;
-    "Precision T1650")
-      # tested on Dasharo Firmware for OptiPlex 9010, will need to be
-      # enabled when build for T1650 exists
-      #
-      # DBT_BIOS_UPDATE_FILENAME="/tmp/T1650A28.exe"
-      # DBT_BIOS_UPDATE_URL="https://dl.dell.com/FOLDER05065992M/1/T1650A28.exe"
-      # DBT_BIOS_UPDATE_HASH="40a66210b8882f523885849c1d879e726dc58aa14718168b1e75f3e2caaa523b  $DBT_BIOS_UPDATE_FILENAME"
-      # DBT_UEFI_IMAGE="/tmp/_T1650A28.exe.extracted/65C10"
-      # SCH5545_FW="/tmp/_T1650A28.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x60000/file-d386beb8-4b54-4e69-94f5-06091f67e0d3/section0.raw"
-      # ACM_BIN="/tmp/_T1650A28.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x500000/file-2d27c618-7dcd-41f5-bb10-21166be7e143/object-0.raw"
-      print_warning "Dasharo Firmware for Precision T1650 not available yet!"
-      print_error "Board model $SYSTEM_MODEL is currently not supported"
+    if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
       return 1
-      ;;
-    *)
-      print_error "Board model $SYSTEM_MODEL is currently not supported"
-      return 1
-      ;;
-    esac
-    ;;
-  "ASUS")
-    case "$SYSTEM_MODEL" in
-    "KGPE-D16")
-      DASHARO_REL_NAME="asus_kgpe-d16"
-      DASHARO_REL_VER="0.4.0"
-      CAN_INSTALL_BIOS="true"
-      case "$FLASH_CHIP_SIZE" in
-      "2")
-        BIOS_HASH_LINK_COMM="65e5370e9ea6b8ae7cd6cc878a031a4ff3a8f5d36830ef39656b8e5a6e37e889  $BIOS_UPDATE_FILE"
-        BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_vboot_notpm.rom"
-        ;;
-      "8")
-        BIOS_HASH_LINK_COMM="da4e6217d50f2ac199dcb9a927a0bc02aa4e792ed73c8c9bac8ba74fc787dbef  $BIOS_UPDATE_FILE"
-        BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_${FLASH_CHIP_SIZE}M_vboot_notpm.rom"
-        ;;
-      "16")
-        BIOS_HASH_LINK_COMM="20055cf57185f149259706f58d5e9552a1589259c6617999c1ac7d8d3c960020  $BIOS_UPDATE_FILE"
-        BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_${FLASH_CHIP_SIZE}M_vboot_notpm.rom"
-        ;;
-      *)
-        print_error "Platform uses chipset with not supported size"
-        return 1
-        ;;
-      esac
-      NEED_SMBIOS_MIGRATION="true"
-      ;;
-    *)
-      print_error "Board model $SYSTEM_MODEL is currently not supported"
-      return 1
-      ;;
-    esac
+    fi
     ;;
   "PC Engines")
     if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
       return 1
     fi
-
-    BIOS_LINK_DPP="${BUCKET_DPP}/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}.rom"
-    BIOS_LINK_DPP_SEABIOS="${BUCKET_DPP_SEABIOS}/pcengines_apu2/v${DASHARO_REL_VER_DPP_SEABIOS}/${DASHARO_REL_NAME}_seabios_v${DASHARO_REL_VER_DPP_SEABIOS}.rom"
     ;;
   "HARDKERNEL")
-    case "$SYSTEM_MODEL" in
-    "ODROID-H4")
-      if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
-        return 1
-      fi
-      ;;
-    *)
-      print_error "Board model $SYSTEM_MODEL is currently not supported"
+    if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
       return 1
-      ;;
-    esac
-
-    BIOS_LINK_DPP="$BUCKET_DPP/$DASHARO_REL_NAME/v$DASHARO_REL_VER_DPP/${DASHARO_REL_NAME}_v$DASHARO_REL_VER_DPP.rom"
-    # TODO: check if it really will be called "*_slimuefi_*.rom"
-    BIOS_LINK_DPP_SLIMUEFI="${BUCKET_DPP_SLIMUEFI}/${DASHARO_REL_NAME}/v${DASHARO_REL_VER_DPP_SLIMUEFI}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP_SLIMUEFI}_slim_bootloader_uefi.rom"
+    fi
     ;;
   "QEMU" | "Emulation")
-    case "$SYSTEM_MODEL" in
-    *Q35*ICH9* | *q35*ich9*)
-      # Update type:
-      CAN_INSTALL_BIOS="true"
-      # Download and versioning variables:
-      DASHARO_REL_NAME_CAP="qemu_q35"
-      DASHARO_REL_VER_CAP="0.2.0"
-      DASHARO_SUPPORT_CAP_FROM="0.2.0"
-      # TODO: wait till the binaries will be uploaded to the server.
-      BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${DASHARO_REL_NAME_CAP}/v${DASHARO_REL_VER_CAP}/"
-      ;;
-    *)
-      print_error "Board model $SYSTEM_MODEL is currently not supported"
+    if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
       return 1
-      ;;
-    esac
+    fi
+    BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${BIOS_PATH_COMM_CAP}"
     ;;
   "To Be Filled By O.E.M.")
     print_error "Cannot determine board vendor"
@@ -1784,8 +1675,13 @@ parse_config() {
   local system_model="$2"
   local board_model="$3"
   # The JSONs names in configs directory the same as values in vendor variable
-  # but lowercase and spaces replaced with _
-  json_file="$BOARD_CONFIG_PATH/configs/$(echo "$vendor" | tr '[:upper:]' '[:lower:]' | sed 's/ /_/g').json"
+  # but lowercase. Spaces and '/' are replaced with _.
+  json_filename="$(echo "$vendor" | tr '[:upper:]' '[:lower:]' | sed -r 's@ |/@_@g').json"
+  json_file="$BOARD_CONFIG_PATH/configs/${json_filename}"
+  # JSON doesn't exist, file isn't JSON or JSON is empty
+  if ! jq -e '.[]' "${json_file}" >/dev/null 2>>"$ERR_LOG_FILE"; then
+    return 1
+  fi
   # Parse common variables for vendor
   # This finds all keys other than `models` and maps them to bash variables.
   # The variable names are converted to lowercase.
@@ -1806,10 +1702,9 @@ parse_config() {
 
   # shellcheck disable=SC2046
   output=$(jq -r 'to_entries[] | select(.key != "models") | "\(.key | ascii_upcase)=\"\(.value|tostring)\""' $json_file 2>>"$ERR_LOG_FILE")
-  if [ -z "$output" ]; then
-    return 1
+  if [ -n "$output" ]; then
+    eval "$output"
   fi
-  eval "$output"
 
   # Parse system model-specific variables
   # This finds all keys in `models[$SYSTEM_MODEL]` other than `board_models`
@@ -1818,16 +1713,12 @@ parse_config() {
   # --arg m $(echo "$system_model" ...) stores the lowercase value of
   # $system_model in the "$m" jq variable. That variable is then used to access
   # models[$system_model] (.models[$m])
-
-  # Disabling warning "Quote this to prevent word splitting" to avoid mixing
-  # quotes
-  # shellcheck disable=SC2046
   output=$(jq -r --arg m "$(echo "$system_model" | tr '[:upper:]' '[:lower:]')" '
-  .models[$m]
-  | to_entries[]
-  | select(.key != "board_models")
-  | "\(.key | ascii_upcase)=\"\(.value|tostring)\""
-' $json_file 2>>"$ERR_LOG_FILE")
+    .models[$m]
+    | to_entries[]
+    | select(.key != "board_models")
+    | "\(.key | ascii_upcase)=\"\(.value|tostring)\""
+  ' $json_file 2>>"$ERR_LOG_FILE")
   if [ -z "$output" ]; then
     return 2
   fi
@@ -1840,18 +1731,16 @@ parse_config() {
   # If .models[$m].board_models[$b] does not exist, the eval will not
   # create any new variables
 
-  # shellcheck disable=SC2046
   has_key=$(jq -r --arg m "$(echo "$system_model" | tr '[:upper:]' '[:lower:]')" '
   .models[$m] | has("board_models")
   ' $json_file)
 
   if [ "$has_key" == "true" ]; then
-    # shellcheck disable=SC2046
     output=$(jq -r --arg m "$(echo "$system_model" | tr '[:upper:]' '[:lower:]')" --arg b "$(echo "$board_model" | tr '[:upper:]' '[:lower:]')" '
-    .models[$m].board_models[$b]
-    | to_entries[]
-    | "\(.key | ascii_upcase)=\"\(.value|tostring)\""
-  ' $json_file 2>>"$ERR_LOG_FILE")
+      .models[$m].board_models[$b]
+      | to_entries[]
+      | "\(.key | ascii_upcase)=\"\(.value|tostring)\""
+    ' $json_file 2>>"$ERR_LOG_FILE")
     if [ -z "$output" ]; then
       return 3
     fi
