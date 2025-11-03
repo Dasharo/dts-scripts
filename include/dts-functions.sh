@@ -274,68 +274,56 @@ board_config() {
   echo "Checking if board is Dasharo compatible."
   case "$SYSTEM_VENDOR" in
   "Notebook")
-    # Common settings for all Notebooks:
-    CAN_USE_FLASHROM="true"
-    HAVE_EC="true"
-    NEED_EC_RESET="true"
-    PLATFORM_SIGN_KEY="customer-keys/novacustom/novacustom-open-source-firmware-release-1.x-key.asc \
-        customer-keys/novacustom/dasharo-release-0.9.x-for-novacustom-signing-key.asc"
-    NEED_SMMSTORE_MIGRATION="true"
-    BUCKET_DPP_HEADS="dasharo-novacustom-heads"
-
     case "$SYSTEM_MODEL" in
     "NV4XMB,ME,MZ")
-      DASHARO_REL_NAME="novacustom_nv4x_tgl"
-      DASHARO_REL_VER="1.5.2"
-      CAN_INSTALL_BIOS="true"
-      COMPATIBLE_EC_FW_VERSION="2022-10-07_c662165"
+      if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
+        return 1
+      fi
+
       if check_if_dasharo; then
-        # if v1.5.1 or older, flash the whole bios region
+        # if v1.5.2 or older, flash the whole bios region
         # TODO: Let DTS determine which parameters are suitable.
         # FIXME: Can we ever get rid of that? We change so much in each release,
         # that we almost always need to flash whole BIOS regions
         # because of non-backward compatible or breaking changes.
-        compare_versions $DASHARO_VERSION 1.5.2
+        compare_versions $DASHARO_VERSION $DASHARO_REL_VER
         if [ $? -eq 1 ]; then
-          # For Dasharo version lesser than 1.5.2
           NEED_BOOTSPLASH_MIGRATION="true"
           FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
         fi
       fi
       ;;
     "NS50_70MU")
-      DASHARO_REL_NAME="novacustom_ns5x_tgl"
-      DASHARO_REL_VER="1.5.2"
-      CAN_INSTALL_BIOS="true"
-      COMPATIBLE_EC_FW_VERSION="2022-08-31_cbff21b"
-      PROGRAMMER_EC="ite_ec:romsize=128K,autoload=disable"
+      if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
+        return 1
+      fi
+
       if check_if_dasharo; then
-        # if v1.5.1 or older, flash the whole bios region
+        # if v1.5.2 or older, flash the whole bios region
         # TODO: Let DTS determine which parameters are suitable.
         # FIXME: Can we ever get rid of that? We change so much in each release,
         # that we almost always need to flash whole BIOS regions
         # because of non-backward compatible or breaking changes.
-        compare_versions $DASHARO_VERSION 1.5.2
+        compare_versions $DASHARO_VERSION $DASHARO_REL_VER
         if [ $? -eq 1 ]; then
-          # For Dasharo version lesser than 1.5.2
           NEED_BOOTSPLASH_MIGRATION="true"
           FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
         fi
       fi
       ;;
     "NS5x_NS7xPU")
-      DASHARO_REL_NAME="novacustom_ns5x_adl"
-      DASHARO_REL_VER="1.7.2"
-      COMPATIBLE_EC_FW_VERSION="2022-08-31_cbff21b"
+      if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
+        return 1
+      fi
+
       if check_if_dasharo; then
         # if v1.7.2 or older, flash the whole bios region
         # TODO: Let DTS determine which parameters are suitable.
         # FIXME: Can we ever get rid of that? We change so much in each release,
         # that we almost always need to flash whole BIOS regions
         # because of non-backward compatible or breaking changes.
-        compare_versions $DASHARO_VERSION 1.7.2
+        compare_versions $DASHARO_VERSION $DASHARO_REL_VER
         if [ $? -eq 1 ]; then
-          # For Dasharo version lesser than 1.7.2
           NEED_BOOTSPLASH_MIGRATION="true"
           FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
         fi
@@ -353,11 +341,9 @@ board_config() {
         # FIXME: Can we ever get rid of that? We change so much in each release,
         # that we almost always need to flash whole BIOS regions
         # because of non-backward compatible or breaking changes.
-        compare_versions $DASHARO_VERSION 1.7.2
+        compare_versions $DASHARO_VERSION $DASHARO_REL_VER
         if [ $? -eq 1 ]; then
-          # For Dasharo version lesser than 1.7.2
           NEED_BOOTSPLASH_MIGRATION="true"
-          FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
         else
           HAVE_HEADS_FW="true"
         fi
