@@ -298,14 +298,10 @@ board_config() {
       HEADS_LINK_DPP="${BUCKET_DPP_HEADS}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_heads.rom"
       ;;
     "V54x_6x_TU")
-      # Dasharo 0.9.0-rc10 and higher have board model in baseboard-version
-      if check_if_dasharo && compare_versions "$DASHARO_VERSION" 0.9.0-rc10; then
+      if check_if_dasharo; then
         BOARD_MODEL="$($DMIDECODE dump_var_mock -s baseboard-version)"
-      elif ! $DASHARO_ECTOOL check_for_opensource_firm_mock info 2>>"$ERR_LOG_FILE"; then
-        ask_for_model V540TU V560TU
       else
-        BOARD_MODEL=$($DASHARO_ECTOOL novacustom_check_sys_model_mock info | grep "board:" |
-          sed -r 's|.*novacustom/(.*)|\1|' | awk '{print toupper($1)}')
+        ask_for_model V540TU V560TU
       fi
 
       if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
