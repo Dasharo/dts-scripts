@@ -294,8 +294,6 @@ board_config() {
       if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
         return 1
       fi
-
-      HEADS_LINK_DPP="${BUCKET_DPP_HEADS}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_heads.rom"
       ;;
     "V54x_6x_TU")
       if check_if_dasharo; then
