@@ -292,6 +292,8 @@ board_config() {
           FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
         fi
       fi
+      BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
+      EC_LINK_COMM="${FW_STORE_URL}/${EC_PATH_COMM}"
       ;;
     "NS50_70MU")
       if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
@@ -310,6 +312,8 @@ board_config() {
           FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
         fi
       fi
+      BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
+      EC_LINK_COMM="${FW_STORE_URL}/${EC_PATH_COMM}"
       ;;
     "NS5x_NS7xPU")
       if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
@@ -328,6 +332,8 @@ board_config() {
           FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
         fi
       fi
+      BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
+      EC_LINK_COMM="${FW_STORE_URL}/${EC_PATH_COMM}"
       ;;
     "NV4xPZ")
       if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
@@ -351,6 +357,8 @@ board_config() {
           HAVE_HEADS_FW="true"
         fi
       fi
+      BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
+      EC_LINK_COMM="${FW_STORE_URL}/${EC_PATH_COMM}"
       ;;
     "V54x_6x_TU")
       # Dasharo 0.9.0-rc10 and higher have board model in baseboard-version
@@ -370,6 +378,7 @@ board_config() {
       BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
       BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${BIOS_PATH_COMM_CAP}"
       EC_LINK_COMM="${FW_STORE_URL}/${EC_PATH_COMM}"
+      [ -n "${EOM_PATH_COMM_CAP}" ] && EOM_LINK_COMM_CAP="${FW_STORE_URL}/${EOM_PATH_COMM_CAP}"
       ;;
     "V5xTNC_TND_TNE")
       if check_if_dasharo; then
@@ -391,9 +400,6 @@ board_config() {
       return 1
       ;;
     esac
-    BIOS_LINK_COMM=${BIOS_LINK_COMM:-"$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"}
-    EC_LINK_COMM=${EC_LINK_COMM:-"$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"}
-    [ -n "${EOM_PATH_COMM_CAP}" ] && EOM_LINK_COMM_CAP="${FW_STORE_URL}/${EOM_PATH_COMM_CAP}"
     ;;
   "NovaCustom" | "ASRock Industrial")
     if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
