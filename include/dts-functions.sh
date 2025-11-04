@@ -279,54 +279,15 @@ board_config() {
       if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
         return 1
       fi
-
-      if check_if_dasharo; then
-        # if v1.5.2 or older, flash the whole bios region
-        # TODO: Let DTS determine which parameters are suitable.
-        # FIXME: Can we ever get rid of that? We change so much in each release,
-        # that we almost always need to flash whole BIOS regions
-        # because of non-backward compatible or breaking changes.
-        compare_versions $DASHARO_VERSION $DASHARO_REL_VER
-        if [ $? -eq 1 ]; then
-          NEED_BOOTSPLASH_MIGRATION="true"
-          FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-        fi
-      fi
       ;;
     "NS50_70MU")
       if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
         return 1
       fi
-
-      if check_if_dasharo; then
-        # if v1.5.2 or older, flash the whole bios region
-        # TODO: Let DTS determine which parameters are suitable.
-        # FIXME: Can we ever get rid of that? We change so much in each release,
-        # that we almost always need to flash whole BIOS regions
-        # because of non-backward compatible or breaking changes.
-        compare_versions $DASHARO_VERSION $DASHARO_REL_VER
-        if [ $? -eq 1 ]; then
-          NEED_BOOTSPLASH_MIGRATION="true"
-          FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-        fi
-      fi
       ;;
     "NS5x_NS7xPU")
       if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
         return 1
-      fi
-
-      if check_if_dasharo; then
-        # if v1.7.2 or older, flash the whole bios region
-        # TODO: Let DTS determine which parameters are suitable.
-        # FIXME: Can we ever get rid of that? We change so much in each release,
-        # that we almost always need to flash whole BIOS regions
-        # because of non-backward compatible or breaking changes.
-        compare_versions $DASHARO_VERSION $DASHARO_REL_VER
-        if [ $? -eq 1 ]; then
-          NEED_BOOTSPLASH_MIGRATION="true"
-          FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-        fi
       fi
       ;;
     "NV4xPZ")
@@ -342,9 +303,7 @@ board_config() {
         # that we almost always need to flash whole BIOS regions
         # because of non-backward compatible or breaking changes.
         compare_versions $DASHARO_VERSION $DASHARO_REL_VER
-        if [ $? -eq 1 ]; then
-          NEED_BOOTSPLASH_MIGRATION="true"
-        else
+        if [ $? -eq 0 ]; then
           HAVE_HEADS_FW="true"
         fi
         if [ "$DASHARO_FLAVOR" == "Dasharo (coreboot+heads)" ]; then
