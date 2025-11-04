@@ -292,8 +292,6 @@ board_config() {
           FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
         fi
       fi
-      BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
-      EC_LINK_COMM="${FW_STORE_URL}/${EC_PATH_COMM}"
       ;;
     "NS50_70MU")
       if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
@@ -312,8 +310,6 @@ board_config() {
           FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
         fi
       fi
-      BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
-      EC_LINK_COMM="${FW_STORE_URL}/${EC_PATH_COMM}"
       ;;
     "NS5x_NS7xPU")
       if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
@@ -332,8 +328,6 @@ board_config() {
           FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
         fi
       fi
-      BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
-      EC_LINK_COMM="${FW_STORE_URL}/${EC_PATH_COMM}"
       ;;
     "NV4xPZ")
       if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
@@ -357,8 +351,6 @@ board_config() {
           HAVE_HEADS_FW="true"
         fi
       fi
-      BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
-      EC_LINK_COMM="${FW_STORE_URL}/${EC_PATH_COMM}"
       ;;
     "V54x_6x_TU")
       # Dasharo 0.9.0-rc10 and higher have board model in baseboard-version
@@ -374,11 +366,6 @@ board_config() {
       if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
         return 1
       fi
-
-      BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
-      BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${BIOS_PATH_COMM_CAP}"
-      EC_LINK_COMM="${FW_STORE_URL}/${EC_PATH_COMM}"
-      [ -n "${EOM_PATH_COMM_CAP}" ] && EOM_LINK_COMM_CAP="${FW_STORE_URL}/${EOM_PATH_COMM_CAP}"
       ;;
     "V5xTNC_TND_TNE")
       if check_if_dasharo; then
@@ -390,10 +377,6 @@ board_config() {
       if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
         return 1
       fi
-
-      BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
-      BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${BIOS_PATH_COMM_CAP}"
-      EC_LINK_COMM="${FW_STORE_URL}/${EC_PATH_COMM}"
       ;;
     *)
       print_error "Board model $SYSTEM_MODEL is currently not supported"
@@ -405,15 +388,11 @@ board_config() {
     if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
       return 1
     fi
-
-    BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
     ;;
   "Micro-Star International Co., Ltd.")
     if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
       return 1
     fi
-
-    BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
     ;;
   "Dell Inc.")
     if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
@@ -434,7 +413,6 @@ board_config() {
     if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
       return 1
     fi
-    BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${BIOS_PATH_COMM_CAP}"
     ;;
   "To Be Filled By O.E.M.")
     print_error "Cannot determine board vendor"
@@ -445,34 +423,6 @@ board_config() {
     return 1
     ;;
   esac
-
-  # Set some default values at the end:
-  [ -z "$BIOS_HASH_LINK_COMM" ] && BIOS_HASH_LINK_COMM="${BIOS_LINK_COMM}.sha256"
-  [ -z "$BIOS_SIGN_LINK_COMM" ] && BIOS_SIGN_LINK_COMM="${BIOS_HASH_LINK_COMM}.sig"
-  [ -z "$BIOS_HASH_LINK_DPP" ] && BIOS_HASH_LINK_DPP="${BIOS_LINK_DPP}.sha256"
-  [ -z "$BIOS_SIGN_LINK_DPP" ] && BIOS_SIGN_LINK_DPP="${BIOS_HASH_LINK_DPP}.sig"
-  [ -z "$BIOS_HASH_LINK_DPP_SEABIOS" ] && BIOS_HASH_LINK_DPP_SEABIOS="${BIOS_LINK_DPP_SEABIOS}.sha256"
-  [ -z "$BIOS_SIGN_LINK_DPP_SEABIOS" ] && BIOS_SIGN_LINK_DPP_SEABIOS="${BIOS_HASH_LINK_DPP_SEABIOS}.sig"
-  [ -z "$HEADS_HASH_LINK_DPP" ] && HEADS_HASH_LINK_DPP="${HEADS_LINK_DPP}.sha256"
-  [ -z "$HEADS_SIGN_LINK_DPP" ] && HEADS_SIGN_LINK_DPP="${HEADS_HASH_LINK_DPP}.sig"
-  [ -z "$BIOS_HASH_LINK_DPP_SLIMUEFI" ] && BIOS_HASH_LINK_DPP_SLIMUEFI="${BIOS_LINK_DPP_SLIMUEFI}.sha256"
-  [ -z "$BIOS_SIGN_LINK_DPP_SLIMUEFI" ] && BIOS_SIGN_LINK_DPP_SLIMUEFI="${BIOS_HASH_LINK_DPP_SLIMUEFI}.sig"
-  [ -z "$EC_HASH_LINK_COMM" ] && EC_HASH_LINK_COMM="${EC_LINK_COMM}.sha256"
-  [ -z "$EC_SIGN_LINK_COMM" ] && EC_SIGN_LINK_COMM="${EC_HASH_LINK_COMM}.sig"
-  [ -z "$EC_HASH_LINK_DPP" ] && EC_HASH_LINK_DPP="${EC_LINK_DPP}.sha256"
-  [ -z "$EC_SIGN_LINK_DPP" ] && EC_SIGN_LINK_DPP="${EC_HASH_LINK_DPP}.sig"
-  [ -z "$HEADS_EC_HASH_LINK_DPP" ] && HEADS_EC_HASH_LINK_DPP="${HEADS_EC_LINK_DPP}.sha256"
-  [ -z "$HEADS_EC_SIGN_LINK_DPP" ] && HEADS_EC_SIGN_LINK_DPP="${HEADS_EC_HASH_LINK_DPP}.sig"
-
-  # And for capsules as well:
-  [ -z "$BIOS_HASH_LINK_COMM_CAP" ] && BIOS_HASH_LINK_COMM_CAP="${BIOS_LINK_COMM_CAP}.sha256"
-  [ -z "$BIOS_SIGN_LINK_COMM_CAP" ] && BIOS_SIGN_LINK_COMM_CAP="${BIOS_HASH_LINK_COMM_CAP}.sig"
-  [ -z "$BIOS_HASH_LINK_DPP_CAP" ] && BIOS_HASH_LINK_DPP_CAP="${BIOS_LINK_DPP_CAP}.sha256"
-  [ -z "$BIOS_SIGN_LINK_DPP_CAP" ] && BIOS_SIGN_LINK_DPP_CAP="${BIOS_HASH_LINK_DPP_CAP}.sig"
-  [ -z "$EC_HASH_LINK_DPP_CAP" ] && EC_HASH_LINK_DPP_CAP="${EC_LINK_DPP_CAP}.sha256"
-  [ -z "$EC_SIGN_LINK_DPP_CAP" ] && EC_SIGN_LINK_DPP_CAP="${EC_HASH_LINK_DPP_CAP}.sig"
-  [ -z "$EOM_HASH_LINK_COMM_CAP" ] && EOM_HASH_LINK_COMM_CAP="${EOM_LINK_COMM_CAP}.sha256"
-  [ -z "$EOM_SIGN_LINK_COMM_CAP" ] && EOM_SIGN_LINK_COMM_CAP="${EOM_HASH_LINK_COMM_CAP}.sig"
 
   rm -rf "$BOARD_CONFIG_PATH"
 }
@@ -1738,7 +1688,49 @@ parse_config() {
     fi
     eval "$output"
   fi
+
+  eval_links
+
   return 0
+}
+
+# This is a helper function for parse_config(). It is used to evaluate links.
+# The reason is we cannot store full link in config as sometimes we need to use
+# local servers for development.
+eval_links() {
+  # evaluate BIOSes and ECs
+  [ -n "${BIOS_PATH_COMM}" ] && BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
+  [ -n "${EC_PATH_COMM}" ] && EC_LINK_COMM="${FW_STORE_URL}/${EC_PATH_COMM}"
+  [ -n "${BIOS_PATH_COMM_CAP}" ] && BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${BIOS_PATH_COMM_CAP}"
+  [ -n "${EOM_PATH_COMM_CAP}" ] && EOM_LINK_COMM_CAP="${FW_STORE_URL}/${EOM_PATH_COMM_CAP}"
+
+  # Define signatures and hashes for BIOS and EC
+  [ -z "$BIOS_HASH_LINK_COMM" ] && BIOS_HASH_LINK_COMM="${BIOS_LINK_COMM}.sha256"
+  [ -z "$BIOS_SIGN_LINK_COMM" ] && BIOS_SIGN_LINK_COMM="${BIOS_HASH_LINK_COMM}.sig"
+  [ -z "$BIOS_HASH_LINK_DPP" ] && BIOS_HASH_LINK_DPP="${BIOS_LINK_DPP}.sha256"
+  [ -z "$BIOS_SIGN_LINK_DPP" ] && BIOS_SIGN_LINK_DPP="${BIOS_HASH_LINK_DPP}.sig"
+  [ -z "$BIOS_HASH_LINK_DPP_SEABIOS" ] && BIOS_HASH_LINK_DPP_SEABIOS="${BIOS_LINK_DPP_SEABIOS}.sha256"
+  [ -z "$BIOS_SIGN_LINK_DPP_SEABIOS" ] && BIOS_SIGN_LINK_DPP_SEABIOS="${BIOS_HASH_LINK_DPP_SEABIOS}.sig"
+  [ -z "$HEADS_HASH_LINK_DPP" ] && HEADS_HASH_LINK_DPP="${HEADS_LINK_DPP}.sha256"
+  [ -z "$HEADS_SIGN_LINK_DPP" ] && HEADS_SIGN_LINK_DPP="${HEADS_HASH_LINK_DPP}.sig"
+  [ -z "$BIOS_HASH_LINK_DPP_SLIMUEFI" ] && BIOS_HASH_LINK_DPP_SLIMUEFI="${BIOS_LINK_DPP_SLIMUEFI}.sha256"
+  [ -z "$BIOS_SIGN_LINK_DPP_SLIMUEFI" ] && BIOS_SIGN_LINK_DPP_SLIMUEFI="${BIOS_HASH_LINK_DPP_SLIMUEFI}.sig"
+  [ -z "$EC_HASH_LINK_COMM" ] && EC_HASH_LINK_COMM="${EC_LINK_COMM}.sha256"
+  [ -z "$EC_SIGN_LINK_COMM" ] && EC_SIGN_LINK_COMM="${EC_HASH_LINK_COMM}.sig"
+  [ -z "$EC_HASH_LINK_DPP" ] && EC_HASH_LINK_DPP="${EC_LINK_DPP}.sha256"
+  [ -z "$EC_SIGN_LINK_DPP" ] && EC_SIGN_LINK_DPP="${EC_HASH_LINK_DPP}.sig"
+  [ -z "$HEADS_EC_HASH_LINK_DPP" ] && HEADS_EC_HASH_LINK_DPP="${HEADS_EC_LINK_DPP}.sha256"
+  [ -z "$HEADS_EC_SIGN_LINK_DPP" ] && HEADS_EC_SIGN_LINK_DPP="${HEADS_EC_HASH_LINK_DPP}.sig"
+
+  # Same as above but for capsules
+  [ -z "$BIOS_HASH_LINK_COMM_CAP" ] && BIOS_HASH_LINK_COMM_CAP="${BIOS_LINK_COMM_CAP}.sha256"
+  [ -z "$BIOS_SIGN_LINK_COMM_CAP" ] && BIOS_SIGN_LINK_COMM_CAP="${BIOS_HASH_LINK_COMM_CAP}.sig"
+  [ -z "$BIOS_HASH_LINK_DPP_CAP" ] && BIOS_HASH_LINK_DPP_CAP="${BIOS_LINK_DPP_CAP}.sha256"
+  [ -z "$BIOS_SIGN_LINK_DPP_CAP" ] && BIOS_SIGN_LINK_DPP_CAP="${BIOS_HASH_LINK_DPP_CAP}.sig"
+  [ -z "$EC_HASH_LINK_DPP_CAP" ] && EC_HASH_LINK_DPP_CAP="${EC_LINK_DPP_CAP}.sha256"
+  [ -z "$EC_SIGN_LINK_DPP_CAP" ] && EC_SIGN_LINK_DPP_CAP="${EC_HASH_LINK_DPP_CAP}.sig"
+  [ -z "$EOM_HASH_LINK_COMM_CAP" ] && EOM_HASH_LINK_COMM_CAP="${EOM_LINK_COMM_CAP}.sha256"
+  [ -z "$EOM_SIGN_LINK_COMM_CAP" ] && EOM_SIGN_LINK_COMM_CAP="${EOM_HASH_LINK_COMM_CAP}.sig"
 }
 
 fetch_fw() {
