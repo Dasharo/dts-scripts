@@ -296,20 +296,6 @@ board_config() {
       fi
 
       HEADS_LINK_DPP="${BUCKET_DPP_HEADS}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_heads.rom"
-      if check_if_dasharo; then
-        # if v1.7.2 or older, flash the whole bios region
-        # TODO: Let DTS determine which parameters are suitable.
-        # FIXME: Can we ever get rid of that? We change so much in each release,
-        # that we almost always need to flash whole BIOS regions
-        # because of non-backward compatible or breaking changes.
-        compare_versions $DASHARO_VERSION $DASHARO_REL_VER
-        if [ $? -eq 0 ]; then
-          HAVE_HEADS_FW="true"
-        fi
-        if [ "$DASHARO_FLAVOR" == "Dasharo (coreboot+heads)" ]; then
-          HAVE_HEADS_FW="true"
-        fi
-      fi
       ;;
     "V54x_6x_TU")
       # Dasharo 0.9.0-rc10 and higher have board model in baseboard-version
