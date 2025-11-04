@@ -272,96 +272,31 @@ board_config() {
   tar xf "$BOARD_CONFIG_PATH.tar.gz" -C "$BOARD_CONFIG_PATH" --strip-components=1
 
   echo "Checking if board is Dasharo compatible."
+  # Handle special cases that need preprocessing or should fail early
   case "$SYSTEM_VENDOR" in
-  "Notebook")
-    case "$SYSTEM_MODEL" in
-    "NV4XMB,ME,MZ")
-      if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
-        return 1
-      fi
-      ;;
-    "NS50_70MU")
-      if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
-        return 1
-      fi
-      ;;
-    "NS5x_NS7xPU")
-      if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
-        return 1
-      fi
-      ;;
-    "NV4xPZ")
-      if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
-        return 1
-      fi
-      ;;
-    "V54x_6x_TU")
-      if check_if_dasharo; then
-        BOARD_MODEL="$($DMIDECODE dump_var_mock -s baseboard-version)"
-      else
-        ask_for_model V540TU V560TU
-      fi
-
-      if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
-        return 1
-      fi
-      ;;
-    "V5xTNC_TND_TNE")
-      if check_if_dasharo; then
-        BOARD_MODEL="$($DMIDECODE dump_var_mock -s baseboard-version)"
-      else
-        ask_for_model V540TNx V560TNx
-      fi
-
-      if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
-        return 1
-      fi
-      ;;
-    *)
-      print_error "Board model $SYSTEM_MODEL is currently not supported"
-      return 1
-      ;;
-    esac
-    ;;
-  "NovaCustom" | "ASRock Industrial")
-    if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
-      return 1
-    fi
-    ;;
-  "Micro-Star International Co., Ltd.")
-    if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
-      return 1
-    fi
-    ;;
-  "Dell Inc.")
-    if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
-      return 1
-    fi
-    ;;
-  "PC Engines")
-    if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
-      return 1
-    fi
-    ;;
-  "HARDKERNEL")
-    if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
-      return 1
-    fi
-    ;;
-  "QEMU" | "Emulation")
-    if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
-      return 1
-    fi
-    ;;
   "To Be Filled By O.E.M.")
     print_error "Cannot determine board vendor"
     return 1
     ;;
-  *)
-    print_error "Board vendor: $SYSTEM_VENDOR is currently not supported"
-    return 1
+  "Notebook")
+    if check_if_dasharo; then
+      BOARD_MODEL="$($DMIDECODE dump_var_mock -s baseboard-version)"
+    else
+      case "$SYSTEM_MODEL" in
+      "V54x_6x_TU")
+        ask_for_model V540TU V560TU
+        ;;
+      "V5xTNC_TND_TNE")
+        ask_for_model V540TNx V560TNx
+        ;;
+      esac
+    fi
     ;;
   esac
+
+  if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
+    return 1
+  fi
 
   rm -rf "$BOARD_CONFIG_PATH"
 }
