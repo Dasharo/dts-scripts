@@ -770,3 +770,18 @@ mei-amt-check_common_mock() {
     return 1
   fi
 }
+
+################################################################################
+# amdtool
+################################################################################
+
+amdtool_on_amd_mock() {
+  # lowercase
+  local cpu="${TEST_CPU_VERSION,,}"
+
+  if [[ "$cpu" == *amd* ||
+    "$cpu" == *"advanced micro devices"* ]]; then
+    return 0
+  fi
+  return 1
+}

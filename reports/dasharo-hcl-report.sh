@@ -145,7 +145,7 @@ update_result "Intel configuration registers" logs/inteltool.err.log
 progress_bar_update
 
 # echo "Dumping AMD configuration registers..."
-$AMDTOOL -a >logs/amdtool.log 2>logs/amdtool.err.log
+$AMDTOOL on_amd_mock -a >logs/amdtool.log 2>logs/amdtool.err.log
 update_result "AMD configuration registers" logs/amdtool.err.log
 progress_bar_update
 
