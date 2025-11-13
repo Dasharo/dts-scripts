@@ -1,0 +1,1706 @@
+#!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2024 3mdeb <contact@3mdeb.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# shellcheck disable=SC2034
+
+### Color functions:
+function echo_green() {
+  echo -e "$GREEN""$1""$NORMAL"
+}
+
+function echo_red() {
+  echo -e "$RED""$1""$NORMAL"
+}
+
+function echo_yellow() {
+  echo -e "$YELLOW""$1""$NORMAL"
+}
+
+# print_warning <msg>
+# Print yellow warning <msg>
+print_warning() {
+  echo_yellow "$1"
+}
+
+# print_error <msg>
+# Print red error <msg>
+print_error() {
+  echo_red "$1"
+}
+
+# print_error <msg>
+# Print green <msg>
+print_ok() {
+  echo_green "$1"
+}
+
+# Clears the line, usable for carriage returns to make sure no garbage is left.
+clear_line() {
+  printf '\r\033[K'
+}
+
+check_if_dasharo() {
+  if [[ $BIOS_VENDOR == *$DASHARO_VENDOR* &&
+    $BIOS_VERSION == *$DASHARO_NAME* ||
+    "$SYSTEM_VENDOR" == "PC Engines" ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+check_if_ac() {
+  local _ac_file="/sys/class/power_supply/AC/online"
+
+  if ! $FSREAD_TOOL test -e "${_ac_file}"; then
+    # We want to silently skip if AC file is not there. Most likely this is
+    # not battery-powered device then.
+    return 0
+  fi
+
+  while true; do
+    ac_status=$($FSREAD_TOOL cat ${_ac_file})
+
+    if [ "$ac_status" -eq 1 ]; then
+      echo "AC adapter is connected. Continuing with firmware update."
+      return
+    else
+      print_warning "Warning: AC adapter must be connected before performing firmware update."
+      print_warning "Please connect the AC adapter and press 'C' to continue, or 'Q' to quit."
+
+      read -n 1 -r input
+      case $input in
+      [Cc])
+        echo "Checking AC status again..."
+        ;;
+      [Qq])
+        echo "Quitting firmware update."
+        return 1
+        ;;
+      *)
+        echo "Invalid input. Press 'C' to continue, or 'Q' to quit."
+        continue
+        ;;
+      esac
+    fi
+  done
+}
+
+### Error checks
+
+# instead of error exit in dasharo-deploy exit we need to reboot the platform
+# in cases where there would be some problem with updating the platform
+fum_exit() {
+  if [ "$FUM" == "fum" ]; then
+    print_error "Update cannot be performed"
+    print_warning "Starting bash session"
+    send_dts_logs ask
+    /bin/bash
+  fi
+}
+
+# error_exit <msg> [error_code]
+# Print red <msg> error on screen and exit with [error_code] (1 by default)
+error_exit() {
+  _error_msg="$1"
+  local exit_code=1
+  if [ "$#" -eq 2 ]; then
+    exit_code=$2
+  fi
+  if [ -n "$_error_msg" ]; then
+    # Avoid printing empty line if no message was passed
+    print_error "$_error_msg"
+  fi
+  fum_exit
+  exit $exit_code
+}
+
+# error_check <error_msg>
+# if return code of previous command isn't 0 then print red <error_msg> and
+# return code of that command, and then exit with the same code
+error_check() {
+  _error_code=$?
+  _error_msg="$1"
+  [ "$_error_code" -ne 0 ] && error_exit "$_error_msg : ($_error_code)"
+}
+
+function error_file_check {
+  if [ ! -f "$1" ]; then
+    print_error "$2"
+  fi
+}
+
+### Clevo-specific functions
+# Method to access IT5570 IO Depth 2 registers
+it5570_i2ec() {
+  # TODO: Use /dev/port instead of iotools
+
+  # Address high byte
+  $IOTOOLS io_write8 0x2e 0x2e
+  $IOTOOLS io_write8 0x2f 0x11
+  $IOTOOLS io_write8 0x2e 0x2f
+  $IOTOOLS io_write8 0x2f $(($2 >> 8 & 0xff))
+
+  # Address low byte
+  $IOTOOLS io_write8 0x2e 0x2e
+  $IOTOOLS io_write8 0x2f 0x10
+  $IOTOOLS io_write8 0x2e 0x2f
+  $IOTOOLS io_write8 0x2f $(($2 & 0xff))
+
+  # Data
+  $IOTOOLS io_write8 0x2e 0x2e
+  $IOTOOLS io_write8 0x2f 0x12
+  $IOTOOLS io_write8 0x2e 0x2f
+
+  case $1 in
+  "r")
+    $IOTOOLS io_read8 0x2f
+    ;;
+  "w")
+    $IOTOOLS io_write8 0x2f "$3"
+    ;;
+  esac
+}
+
+it5570_shutdown() {
+  # shut down using EC external watchdog reset
+  it5570_i2ec w 0x1f01 0x20
+  it5570_i2ec w 0x1f07 0x01
+}
+
+check_network_connection() {
+  if wget --spider cloud.3mdeb.com >/dev/null 2>>"$ERR_LOG_FILE"; then
+    return 0
+  else
+    return 1
+  fi
+}
+# supplement the code with a global variable, flag (to avoid repeating the message):
+NETWORK_WAIT_MSG_SHOWN=false  # added line
+
+wait_for_network_connection() {
+  # if first argument equals true then print warning else print error
+  local print_warning="$1"
+  if ["NETWORK_WAIT_MSG_SHOWN"=false]; then  # added line
+    echo 'Waiting for network connection ...'
+    NETWORK_WAIT_MSG_SHOWN=true  # added line
+  fi
+  n="10"
+
+  while :; do
+    if check_network_connection; then
+      print_ok "Network connection have been established!"
+      return 0
+    fi
+
+    n=$((n - 1))
+    if [ "${n}" == "0" ]; then
+      if [ "${print_warning}" = "true" ]; then
+        print_warning "Could not connect to network, please check network connection!"
+      else
+        print_error "Could not connect to network, please check network connection!"
+      fi
+      return 1
+    fi
+    sleep 1
+  done
+}
+
+ask_for_model() {
+  local model=("$@")
+  if [ $# -lt 1 ]; then
+    BOARD_MODEL=""
+    return
+  fi
+
+  while :; do
+    echo "Choose your board model:"
+    echo "  0. None below"
+    for ((i = 0; i < $#; i++)); do
+      echo "  $((i + 1)): ${model[$i]}"
+    done
+
+    echo
+    read -r -p "Enter an option: " OPTION
+    echo
+
+    if [ "$OPTION" -eq 0 ]; then
+      BOARD_MODEL=""
+      return
+    fi
+    if [ "$OPTION" -gt 0 ] && [ "$OPTION" -le $# ]; then
+      BOARD_MODEL="${model[$((OPTION - 1))]}"
+      return
+    fi
+  done
+}
+
+board_config() {
+  # This functions checks used platform and configure environment in case the
+  # platform is supported. The supported platforms are sorted by variables
+  # SYSTEM_VENDOR, SYSTEM_MODEL, and BOARD_MODEL in switch/case statements.
+  #
+  # Every platform uses some standard environment configuration variables
+  # described in dts-environment.sh file, these could be specified for a specific
+  # board or vendor or shared between some, some platforms may have their own env.
+  # var. as well.
+  #
+  # All the standard variables are explicitly declared in dts-environment.sh
+  # script and, if appropriate, set to default values. If a platform has its own
+  # configuration variables - it must declare them here, even if they are not
+  # set. This is made with a goal to limit global variables declaration to
+  # dts-environment.sh and board_config function.
+
+  # We download firmwares via network. At this point, the network connection
+  # must be up already.
+
+# do usuniecia  4 ponizsze linie:
+  if ! wait_for_network_connection true; then
+    FETCH_LOCALLY="true"
+    print_warning "DTS couldn't connect to the internet! Using local files instead."
+  fi
+
+  mkdir -p "$BOARD_CONFIG_PATH"
+  if [ "$FETCH_LOCALLY" = "true" ]; then
+    cp /firmware/dts-configs.tar.gz "$BOARD_CONFIG_PATH.tar.gz"
+  else
+    echo "Downloading board configs repository..."
+    curl -f -L -o "$BOARD_CONFIG_PATH.tar.gz" \
+      https://github.com/Dasharo/dts-configs/archive/${DTS_CONFIG_REF}.tar.gz >/dev/null 2>>"$ERR_LOG_FILE"
+  fi
+  if [ $? -ne 0 ]; then
+    print_error "Failed to download configs."
+    return 1
+  fi
+  tar xf "$BOARD_CONFIG_PATH.tar.gz" -C "$BOARD_CONFIG_PATH" --strip-components=1
+
+  echo "Checking if board is Dasharo compatible."
+  # Handle special cases that need preprocessing or should fail early
+  case "$SYSTEM_VENDOR" in
+  "To Be Filled By O.E.M.")
+    print_error "Cannot determine board vendor"
+    return 1
+    ;;
+  "Notebook")
+    if check_if_dasharo; then
+      BOARD_MODEL="$($DMIDECODE dump_var_mock -s baseboard-version)"
+    else
+      case "$SYSTEM_MODEL" in
+      "V54x_6x_TU")
+        ask_for_model V540TU V560TU
+        ;;
+      "V5xTNC_TND_TNE")
+        ask_for_model V540TNx V560TNx
+        ;;
+      esac
+    fi
+    ;;
+  esac
+
+  if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
+    return 1
+  fi
+
+  rm -rf "$BOARD_CONFIG_PATH"
+}
+
+check_flash_lock() {
+  $FLASHROM check_flash_lock_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} >/tmp/check_flash_lock 2>/tmp/check_flash_lock.err
+  # Check in flashrom output if lock is enabled
+  grep -q 'PR0: Warning:.* is read-only\|SMM protection is enabled' /tmp/check_flash_lock.err
+  if [ $? -eq 0 ]; then
+    print_warning "Flash lock enabled, please go into BIOS setup / Dasharo System Features / Dasharo\r
+        \rSecurity Options and enable access to flash with flashrom.\r\n
+        \rYou can learn more about this on: https://docs.dasharo.com/dasharo-menu-docs/dasharo-system-features/#dasharo-security-options"
+    exit 1
+  fi
+}
+
+check_flash_chip() {
+  echo "Gathering flash chip and chipset information..."
+  $FLASHROM flash_chip_name_mock -p "$PROGRAMMER_BIOS" --flash-name >>"$FLASH_INFO_FILE" 2>>"$ERR_LOG_FILE"
+  if [ $? -eq 0 ]; then
+    echo -n "Flash information: "
+    tail -n1 "$FLASH_INFO_FILE"
+    FLASH_CHIP_SIZE=$(($($FLASHROM flash_chip_size_mock -p "$PROGRAMMER_BIOS" --flash-size 2>>"$ERR_LOG_FILE" | tail -n1) / 1024 / 1024))
+    echo -n "Flash size: "
+    echo ${FLASH_CHIP_SIZE}M
+  else
+    for flash_name in $FLASH_CHIP_LIST; do
+      $FLASHROM flash_chip_name_mock -p "$PROGRAMMER_BIOS" -c "$flash_name" --flash-name >>"$FLASH_INFO_FILE" 2>>"$ERR_LOG_FILE"
+      if [ $? -eq 0 ]; then
+        echo "Chipset found"
+        tail -n1 "$FLASH_INFO_FILE"
+        FLASH_CHIP_SELECT="-c ${flash_name}"
+        FLASH_CHIP_SIZE=$(($($FLASHROM flash_chip_size_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} --flash-size 2>>"$ERR_LOG_FILE" | tail -n1) / 1024 / 1024))
+        echo "Chipset size"
+        echo ${FLASH_CHIP_SIZE}M
+        break
+      fi
+    done
+    if [ -z "$FLASH_CHIP_SELECT" ]; then
+      return 1
+    fi
+  fi
+
+  return 0
+}
+
+compare_versions() {
+  # compare_versions ver1 ver2
+  # return 1 if ver2 > ver1
+  # return 0 otherwise
+  local ver1="$1"
+  local ver2="$2"
+
+  if [ "$(semver_version_compare "$1" "$2")" -eq -1 ]; then
+    return 1
+  else
+    return 0
+  fi
+}
+
+semver_version_compare() {
+  # semver_version_compare ver1 ver2
+  # echo 0 if ver1 == ver2, 1 if ver1 > ver2 and -1 if ver1 < ver2
+  local ver1="$1"
+  local ver2="$2"
+  local compare=
+  # convert version ending with '-rc<x>' to '-rc.<x>' where <x> is number
+  # as semantic versioning compares whole 'rc<x>' as alphanumeric identifier
+  # which results in rc2 > rc12. More information at https://semver.org/
+  ver1=$(sed -r "s/-rc([0-9]+)$/-rc.\1/" <<<"$ver1")
+  ver2=$(sed -r "s/-rc([0-9]+)$/-rc.\1/" <<<"$ver2")
+
+  # convert SeaBIOS versioning x.x.x.x to x.x.x-x so it can be used with semver
+  # checker. Also remove leading zeroes as it's not allowed in semver
+  # specification. In case x are only zeroes then leave only one zero
+  dot_to_dash='s/([0-9]+\.[0-9]+\.[0-9]+)\.([0-9]+)/\1-\2/'
+  leading_zeroes='s/(^|\.)0+(0|[1-9])/\1\2/g'
+  ver1=$(sed -r -e "$leading_zeroes" -e "$dot_to_dash" <<<"$ver1")
+  ver2=$(sed -r -e "$leading_zeroes" -e "$dot_to_dash" <<<"$ver2")
+
+  if ! python3 -m semver check "$ver1" || ! python3 -m semver check "$ver2"; then
+    error_exit "Incorrect version format"
+  fi
+  python3 -m semver compare "$ver1" "$ver2"
+}
+
+download_bios() {
+  if [ "${FETCH_LOCALLY}" = "false" ]; then
+    echo "Downloading Dasharo firmware..."
+  fi
+  if [[ "${BIOS_LINK}" == "${FW_STORE_URL}"* ]]; then
+    fetch_fw "$BIOS_LINK" "$BIOS_UPDATE_FILE"
+    fetch_fw "$BIOS_HASH_LINK" "$BIOS_HASH_FILE"
+    fetch_fw "$BIOS_SIGN_LINK" "$BIOS_SIGN_FILE"
+  else
+    mc get "${DPP_SERVER_USER_ALIAS}/$BIOS_LINK" "$BIOS_UPDATE_FILE" >/dev/null 2>>"$ERR_LOG_FILE"
+    error_check "Cannot access $FW_STORE_URL_DPP while downloading binary.
+   Please check your internet connection and credentials"
+    mc get "${DPP_SERVER_USER_ALIAS}/$BIOS_HASH_LINK" "$BIOS_HASH_FILE" >/dev/null 2>>"$ERR_LOG_FILE"
+    error_check "Cannot access $FW_STORE_URL_DPP while downloading signature.
+   Please check your internet connection and credentials"
+    mc get "${DPP_SERVER_USER_ALIAS}/$BIOS_SIGN_LINK" "$BIOS_SIGN_FILE" >/dev/null 2>>"$ERR_LOG_FILE"
+    error_check "Cannot access $FW_STORE_URL_DPP while downloading signature.
+   Please check your internet connection and credentials"
+  fi
+}
+
+download_ec() {
+  if [ "${FETCH_LOCALLY}" = "false" ]; then
+    echo "Downloading Dasharo EC firmware..."
+  fi
+  if [[ "${EC_LINK}" == "${FW_STORE_URL}"* ]]; then
+    fetch_fw "$EC_LINK" "$EC_UPDATE_FILE"
+    fetch_fw "$EC_HASH_LINK" "$EC_HASH_FILE"
+    fetch_fw "$EC_SIGN_LINK" "$EC_SIGN_FILE"
+  else
+    mc get "${DPP_SERVER_USER_ALIAS}/${EC_LINK}" "$EC_UPDATE_FILE" >/dev/null 2>>"$ERR_LOG_FILE"
+    error_check "Cannot access $FW_STORE_URL_DPP while downloading binary. Please
+     check your internet connection and credentials"
+    mc get "${DPP_SERVER_USER_ALIAS}/${EC_HASH_LINK}" "$EC_HASH_FILE" >/dev/null 2>>"$ERR_LOG_FILE"
+    error_check "Cannot access $FW_STORE_URL_DPP while downloading signature. Please
+     check your internet connection and credentials"
+    mc get "${DPP_SERVER_USER_ALIAS}/${EC_SIGN_LINK}" "$EC_SIGN_FILE" >/dev/null 2>>"$ERR_LOG_FILE"
+    error_check "Cannot access $FW_STORE_URL_DPP while downloading signature. Please
+     check your internet connection and credentials"
+  fi
+}
+
+download_keys() {
+  mkdir -p $KEYS_DIR
+  wget -O $KEYS_DIR/recovery_key.vbpubk https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/recovery_key.vbpubk >>$ERR_LOG_FILE 2>&1
+  wget -O $KEYS_DIR/firmware.keyblock https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/firmware.keyblock >>$ERR_LOG_FILE 2>&1
+  wget -O $KEYS_DIR/firmware_data_key.vbprivk https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/firmware_data_key.vbprivk >>$ERR_LOG_FILE 2>&1
+  wget -O $KEYS_DIR/kernel_subkey.vbpubk https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/kernel_subkey.vbpubk >>$ERR_LOG_FILE 2>&1
+  wget -O $KEYS_DIR/root_key.vbpubk https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/root_key.vbpubk >>$ERR_LOG_FILE 2>&1
+}
+
+get_signing_keys() {
+  local platform_keys=$PLATFORM_SIGN_KEY
+  if [ "$FETCH_LOCALLY" = "true" ]; then
+    return 0
+  fi
+  echo -n "Getting platform specific GPG key... "
+  for key in $platform_keys; do
+    wget -q https://raw.githubusercontent.com/3mdeb/3mdeb-secpack/master/$key -O - | gpg --import - >>$ERR_LOG_FILE 2>&1
+    error_check "Cannot get $key key to verify signatures."
+  done
+  print_ok "Done"
+}
+
+verify_artifacts() {
+  # This function checks downloaded files, the files that are being downloaded
+  # should have hashes provided on the server too. The hashes will ben downloaded
+  # and the binaries will be verified upon them.
+  #
+  # In case of .rom files it will be enough but capsules have additional
+  # protection layer built in, the binaries they provide will be verified by
+  # drivers, so no need to implement it here.
+  local _update_file=""
+  local _hash_file=""
+  local _sign_file=""
+  local _name=""
+  local _sig_result=""
+
+  while [[ $# -gt 0 ]]; do
+    local _type="$1"
+
+    case $_type in
+    ec)
+      _update_file=$EC_UPDATE_FILE
+      _hash_file=$EC_HASH_FILE
+      _sign_file=$EC_SIGN_FILE
+      _name="Dasharo EC"
+      shift
+      ;;
+    bios)
+      _update_file=$BIOS_UPDATE_FILE
+      _hash_file=$BIOS_HASH_FILE
+      _sign_file=$BIOS_SIGN_FILE
+      _name="Dasharo"
+      shift
+      ;;
+    *)
+      error_exit "Unknown artifact type: $_type"
+      ;;
+    esac
+
+    echo -n "Checking $_name firmware checksum... "
+    sha256sum --check <(echo "$(cat $_hash_file | cut -d ' ' -f 1)" $_update_file) >>$ERR_LOG_FILE 2>&1
+    error_check "Failed to verify $_name firmware checksum"
+    print_ok "Verified."
+
+    if [[ -n "$PLATFORM_SIGN_KEY" && "$FETCH_LOCALLY" != "true" ]]; then
+      echo -n "Checking $_name firmware signature... "
+      _sig_result="$(cat $_hash_file | gpg --verify $_sign_file - >>$ERR_LOG_FILE 2>&1)"
+      error_check "Failed to verify $_name firmware signature.$'\n'$_sig_result"
+      print_ok "Verified."
+    fi
+    echo "$_sig_result"
+  done
+
+  return 0
+}
+
+check_intel_regions() {
+
+  FLASH_REGIONS=$($FLASHROM check_intel_regions_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} 2>&1)
+  BOARD_HAS_FD_REGION=0
+  BOARD_FD_REGION_RW=0
+  BOARD_HAS_ME_REGION=0
+  BOARD_ME_REGION_RW=0
+  BOARD_ME_REGION_LOCKED=0
+  BOARD_HAS_GBE_REGION=0
+  BOARD_GBE_REGION_RW=0
+  BOARD_GBE_REGION_LOCKED=0
+
+  grep -q "Flash Descriptor region" <<<"$FLASH_REGIONS" && BOARD_HAS_FD_REGION=1
+  grep -qE "Flash Descriptor region.*read-write" <<<"$FLASH_REGIONS" && BOARD_FD_REGION_RW=1
+
+  grep -q "Management Engine region" <<<"$FLASH_REGIONS" && BOARD_HAS_ME_REGION=1
+  grep -qE "Management Engine region.*read-write" <<<"$FLASH_REGIONS" && BOARD_ME_REGION_RW=1
+  grep -qE "Management Engine region.*locked" <<<"$FLASH_REGIONS" && BOARD_ME_REGION_LOCKED=1
+
+  grep -q "Gigabit Ethernet region" <<<"$FLASH_REGIONS" && BOARD_HAS_GBE_REGION=1
+  grep -qE "Gigabit Ethernet region.*read-write" <<<"$FLASH_REGIONS" && BOARD_GBE_REGION_RW=1
+  grep -qE "Gigabit Ethernet region.*locked" <<<"$FLASH_REGIONS" && BOARD_GBE_REGION_LOCKED=1
+}
+
+check_blobs_in_binary() {
+  BINARY_HAS_FD=0
+  BINARY_HAS_ME=0
+
+  # If there is no descriptor, there is no ME as well, so skip the check
+  if [ $BOARD_HAS_FD_REGION -ne 0 ]; then
+    ME_OFFSET=$($IFDTOOL check_blobs_in_binary_mock -d $1 2>>"$ERR_LOG_FILE" | grep "Flash Region 2 (Intel ME):" | sed 's/Flash Region 2 (Intel ME)\://' | awk '{print $1;}')
+    # Check for IFD signature at offset 0 (old descriptors)
+    if [ "$(tail -c +0 $1 | head -c 4 | xxd -ps)" == "5aa5f00f" ]; then
+      BINARY_HAS_FD=1
+    fi
+    # Check for IFD signature at offset 16 (new descriptors)
+    if [ "$(tail -c +17 $1 | head -c 4 | xxd -ps)" == "5aa5f00f" ]; then
+      BINARY_HAS_FD=1
+    fi
+    # Check for ME FPT signature at ME offset + 16 (old ME)
+    if [ "$(tail -c +$((0x$ME_OFFSET + 17)) $1 | head -c 4 | tr -d '\0')" == "\$FPT" ]; then
+      BINARY_HAS_ME=1
+    fi
+    # Check for aa55 signature at ME offset + 4096 (new ME)
+    if [ "$(tail -c +$((0x$ME_OFFSET + 4097)) $1 | head -c 2 | xxd -ps)" == "aa55" ]; then
+      BINARY_HAS_ME=1
+    fi
+  fi
+}
+
+check_if_me_disabled() {
+  ME_DISABLED=0
+
+  if [ $BOARD_HAS_ME_REGION -eq 0 ]; then
+    # No ME region
+    ME_DISABLED=2
+    return
+  fi
+
+  if check_if_heci_present; then
+    ME_OPMODE="$(check_me_op_mode)"
+    if [ $ME_OPMODE == "0" ]; then
+      echo "ME is not disabled" >>$ERR_LOG_FILE
+      return
+    elif [ $ME_OPMODE == "2" ]; then
+      echo "ME is disabled (HAP/Debug Mode)" >>$ERR_LOG_FILE
+      ME_DISABLED=2
+      return
+    elif [ $ME_OPMODE == "3" ]; then
+      echo "ME is soft disabled (HECI)" >>$ERR_LOG_FILE
+      ME_DISABLED=1
+      return
+    elif [ $ME_OPMODE == "4" ]; then
+      echo "ME disabled by Security Override Jumper/FDOPS" >>$ERR_LOG_FILE
+      ME_DISABLED=1
+      return
+    elif [ $ME_OPMODE == "5" ]; then
+      echo "ME disabled by Security Override MEI Message/HMRFPO" >>$ERR_LOG_FILE
+      ME_DISABLED=1
+      return
+    elif [ $ME_OPMODE == "6" ]; then
+      echo "ME disabled by Security Override MEI Message/HMRFPO" >>$ERR_LOG_FILE
+      ME_DISABLED=1
+      return
+    elif [ $ME_OPMODE == "7" ]; then
+      echo "ME disabled (Enhanced Debug Mode) or runs Ignition FW" >>$ERR_LOG_FILE
+      ME_DISABLED=1
+      return
+    else
+      print_warning "Unknown ME operation mode, assuming enabled."
+      echo "Unknown ME operation mode, assuming enabled." >>$ERR_LOG_FILE
+      return
+    fi
+  else
+    # If we are running coreboot, check for status in logs
+    $CBMEM check_if_me_disabled_mock -1 |
+      grep "ME is disabled" &>/dev/null && ME_DISABLED=1 && return # HECI (soft) disabled
+    $CBMEM check_if_me_disabled_mock -1 |
+      grep "ME is HAP disabled" &>/dev/null && ME_DISABLED=2 && return # HAP disabled
+    # TODO: If proprietary BIOS, then also try to check SMBIOS for ME FWSTS
+    # BTW we could do the same in coreboot, expose FWSTS in SMBIOS before it
+    # gets disabled
+    print_warning "Can not determine if ME is disabled, assuming enabled."
+    echo "Can not determine if ME is disabled, assuming enabled." >>$ERR_LOG_FILE
+  fi
+}
+
+force_me_update() {
+  echo
+  print_warning "Flashing ME when not in disabled state may cause unexpected power management issues."
+  print_warning "Recovering from such state may require removal of AC power supply and resetting CMOS battery."
+  print_warning "Keeping an older version of ME may cause a CPU to perform less efficient, e.g. if upgraded the CPU to a newer generation."
+  print_warning "You have been warned."
+  echo
+  if ask_for_confirmation "Skip ME flashing and proceed with BIOS/firmware flashing/updating?"; then
+    print_warning "Proceeding without ME flashing, because we were asked to."
+  else
+    error_exit "Cancelling flashing process..."
+  fi
+}
+
+set_flashrom_update_params() {
+  local bios_update_file=$1
+  # Safe defaults which should always work
+  if [ $BOARD_HAS_FD_REGION -eq 0 ]; then
+    FLASHROM_ADD_OPT_UPDATE=""
+  else
+    FLASHROM_ADD_OPT_UPDATE="-N --ifd -i bios"
+  fi
+  BINARY_HAS_RW_B=1
+  # We need to read whole binary (or BIOS region), otherwise cbfstool will
+  # return different attributes for CBFS regions
+  echo "Checking flash layout."
+  $FLASHROM read_flash_layout_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE} -r $BIOS_DUMP_FILE >/dev/null 2>>"$ERR_LOG_FILE"
+  if [ $? -eq 0 ] && [ -f "$BIOS_DUMP_FILE" ]; then
+    BOARD_FMAP_LAYOUT=$($CBFSTOOL layout_mock $BIOS_DUMP_FILE layout -w 2>>"$ERR_LOG_FILE")
+    BINARY_FMAP_LAYOUT=$($CBFSTOOL layout_mock "$bios_update_file" layout -w 2>>"$ERR_LOG_FILE")
+    diff <(echo "$BOARD_FMAP_LAYOUT") <(echo "$BINARY_FMAP_LAYOUT") >/dev/null 2>>"$ERR_LOG_FILE"
+    # If layout is identical, perform standard update using FMAP only
+    if [ $? -eq 0 ]; then
+      # Simply update RW_A fmap region if exists
+      grep -q "RW_SECTION_A" <<<$BINARY_FMAP_LAYOUT
+      if [ $? -eq 0 ]; then
+        FLASHROM_ADD_OPT_UPDATE="-N --fmap -i RW_SECTION_A -i WP_RO"
+      else
+        # RW_A does not exists, it means no vboot. Update COREBOOT region only
+        FLASHROM_ADD_OPT_UPDATE="-N --fmap -i COREBOOT"
+      fi
+      # If RW_B present, use this variable later to perform 2-step update
+      grep -q "RW_SECTION_B" <<<$BINARY_FMAP_LAYOUT && BINARY_HAS_RW_B=0
+    fi
+  else
+    error_exit "Couldn't read flash"
+  fi
+}
+
+set_intel_regions_update_params() {
+  local fd_me_locked="no"
+  if [ $BOARD_HAS_FD_REGION -eq 0 ]; then
+    # No FD on board, so no further flashing
+    FLASHROM_ADD_OPT_REGIONS=""
+  else
+    # Safe defaults, only BIOS region and do not verify all regions,
+    # as some of them may not be readable. First argument is the initial
+    # params.
+    FLASHROM_ADD_OPT_REGIONS=$1
+
+    if [ $BINARY_HAS_FD -ne 0 ]; then
+      if [ $BOARD_FD_REGION_RW -ne 0 ]; then
+        # FD writable and the binary provides FD, safe to flash
+        FLASHROM_ADD_OPT_REGIONS+=" -i fd"
+      else
+        fd_me_locked="yes"
+        print_error "The firmware binary to be flashed contains Flash Descriptor (FD), but FD is not writable!"
+        print_warning "Proceeding without FD flashing, as it is not critical."
+        echo "The firmware binary contains Flash Descriptor (FD), but FD is not writable!" >>$ERR_LOG_FILE
+      fi
+    fi
+
+    if [ $BINARY_HAS_ME -ne 0 ]; then
+      if [ $BOARD_ME_REGION_RW -ne 0 ]; then
+        # ME writable and the binary provides ME, safe to flash if ME disabled
+        if [ $ME_DISABLED -ne 0 ]; then
+          FLASHROM_ADD_OPT_REGIONS+=" -i me"
+        else
+          echo "The firmware binary to be flashed contains Management Engine (ME), but ME is not disabled!" >>$ERR_LOG_FILE
+          print_error "The firmware binary contains Management Engine (ME), but ME is not disabled!"
+          force_me_update
+        fi
+      else
+        fd_me_locked="yes"
+        echo "The firmware binary to be flashed contains Management Engine (ME), but ME is not writable!" >>$ERR_LOG_FILE
+        print_error "The firmware binary contains Management Engine (ME), but ME is not writable!"
+      fi
+    fi
+  fi
+  if [ "$fd_me_locked" = "yes" ]; then
+    FLASHROM_ADD_OPT_REGIONS+=" -N"
+    print_warning "You can read more about issues with FD or ME on"
+    print_warning "https://docs.dasharo.com/guides/firmware-update/#known-issues"
+  fi
+}
+
+handle_fw_switching() {
+  local _can_switch_to_heads=$1
+
+  if [ "$_can_switch_to_heads" == "true" ] && [ "$DASHARO_FLAVOR" != "Dasharo (coreboot+heads)" ]; then
+    if ask_for_confirmation "Would you like to switch to Dasharo heads firmware?"; then
+      UPDATE_VERSION=$HEADS_REL_VER_DPP
+      FLASHROM_ADD_OPT_UPDATE_OVERRIDE=$HEADS_SWITCH_FLASHROM_OPT_OVERRIDE
+      BIOS_HASH_LINK="${HEADS_HASH_LINK_DPP}"
+      BIOS_SIGN_LINK="${HEADS_SIGN_LINK_DPP}"
+      BIOS_LINK="$HEADS_LINK_DPP"
+
+      # Check EC link additionally, not all platforms have Embedded Controllers:
+      if [ -n "$HEADS_EC_LINK_DPP" ]; then
+        EC_LINK=$HEADS_EC_LINK_DPP
+        EC_HASH_LINK=$HEADS_EC_HASH_LINK_DPP
+        EC_SIGN_LINK=$HEADS_EC_SIGN_LINK_DPP
+        if [ -n "$COMPATIBLE_HEADS_EC_FW_VERSION" ]; then
+          COMPATIBLE_EC_FW_VERSION="$COMPATIBLE_HEADS_EC_FW_VERSION"
+        fi
+      elif [ -n "$EC_LINK_DPP" ]; then
+        EC_LINK=$EC_LINK_DPP
+        EC_HASH_LINK=$EC_HASH_LINK_DPP
+        EC_SIGN_LINK=$EC_SIGN_LINK_DPP
+      elif [ -n "$EC_LINK_COMM" ]; then
+        EC_LINK=$EC_LINK_COMM
+        EC_HASH_LINK=$EC_HASH_LINK_COMM
+        EC_SIGN_LINK=$EC_SIGN_LINK_COMM
+      fi
+
+      export SWITCHING_TO="heads"
+      echo
+      echo "Switching to Dasharo heads firmware v$UPDATE_VERSION"
+    else
+      echo "Will not install Dasharo heads firmware. Proceeding with regular Dasharo firmware update."
+      return $CANCEL
+    fi
+  elif [ -n "$DPP_IS_LOGGED" ] && [ -n "$HEADS_LINK_DPP" ]; then
+    local _heads_dpp=1
+    curl -sSfI -u "$USER_DETAILS" -H "$CLOUD_REQUEST" "$HEADS_LINK_DPP" -o /dev/null 2>>"$ERR_LOG_FILE"
+    _heads_dpp=$?
+    # We are on heads, offer switch back or perform update if DPP gives access to heads
+    if [ "$DASHARO_FLAVOR" == "Dasharo (coreboot+heads)" ]; then
+      echo
+      print_warning 'If you are running heads firmware variant and want to update, say "n" here.'
+      print_warning 'You will be asked for heads update confirmation in a moment.'
+      print_warning 'Say "Y" only if you want to migrate from heads to UEFI firmware variant.'
+
+      if ask_for_confirmation "Would you like to switch back to the regular (UEFI) Dasharo firmware variant"; then
+        echo
+        echo "Switching back to regular Dasharo firmware v$UPDATE_VERSION"
+        echo
+        FLASHROM_ADD_OPT_UPDATE_OVERRIDE=$HEADS_SWITCH_FLASHROM_OPT_OVERRIDE
+        export SWITCHING_TO="uefi"
+      else
+        echo
+        if [ $_heads_dpp -ne 0 ]; then
+          error_exit "No update available for your machine"
+        fi
+        UPDATE_VERSION=$HEADS_REL_VER_DPP
+        compare_versions $DASHARO_VERSION $UPDATE_VERSION
+        if [ $? -ne 1 ]; then
+          error_exit "No update available for your machine" $CANCEL
+        fi
+        echo "Will not switch back to regular Dasharo firmware. Proceeding with Dasharo heads firmware update to $UPDATE_VERSION."
+        FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
+        BIOS_HASH_LINK="${HEADS_HASH_LINK_DPP}"
+        BIOS_SIGN_LINK="${HEADS_SIGN_LINK_DPP}"
+        BIOS_LINK="$HEADS_LINK_DPP"
+
+        # Check EC link additionally, not all platforms have Embedded Controllers:
+        if [ -n "$EC_LINK_DPP" ]; then
+          EC_LINK=$EC_LINK_DPP
+          EC_HASH_LINK=$EC_HASH_LINK_DPP
+          EC_SIGN_LINK=$EC_SIGN_LINK_DPP
+        elif [ -n "$EC_LINK_COMM" ]; then
+          EC_LINK=$EC_LINK_COMM
+          EC_HASH_LINK=$EC_HASH_LINK_COMM
+          EC_SIGN_LINK=$EC_SIGN_LINK_COMM
+        fi
+      fi
+    fi
+  elif [ -z "$DPP_IS_LOGGED" ] && [ "$DASHARO_FLAVOR" == "Dasharo (coreboot+heads)" ]; then
+    # Not logged with DPP and we are on heads, offer switch back
+    compare_versions $DASHARO_VERSION $HEADS_REL_VER_DPP
+    if [ $? -eq 1 ]; then
+      print_warning "You are running heads firmware, but did not provide DPP credentials."
+      print_warning "There are updates available if you provide DPP credentials in main DTS menu."
+    fi
+    echo
+    echo "Latest available Dasharo version: $HEADS_REL_VER_DPP"
+    echo
+    if ask_for_confirmation "Would you like to switch back to the regular Dasharo firmware?"; then
+      echo
+      echo "Switching back to regular Dasharo firmware v$UPDATE_VERSION"
+      echo
+      FLASHROM_ADD_OPT_UPDATE_OVERRIDE=$HEADS_SWITCH_FLASHROM_OPT_OVERRIDE
+      export SWITCHING_TO="uefi"
+    else
+      echo
+      print_warning "No update currently possible. Aborting update process..."
+      exit 0
+    fi
+  else
+    if [ -z "$UPDATE_VERSION" ]; then
+      error_exit "No update available for your machine"
+    fi
+    compare_versions $DASHARO_VERSION $UPDATE_VERSION
+    if [ $? -ne 1 ]; then
+      error_exit "No update available for your machine" $CANCEL
+    fi
+  fi
+}
+
+sync_clocks() {
+  if [ "${FETCH_LOCALLY}" != "true" ]; then
+    echo "Waiting for system clock to be synced ..."
+    chronyc waitsync 10 0 0 5 >/dev/null 2>>"$ERR_LOG_FILE"
+    if [[ $? -ne 0 ]]; then
+      print_warning "Failed to sync system clock with NTP server!"
+      print_warning "Some time critical tasks might fail!"
+    fi
+  fi
+}
+
+print_disclaimer() {
+  echo -e \
+    "Please note that the report is not anonymous, but we will use it only for\r
+backup and future improvement of the Dasharo product. Every log is encrypted\r
+and sent over HTTPS, so security is assured.\r
+If you still have doubts, you can skip HCL report generation.\r\n
+What is inside the HCL report? We gather information about:\r
+  - PCI, Super I/O, GPIO, EC, audio, and Intel configuration,\r
+  - MSRs, CMOS NVRAM, CPU info, DIMMs, state of touchpad, SMBIOS and ACPI tables,\r
+  - Decoded BIOS information, full firmware image backup, kernel dmesg,\r
+  - IO ports, input bus types, and topology - including I2C and USB,\r
+\r
+You can find more info about HCL in docs.dasharo.com/glossary\r"
+}
+
+show_ram_inf() {
+  # Trace logging is quite slow due to creating timestamp for each line
+  # (calls 'date'). In QEMU this function results in 650 trace lines
+  # out of 800 for every UI refresh, which is noticeable
+  stop_trace_logging
+  # Get the data:
+  local data=""
+  data=$($DMIDECODE)
+
+  # Initialize an empty array to store the extracted values:
+  local -a memory_devices_array
+
+  # Parse the data to exclude fields "Locator" and "Part Number" and format to
+  # "Locator: Part Number":
+  while IFS= read -r line; do
+    # memory_device signals whether the line contains beginning of "Memory
+    # Device" dmidecode structure, if so - set to 1 and pars the structure, if
+    # the line contains "Handle" (the string every structure in dmidecode begins
+    # with) - set to 0:
+    if [[ $line =~ ^Handle ]]; then
+      memory_device=0
+    elif [[ $line =~ Memory\ Device ]]; then
+      memory_device=1
+    # Modify entry if "Memory Device" structure has been found
+    # (memory_device is set to 1) and either "Locator" or "Part Number"
+    # fields have been found:
+    elif [[ $memory_device -eq 1 && $line =~ Locator:\ |Part\ Number: ]]; then
+      # Extract a value of "Locator" field and then add a value of "Part Number"
+      # field but ignore "Bank Locator" field, cos it will be included by parent
+      # condition:
+      if [[ $line =~ Bank\ Locator ]]; then
+        continue # Ignore Bank Locator field.
+      elif [[ $line =~ Locator: ]]; then
+        entry="${line#*: }" # Extract the Locator value.
+      elif [[ $line =~ Part\ Number: ]]; then
+        entry+=": ${NORMAL}${line#*: }" # Concatenate Part Number value with
+        # Locator and add a colon with yellow
+        # color termination.
+        memory_devices_array+=("$entry")
+      fi
+    fi
+  done <<<"$data"
+
+  # Print the extracted values preformatted:
+  for entry in "${memory_devices_array[@]}"; do
+    echo -e "${BLUE}**${YELLOW}    RAM ${entry}"
+  done
+  start_trace_logging
+}
+
+show_header() {
+  local _os_version
+  _os_version=$(grep "VERSION_ID" ${OS_VERSION_FILE} | cut -d "=" -f 2-)
+  printf "\ec"
+  echo -e "${NORMAL}\n Dasharo Tools Suite Script ${_os_version} ${NORMAL}"
+  echo -e "${NORMAL} (c) Dasharo <contact@dasharo.com> ${NORMAL}"
+  echo -e "${NORMAL} Report issues at: https://github.com/Dasharo/dasharo-issues ${NORMAL}"
+}
+
+show_hardsoft_inf() {
+  echo -e "${BLUE}*********************************************************${NORMAL}"
+  echo -e "${BLUE}**${NORMAL}                HARDWARE INFORMATION ${NORMAL}"
+  echo -e "${BLUE}*********************************************************${NORMAL}"
+  echo -e "${BLUE}**${YELLOW}    System Inf.: ${NORMAL}${SYSTEM_VENDOR} ${SYSTEM_MODEL}"
+  echo -e "${BLUE}**${YELLOW} Baseboard Inf.: ${NORMAL}${SYSTEM_VENDOR} ${BOARD_MODEL}"
+  echo -e "${BLUE}**${YELLOW}       CPU Inf.: ${NORMAL}${CPU_VERSION}"
+  show_ram_inf
+  echo -e "${BLUE}*********************************************************${NORMAL}"
+  echo -e "${BLUE}**${NORMAL}                FIRMWARE INFORMATION ${NORMAL}"
+  echo -e "${BLUE}*********************************************************${NORMAL}"
+  echo -e "${BLUE}**${YELLOW} BIOS Inf.: ${NORMAL}${BIOS_VENDOR} ${BIOS_VERSION}"
+  echo -e "${BLUE}*********************************************************${NORMAL}"
+}
+
+show_dpp_credentials() {
+  if [ -n "${DPP_IS_LOGGED}" ]; then
+    echo -e "${BLUE}**${NORMAL}                DPP credentials ${NORMAL}"
+    echo -e "${BLUE}*********************************************************${NORMAL}"
+    if [ "${DISPLAY_CREDENTIALS}" == "true" ]; then
+      echo -e "${BLUE}**${YELLOW}      Email: ${NORMAL}${DPP_EMAIL}"
+      echo -e "${BLUE}**${YELLOW}   Password: ${NORMAL}${DPP_PASSWORD}"
+    else
+      echo -e "${BLUE}**${YELLOW}      Email: ***************"
+      echo -e "${BLUE}**${YELLOW}   Password: ***************"
+    fi
+    echo -e "${BLUE}*********************************************************${NORMAL}"
+  fi
+}
+
+show_ssh_info() {
+  if systemctl is-active sshd.service >/dev/null 2>>"$ERR_LOG_FILE"; then
+    local ip=""
+    ip=$(ip -br -f inet a show scope global | grep UP | awk '{ print $3 }' | tr '\n' ' ')
+    # Display "check your connection" in red color in IP field in case no IPV4
+    # address is assigned, otherwise display IP/PORT:
+    if [[ -z "$ip" ]]; then
+      echo -e "${BLUE}**${NORMAL}    SSH status: ${GREEN}ON${NORMAL} IP: ${RED}check your connection${NORMAL}"
+      echo -e "${BLUE}*********************************************************${NORMAL}"
+    else
+      echo -e "${BLUE}**${NORMAL}    SSH status: ${GREEN}ON${NORMAL} IP: ${ip}${NORMAL}"
+      echo -e "${BLUE}*********************************************************${NORMAL}"
+    fi
+  fi
+}
+
+show_main_menu() {
+  echo -e "${BLUE}**${YELLOW}     ${HCL_REPORT_OPT})${BLUE} Dasharo HCL report${NORMAL}"
+  if check_if_dasharo; then
+    echo -e "${BLUE}**${YELLOW}     ${DASHARO_FIRM_OPT})${BLUE} Update Dasharo Firmware${NORMAL}"
+  # flashrom does not support QEMU. TODO: this could be handled in a better way:
+  elif [ "${SYSTEM_VENDOR}" != "QEMU" ] && [ "${SYSTEM_VENDOR}" != "Emulation" ]; then
+    echo -e "${BLUE}**${YELLOW}     ${DASHARO_FIRM_OPT})${BLUE} Install Dasharo Firmware${NORMAL}"
+  fi
+  # flashrom does not support QEMU. TODO: this could be handled in a better way:
+  if [ "${SYSTEM_VENDOR}" != "QEMU" ] && [ "${SYSTEM_VENDOR}" != "Emulation" ]; then
+    echo -e "${BLUE}**${YELLOW}     ${REST_FIRM_OPT})${BLUE} Restore firmware from Dasharo HCL report${NORMAL}"
+  fi
+  if [ -n "${DPP_IS_LOGGED}" ]; then
+    echo -e "${BLUE}**${YELLOW}     ${DPP_KEYS_OPT})${BLUE} Edit your DPP keys${NORMAL}"
+  else
+    echo -e "${BLUE}**${YELLOW}     ${DPP_KEYS_OPT})${BLUE} Load your DPP keys${NORMAL}"
+  fi
+  if [ -f "${DPP_SUBMENU_JSON}" ]; then
+    echo -e "${BLUE}**${YELLOW}     ${DPP_SUBMENU_OPT})${BLUE} DTS extensions${NORMAL}"
+  fi
+  if check_if_dasharo; then
+    echo -e "${BLUE}**${YELLOW}     ${TRANSITION_OPT})${BLUE} Transition Dasharo Firmware${NORMAL}"
+    echo -e "${BLUE}**${YELLOW}     ${FUSE_OPT})${BLUE} Fuse platform${NORMAL}"
+  fi
+}
+
+main_menu_options() {
+  local OPTION=$1
+  local result
+
+  case ${OPTION} in
+  "${HCL_REPORT_OPT}")
+    print_disclaimer
+    if ask_for_confirmation "Do you want to support Dasharo development by sending us logs with your hardware configuration?"; then
+      export SEND_LOGS="true"
+      echo "Thank you for contributing to the Dasharo development!"
+    else
+      export SEND_LOGS="false"
+      echo "Logs will be saved in root directory."
+      echo "Please consider supporting Dasharo by sending the logs next time."
+    fi
+    if [ "${SEND_LOGS}" == "true" ]; then
+      # DEPLOY_REPORT variable is used in dasharo-hcl-report to determine
+      # which logs should be printed in the terminal, in the future whole
+      # dts scripting should get some LOGLEVEL and maybe dumping working
+      # logs to file
+      export DEPLOY_REPORT="false"
+      wait_for_network_connection && ${CMD_DASHARO_HCL_REPORT} && LOGS_SENT="1"
+    else
+      export DEPLOY_REPORT="false"
+      ${CMD_DASHARO_HCL_REPORT}
+    fi
+    read -p "Press Enter to continue."
+
+    return 0
+    ;;
+  "${DASHARO_FIRM_OPT}")
+    if ! check_if_dasharo; then
+      # flashrom does not support QEMU, but installation depends on flashrom.
+      # TODO: this could be handled in a better way:
+      [ "${SYSTEM_VENDOR}" = "QEMU" ] || [ "${SYSTEM_VENDOR}" = "Emulation" ] && return 0
+
+      if wait_for_network_connection; then
+        echo "Preparing ..."
+        if [ -z "${LOGS_SENT}" ]; then
+          export SEND_LOGS="true"
+          export DEPLOY_REPORT="true"
+          if ! ${CMD_DASHARO_HCL_REPORT}; then
+            echo -e "Unable to connect to dl.dasharo.com for submitting the
+                        \rHCL report. Please recheck your internet connection."
+          else
+            LOGS_SENT="1"
+          fi
+        fi
+      fi
+
+      if [ -n "${LOGS_SENT}" ]; then
+        ${CMD_DASHARO_DEPLOY} install
+        result=$?
+        if [ "$result" -ne $OK ] && [ "$result" -ne $CANCEL ]; then
+          send_dts_logs ask && return 0
+        fi
+      fi
+    else
+      # TODO: This should be placed in dasharo-deploy:
+      # For NovaCustom TGL laptops with Dasharo version lower than 1.3.0,
+      # we shall run the ec_transition script instead. See:
+      # https://docs.dasharo.com/variants/novacustom_nv4x_tgl/releases/#v130-2022-10-18
+      if [ "$SYSTEM_VENDOR" = "Notebook" ]; then
+        case "$SYSTEM_MODEL" in
+        "NS50_70MU" | "NV4XMB,ME,MZ")
+          compare_versions $DASHARO_VERSION 1.3.0
+          if [ $? -eq 1 ]; then
+            # For Dasharo version lesser than 1.3.0
+            print_warning "Detected NovaCustom hardware with version < 1.3.0"
+            print_warning "Need to perform EC transition after which the platform will turn off"
+            print_warning "Then, please power it on and proceed with update again"
+            print_warning "EC transition procedure will start in 5 seconds"
+            sleep 5
+            ${CMD_EC_TRANSITION}
+            error_check "Could not perform EC transition"
+          fi
+          # Continue with regular update process for Dasharo version
+          #  greater or equal 1.3.0
+          ;;
+        esac
+      fi
+
+      # Use regular update process for everything else
+      ${CMD_DASHARO_DEPLOY} update
+      result=$?
+      if [ "$result" -ne $OK ] && [ "$result" -ne $CANCEL ]; then
+        send_dts_logs ask && return 0
+      fi
+    fi
+    read -p "Press Enter to continue."
+
+    return 0
+    ;;
+  "${REST_FIRM_OPT}")
+    # flashrom does not support QEMU, but restore depends on flashrom.
+    # TODO: this could be handled in a better way:
+    [ "${SYSTEM_VENDOR}" = "QEMU" ] || [ "${SYSTEM_VENDOR}" = "Emulation" ] && return 0
+
+    if check_if_dasharo; then
+      if ! ${CMD_DASHARO_DEPLOY} restore; then
+        send_dts_logs ask && return 0
+      fi
+    fi
+    read -p "Press Enter to continue."
+
+    return 0
+    ;;
+  "${DPP_KEYS_OPT}")
+    local _result
+    # Return if there was an issue when asking for credentials:
+    if ! get_dpp_creds; then
+      read -p "Press Enter to continue."
+      return 0
+    fi
+
+    # Try to log in using available DPP credentials, start loop over if login
+    # was not successful:
+    if ! login_to_dpp_server; then
+      echo "Cannot log in to DPP server."
+      read -p "Press Enter to continue"
+      return 0
+    fi
+
+    # Check for Dasharo Firmware for the current platform, continue to
+    # packages after checking:
+    check_for_dasharo_firmware
+    _result=$?
+    echo "Your credentials give access to:"
+    echo -n "Dasharo Pro Package (DPP): "
+    if [ $_result -eq 0 ]; then
+      # FIXME: what if credentials have access to
+      # firmware, but check_for_dasharo_firmware will not detect any platform?
+      # According to check_for_dasharo_firmware it will return 1 in both
+      # cases which means that we cannot detect such case.
+      print_ok "YES"
+    else
+      echo "NO"
+    fi
+
+    echo -n "DTS Extensions: "
+
+    if check_dts_extensions_access; then
+      print_ok "YES"
+      check_avail_dpp_packages && install_all_dpp_packages && parse_for_premium_submenu
+    else
+      echo "NO"
+    fi
+
+    read -p "Press Enter to continue."
+    return 0
+    ;;
+  "${DPP_SUBMENU_OPT}")
+    [ -f "$DPP_SUBMENU_JSON" ] || return 0
+    export DPP_SUBMENU_ACTIVE="true"
+    return 0
+    ;;
+  "${TRANSITION_OPT}")
+    # No transition, if there is no Dasharo firmware installed:
+    check_if_dasharo || return 0
+
+    ${CMD_DASHARO_DEPLOY} transition
+    result=$?
+    if [ "$result" -ne $OK ] && [ "$result" -ne $CANCEL ]; then
+      send_dts_logs ask && return $OK
+    fi
+    read -p "Press Enter to continue."
+
+    return 0
+    ;;
+  "${FUSE_OPT}")
+    check_if_dasharo || return 0
+
+    ${CMD_DASHARO_DEPLOY} fuse
+    result=$?
+    if [ "$result" -ne $OK ] && [ "$result" -ne $CANCEL ]; then
+      send_dts_logs ask && return $OK
+    fi
+    read -p "Press Enter to continue."
+
+    return 0
+    ;;
+  esac
+
+  return 1
+}
+
+show_footer() {
+  echo -e "${BLUE}*********************************************************${NORMAL}"
+  echo -ne "${RED}${REBOOT_OPT_UP}${NORMAL} to reboot  ${NORMAL}"
+  echo -ne "${RED}${POWEROFF_OPT_UP}${NORMAL} to poweroff  ${NORMAL}"
+  echo -e "${RED}${SHELL_OPT_UP}${NORMAL} to enter shell  ${NORMAL}"
+  if systemctl is-active sshd.service >/dev/null 2>>"$ERR_LOG_FILE"; then
+    echo -ne "${RED}${SSH_OPT_UP}${NORMAL} to stop SSH server  ${NORMAL}"
+  else
+    echo -ne "${RED}${SSH_OPT_UP}${NORMAL} to launch SSH server  ${NORMAL}"
+  fi
+  if [ "${SEND_LOGS_ACTIVE}" == "true" ]; then
+    echo -e "${RED}${SEND_LOGS_OPT}${NORMAL} to disable sending DTS logs ${NORMAL}"
+  else
+    echo -e "${RED}${SEND_LOGS_OPT}${NORMAL} to enable sending DTS logs ${NORMAL}"
+  fi
+  if [ -n "${DPP_IS_LOGGED}" ]; then
+    if [ "${DISPLAY_CREDENTIALS}" == "true" ]; then
+      echo -e "${RED}${TOGGLE_DISP_CRED_OPT_UP}${NORMAL} to hide DPP credentials ${NORMAL}"
+    else
+      echo -e "${RED}${TOGGLE_DISP_CRED_OPT_UP}${NORMAL} to display DPP credentials ${NORMAL}"
+    fi
+  fi
+  echo -ne "${YELLOW}\nEnter an option:${NORMAL}"
+}
+
+footer_options() {
+  local OPTION=$1
+
+  case ${OPTION} in
+  "${SSH_OPT_UP}" | "${SSH_OPT_LOW}")
+    wait_for_network_connection || return 0
+
+    if systemctl is-active sshd.service >/dev/null 2>>"$ERR_LOG_FILE"; then
+      print_ok "Turning off the SSH server..."
+      systemctl stop sshd.service
+    else
+      print_warning "Starting SSH server!"
+      print_warning "Now you can log in into the system using root account."
+      print_warning "Stopping server will not drop all connected sessions."
+      systemctl start sshd.service
+      print_ok "Listening on IPs: $(ip -br -f inet a show scope global | grep UP | awk '{ print $3 }' | tr '\n' ' ')"
+    fi
+    read -p "Press Enter to continue."
+
+    return 0
+    ;;
+  "${SHELL_OPT_UP}" | "${SHELL_OPT_LOW}")
+    clear
+    echo "Entering shell, to leave type exit and press Enter or press LCtrl+D"
+    echo ""
+    send_dts_logs
+    stop_logging
+    ${CMD_SHELL}
+    start_logging
+
+    # If in submenu before going to shell - return to main menu after exiting
+    # shell:
+    unset DPP_SUBMENU_ACTIVE
+    ;;
+  "${POWEROFF_OPT_UP}" | "${POWEROFF_OPT_LOW}")
+    send_dts_logs
+    ${POWEROFF}
+    ;;
+  "${REBOOT_OPT_UP}" | "${REBOOT_OPT_LOW}")
+    send_dts_logs
+    ${REBOOT}
+    ;;
+  "${SEND_LOGS_OPT}" | "${SEND_LOGS_OPT_LOW}")
+    if [ "${SEND_LOGS_ACTIVE}" == "true" ]; then
+      unset SEND_LOGS_ACTIVE
+    else
+      export SEND_LOGS_ACTIVE="true"
+    fi
+    ;;
+  "${TOGGLE_DISP_CRED_OPT_UP}" | "${TOGGLE_DISP_CRED_OPT_LOW}")
+    if [ "${DISPLAY_CREDENTIALS}" == "true" ]; then
+      unset DISPLAY_CREDENTIALS
+    else
+      export DISPLAY_CREDENTIALS="true"
+    fi
+    ;;
+  esac
+
+  return 1
+}
+
+# send_dts_logs_main [ask]
+# Use send_dts_logs which calls this function.
+# Create and upload archive with logs if SEND_LOGS_ACTIVE is true or first
+# argument is "ask" and user confirms that they want to send logs
+send_dts_logs_main() {
+  local ask="$1"
+  local send_logs="false"
+  if [ "${SEND_LOGS_ACTIVE}" = "true" ]; then
+    send_logs="true"
+  elif [ "$ask" = "ask" ] && ask_for_confirmation "Do you want to send console logs to 3mdeb?"; then
+    send_logs="true"
+  fi
+  if [ "$send_logs" = "true" ]; then
+    echo "Creating archive with logs..."
+    log_dir=$(dmidecode -s system-manufacturer)_$(dmidecode -s system-product-name)_$(dmidecode -s bios-version)
+
+    interface="$(ip route show default | head -1 | awk '/default/ {print $5}')"
+    uuid_string="$(cat "/sys/class/net/${interface}/address" 2>/dev/null)"
+    uuid_string+="_$(dmidecode -s system-product-name)"
+    uuid_string+="_$(dmidecode -s system-manufacturer)"
+
+    uuid=$(uuidgen -n @x500 -N "$uuid_string" -s)
+
+    log_dir+="_${uuid}_$(date +'%Y_%m_%d_%H_%M_%S_%N')"
+    log_dir="${log_dir// /_}"
+    log_dir="${log_dir//\//_}"
+    log_dir="${TMP_LOG_DIR}/${log_dir}"
+
+    mkdir -p "$log_dir"
+    cp "${DTS_LOG_FILE}" "$log_dir"
+    cp "${DTS_VERBOSE_LOG_FILE}" "$log_dir"
+
+    if [ -f "${ERR_LOG_FILE_REALPATH}" ]; then
+      cp "${ERR_LOG_FILE_REALPATH}" "$log_dir"
+    fi
+
+    if [ -f "${FLASHROM_LOG_FILE}" ]; then
+      cp "${FLASHROM_LOG_FILE}" "$log_dir"
+    fi
+    if ! tar czf "${log_dir}.tar.gz" -C "$(dirname "$log_dir")" "$(basename "$log_dir")" &>>"$ERR_LOG_FILE"; then
+      print_error "Couldn't create archive with logs."
+      return 1
+    fi
+
+    echo "You can find archived logs at: "
+    echo "${log_dir}.tar.gz"
+    echo ""
+    echo "Sending logs..."
+
+    DPP_LOGS_BUCKET="dts-logs"
+    PUBLIC_LOGS_BUCKET="dts-logs-public"
+    send_public="true"
+
+    if [ -f "${DPP_CREDENTIAL_FILE}" ]; then
+      DPP_EMAIL=$(sed -n '1p' "${DPP_CREDENTIAL_FILE}" | tr -d '\n')
+      DPP_PASSWORD=$(sed -n '2p' "${DPP_CREDENTIAL_FILE}" | tr -d '\n')
+
+      if [[ -n "$DPP_EMAIL" && -n "$DPP_PASSWORD" && -n "$(mc alias list | grep "${DPP_EMAIL}")" ]] &&
+        mc alias set "$DPP_SERVER_USER_ALIAS" "$DPP_SERVER_ADDRESS" "$DPP_EMAIL" "$DPP_PASSWORD" &>>"$ERR_LOG_FILE"; then
+        LOGS_LINK="${DPP_LOGS_BUCKET}/${DPP_EMAIL}"
+        ALIAS=$DPP_SERVER_USER_ALIAS
+        send_public="false"
+      fi
+    fi
+
+    if [ "${send_public}" = "true" ]; then
+      ALIAS="public-hcl"
+      if [ -z "$(mc alias list | grep ${ALIAS})" ]; then
+        if ! mc alias set "$ALIAS" "$DPP_SERVER_ADDRESS" "$BASE_HCL_USERNAME" "$BASE_HCL_PASSWORD" &>>"$ERR_LOG_FILE"; then
+          print_error "Failed to send logs, cannot connect to 3mdeb server."
+          return 1
+        fi
+      fi
+      LOGS_LINK="${PUBLIC_LOGS_BUCKET}"
+    fi
+
+    if ! mc cp "$log_dir.tar.gz" "${ALIAS}/${LOGS_LINK}/" &>>"$ERR_LOG_FILE"; then
+      print_error "Failed to send logs to 3mdeb."
+      return 1
+    else
+      echo "Logs sent."
+    fi
+  fi
+}
+
+# send_dts_logs [ask]
+# Create and upload archive with logs if SEND_LOGS_ACTIVE is true or first
+# argument is "ask" and user confirms that they want to send logs
+send_dts_logs() {
+  local ask="$1"
+  if ! send_dts_logs_main "$@"; then
+    print_warning "You can still upload the logs manually by following:
+https://docs.dasharo.com/osf-trivia-list/dts/#how-can-i-help-the-support-team-diagnose-my-problem-faster"
+  fi
+  if [ "$ask" = "ask" ]; then
+    read -p "Press Enter to continue."
+  fi
+}
+
+check_if_fused() {
+  local _file_path
+  _file_path="/sys/class/mei/mei0/fw_status"
+  local _file_content
+  local _hfsts6_value
+  local _line_number
+  local _hfsts6_binary
+  local _binary_length
+  local _padding
+  local _zeros
+  local _bit_30_value
+
+  if ! $FSREAD_TOOL test -f "$_file_path"; then
+    print_error "File not found: $_file_path"
+    return $CANCEL
+  fi
+
+  _file_content="$($FSREAD_TOOL cat $_file_path)"
+
+  _fsts6_value=""
+  _line_number=1
+  while IFS= read -r line; do
+    if [[ $_line_number -eq 6 ]]; then
+      _hfsts6_value="$line"
+      break
+    fi
+    ((_line_number++))
+  done <<<"$_file_content"
+
+  if [[ -z "$_hfsts6_value" ]]; then
+    print_error "Failed to read HFSTS6 value"
+    exit 1
+  fi
+
+  _hfsts6_binary=$(echo "ibase=16; obase=2; $_hfsts6_value" | bc)
+  _binary_length=${#_hfsts6_binary}
+
+  # Add leading zeros
+  if [ $_binary_length -lt 32 ]; then
+    _padding=$((32 - $_binary_length))
+    _zeros=$(printf "%${_padding}s" | tr ' ' "0")
+    _hfsts6_binary=$_zeros$_hfsts6_binary
+  fi
+
+  _bit_30_value=${_hfsts6_binary:1:1}
+
+  if [ $_bit_30_value == 0 ]; then
+    return 1
+  else
+    return 0
+  fi
+}
+
+check_if_boot_guard_enabled() {
+  local _msr_hex
+  local _msr_binary
+  local _binary_length
+  local _padding
+  local _zeros
+  local _facb_fpf
+  local _verified_boot
+
+  # MSR cannot be read
+  if ! $RDMSR boot_guard_status_mock 0x13a -0 >/dev/null 2>"$ERR_LOG_FILE"; then
+    return 1
+  fi
+
+  _msr_hex=$($RDMSR boot_guard_status_mock 0x13a -0 | tr '[:lower:]' '[:upper:]')
+  _msr_binary=$(echo "ibase=16; obase=2; $_msr_hex" | bc)
+
+  _binary_length=${#_msr_binary}
+  if [ $_binary_length -lt 64 ]; then
+    _padding=$((64 - $_binary_length))
+    _zeros=$(printf "%${_padding}s" | tr ' ' "0")
+    _msr_binary=$_zeros$_msr_binary
+  fi
+
+  # Bit 4
+  _facb_fpf=${_msr_binary:59:1}
+
+  # Bit 6
+  _verified_boot=${_msr_binary:57:1}
+
+  if [ $_facb_fpf == 1 ] && [ $_verified_boot == 1 ]; then
+    return 0
+  fi
+  return 1
+}
+
+can_install_dasharo() {
+  if check_if_intel; then
+    if check_if_fused && check_if_boot_guard_enabled; then
+      return 1
+    fi
+  fi
+  return 0
+}
+
+check_if_intel() {
+  cpu_vendor=$(cat /proc/cpuinfo | grep "vendor_id" | head -n 1 | sed 's/.*: //')
+  if [ $cpu_vendor == "GenuineIntel" ]; then
+    return 0
+  fi
+}
+
+# ask_for_confirmation <prompt>
+# Return 0 if user confirmed, else return non-zero
+ask_for_confirmation() {
+  local text="$1"
+
+  while read -p "$text [y|n]: "; do
+    case ${REPLY} in
+    y | Y | yes | Yes | YES)
+      return 0
+      ;;
+    n | N | no | No | NO)
+      return 1
+      ;;
+    *) ;;
+    esac
+  done
+}
+
+parse_and_verify_config() {
+  # Arguments: the same as parse_config.
+  # Call parse_config and print error if it fails
+  local vendor="$1"
+  local system_model="$2"
+  local board_model="$3"
+  parse_config "$@"
+  local result=$?
+  if [ $result -eq 1 ]; then
+    print_error "Vendor $vendor is currently not supported!"
+  elif [ $result -eq 2 ]; then
+    print_error "System model $system_model is currently not supported!"
+  elif [ $result -eq 3 ]; then
+    print_error "Board model $board_model is currently now supported"
+  fi
+  return $result
+}
+
+parse_config() {
+  local vendor="$1"
+  local system_model="$2"
+  local board_model="$3"
+  # The JSONs names in configs directory the same as values in vendor variable
+  # but lowercase. Spaces and '/' are replaced with _.
+  json_filename="$(echo "$vendor" | tr '[:upper:]' '[:lower:]' | sed -r 's@ |/@_@g').json"
+  json_file="$BOARD_CONFIG_PATH/configs/${json_filename}"
+  # JSON doesn't exist, file isn't JSON or JSON is empty
+  if ! jq -e '.[]' "${json_file}" >/dev/null 2>>"$ERR_LOG_FILE"; then
+    return 1
+  fi
+  # Parse common variables for vendor
+  # This finds all keys other than `models` and maps them to bash variables.
+  # The variable names are converted to lowercase.
+  #
+  # to_entries[] | select(.key != "models")
+  # Converts JSON input from:
+  # "key1": "value"
+  # "key2": "value"
+  # "models": {
+  #   "key3": "value"
+  #  }
+  # To:
+  # "key1": "value"
+  # "key2": "value"
+  #
+  # "\(.key | ascii_upcase)=\"\(.value|tostring)\"
+  # Changes: "key1": "value" to: KEY1="value"
+
+  # shellcheck disable=SC2046
+  output=$(jq -r 'to_entries[] | select(.key != "models") | "\(.key | ascii_upcase)=\"\(.value|tostring)\""' $json_file 2>>"$ERR_LOG_FILE")
+  if [ -n "$output" ]; then
+    eval "$output"
+  fi
+
+  # Parse system model-specific variables
+  # This finds all keys in `models[$SYSTEM_MODEL]` other than `board_models`
+  # and assigns variables just like in the previous call
+  #
+  # --arg m $(echo "$system_model" ...) stores the lowercase value of
+  # $system_model in the "$m" jq variable. That variable is then used to access
+  # models[$system_model] (.models[$m])
+  output=$(jq -r --arg m "$(echo "$system_model" | tr '[:upper:]' '[:lower:]')" '
+    .models[$m]
+    | to_entries[]
+    | select(.key != "board_models")
+    | "\(.key | ascii_upcase)=\"\(.value|tostring)\""
+  ' $json_file 2>>"$ERR_LOG_FILE")
+  if [ -z "$output" ]; then
+    return 2
+  fi
+  eval "$output"
+
+  # If separate BOARD_MODEL values exist, parse the variables
+  # This looks for `models[$SYSTEM_MODEL].board_models[$BOARD_MODEL]`. Some
+  # boards have different variable values for different board models.
+  #
+  # If .models[$m].board_models[$b] does not exist, the eval will not
+  # create any new variables
+
+  has_key=$(jq -r --arg m "$(echo "$system_model" | tr '[:upper:]' '[:lower:]')" '
+  .models[$m] | has("board_models")
+  ' $json_file)
+
+  if [ "$has_key" == "true" ]; then
+    output=$(jq -r --arg m "$(echo "$system_model" | tr '[:upper:]' '[:lower:]')" --arg b "$(echo "$board_model" | tr '[:upper:]' '[:lower:]')" '
+      .models[$m].board_models[$b]
+      | to_entries[]
+      | "\(.key | ascii_upcase)=\"\(.value|tostring)\""
+    ' $json_file 2>>"$ERR_LOG_FILE")
+    if [ -z "$output" ]; then
+      return 3
+    fi
+    eval "$output"
+  fi
+
+  eval_links
+
+  return 0
+}
+
+# This is a helper function for parse_config(). It is used to evaluate links.
+# The reason is we cannot store full link in config as sometimes we need to use
+# local servers for development.
+eval_links() {
+  # evaluate BIOSes and ECs
+  [ -n "${BIOS_PATH_COMM}" ] && BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
+  [ -n "${EC_PATH_COMM}" ] && EC_LINK_COMM="${FW_STORE_URL}/${EC_PATH_COMM}"
+  [ -n "${BIOS_PATH_COMM_CAP}" ] && BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${BIOS_PATH_COMM_CAP}"
+  [ -n "${EOM_PATH_COMM_CAP}" ] && EOM_LINK_COMM_CAP="${FW_STORE_URL}/${EOM_PATH_COMM_CAP}"
+
+  # Define signatures and hashes for BIOS and EC
+  [ -z "$BIOS_HASH_LINK_COMM" ] && BIOS_HASH_LINK_COMM="${BIOS_LINK_COMM}.sha256"
+  [ -z "$BIOS_SIGN_LINK_COMM" ] && BIOS_SIGN_LINK_COMM="${BIOS_HASH_LINK_COMM}.sig"
+  [ -z "$BIOS_HASH_LINK_DPP" ] && BIOS_HASH_LINK_DPP="${BIOS_LINK_DPP}.sha256"
+  [ -z "$BIOS_SIGN_LINK_DPP" ] && BIOS_SIGN_LINK_DPP="${BIOS_HASH_LINK_DPP}.sig"
+  [ -z "$BIOS_HASH_LINK_DPP_SEABIOS" ] && BIOS_HASH_LINK_DPP_SEABIOS="${BIOS_LINK_DPP_SEABIOS}.sha256"
+  [ -z "$BIOS_SIGN_LINK_DPP_SEABIOS" ] && BIOS_SIGN_LINK_DPP_SEABIOS="${BIOS_HASH_LINK_DPP_SEABIOS}.sig"
+  [ -z "$HEADS_HASH_LINK_DPP" ] && HEADS_HASH_LINK_DPP="${HEADS_LINK_DPP}.sha256"
+  [ -z "$HEADS_SIGN_LINK_DPP" ] && HEADS_SIGN_LINK_DPP="${HEADS_HASH_LINK_DPP}.sig"
+  [ -z "$BIOS_HASH_LINK_DPP_SLIMUEFI" ] && BIOS_HASH_LINK_DPP_SLIMUEFI="${BIOS_LINK_DPP_SLIMUEFI}.sha256"
+  [ -z "$BIOS_SIGN_LINK_DPP_SLIMUEFI" ] && BIOS_SIGN_LINK_DPP_SLIMUEFI="${BIOS_HASH_LINK_DPP_SLIMUEFI}.sig"
+  [ -z "$EC_HASH_LINK_COMM" ] && EC_HASH_LINK_COMM="${EC_LINK_COMM}.sha256"
+  [ -z "$EC_SIGN_LINK_COMM" ] && EC_SIGN_LINK_COMM="${EC_HASH_LINK_COMM}.sig"
+  [ -z "$EC_HASH_LINK_DPP" ] && EC_HASH_LINK_DPP="${EC_LINK_DPP}.sha256"
+  [ -z "$EC_SIGN_LINK_DPP" ] && EC_SIGN_LINK_DPP="${EC_HASH_LINK_DPP}.sig"
+  [ -z "$HEADS_EC_HASH_LINK_DPP" ] && HEADS_EC_HASH_LINK_DPP="${HEADS_EC_LINK_DPP}.sha256"
+  [ -z "$HEADS_EC_SIGN_LINK_DPP" ] && HEADS_EC_SIGN_LINK_DPP="${HEADS_EC_HASH_LINK_DPP}.sig"
+
+  # Same as above but for capsules
+  [ -z "$BIOS_HASH_LINK_COMM_CAP" ] && BIOS_HASH_LINK_COMM_CAP="${BIOS_LINK_COMM_CAP}.sha256"
+  [ -z "$BIOS_SIGN_LINK_COMM_CAP" ] && BIOS_SIGN_LINK_COMM_CAP="${BIOS_HASH_LINK_COMM_CAP}.sig"
+  [ -z "$BIOS_HASH_LINK_DPP_CAP" ] && BIOS_HASH_LINK_DPP_CAP="${BIOS_LINK_DPP_CAP}.sha256"
+  [ -z "$BIOS_SIGN_LINK_DPP_CAP" ] && BIOS_SIGN_LINK_DPP_CAP="${BIOS_HASH_LINK_DPP_CAP}.sig"
+  [ -z "$EC_HASH_LINK_DPP_CAP" ] && EC_HASH_LINK_DPP_CAP="${EC_LINK_DPP_CAP}.sha256"
+  [ -z "$EC_SIGN_LINK_DPP_CAP" ] && EC_SIGN_LINK_DPP_CAP="${EC_HASH_LINK_DPP_CAP}.sig"
+  [ -z "$EOM_HASH_LINK_COMM_CAP" ] && EOM_HASH_LINK_COMM_CAP="${EOM_LINK_COMM_CAP}.sha256"
+  [ -z "$EOM_SIGN_LINK_COMM_CAP" ] && EOM_SIGN_LINK_COMM_CAP="${EOM_HASH_LINK_COMM_CAP}.sig"
+}
+
+fetch_fw() {
+  # fetch_fw <link> <destination>
+  # Used do download fw from remote ${FW_STORE_URL}/<path> to local <destination>
+  # if FETCH_LOCALLY is set to true then function will try to find firmware
+  # locally (under '/firmware' after removing 'FW_STORE_URL' prefix) instead of
+  # downloading from remote.
+  local source="$1"
+  local target="$2"
+  if [ "$FETCH_LOCALLY" = "true" ]; then
+    source="${source#"${FW_STORE_URL}"}"
+    if [ -f "/firmware/${source}" ]; then
+      cp "/firmware/${source}" "${target}"
+    else
+      error_exit "Couldn't find firmware locally." 2>&1
+    fi
+  else
+    curl -sSLf "$source" -o "$target" 2>>"$ERR_LOG_FILE"
+    error_check "Download failed: Cannot access $FW_STORE_URL.
+Please check your internet connection."
+  fi
+}
+
+reboot_countdown() {
+  sleep 0.5
+  _sleep_delay=5
+  echo "Rebooting in ${_sleep_delay} s:"
+  for ((i = _sleep_delay; i > 0; --i)); do
+    echo "${i}..."
+    sleep 1
+  done
+  echo "Rebooting"
+  sleep 0.5
+}
+
+# flashrom_write_and_check <error_msg> [flashrom_args]...
+# Pass '[flashrom_args]...' to flashrom and if it fails print <error_msg> and
+# recovery information (and in the future try to restore from backup) and exit
+flashrom_write_and_check() {
+  local err_msg="$1"
+  shift
+  $FLASHROM "$@" >>"$FLASHROM_LOG_FILE" 2>>"$ERR_LOG_FILE"
+  error_check "${err_msg}
+
+Unexpected firmware update issue!
+
+The firmware in the flash chip might be corrupted, and rebooting your device at
+this point might result in a brick. Unless you have an external programmer and
+are not afraid of using it, keep your device powered on and contact us - there
+is still a chance to recover from this state:
+
+- Matrix chat: https://docs.dasharo.com/#community
+- e-mail: support@dasharo.com"
+}
+
+# ask_for_choice <prompt> [<choice_opt> <choice_msg>]...
+# Ask user to choose one of the choices by writing <choice_opt> and confirming
+# User facing output is printed to stderr, while on stdout will be printed
+# <choice_opt> chosen by user. <choice_opt> can't be empty string
+ask_for_choice() {
+  local prompt="$1"
+  shift
+  # used to print keys in the same order as passed to this function
+  local keys=()
+  declare -A choices
+  while [ $# -gt 0 ]; do
+    if [ -z "$1" ]; then
+      shift 2
+      continue
+    fi
+    choices["$1"]="$2"
+    keys+=("$1")
+    shift 2
+  done
+
+  while :; do
+    echo "${prompt}:" >&2
+    for key in "${keys[@]}"; do
+      echo "  ${key}: ${choices["${key}"]}" >&2
+    done
+
+    echo >&2
+    read -rp "Select an option: " OPTION >&2
+    echo >&2
+
+    # if key exists in array
+    if [[ -n "${OPTION}" && -n "${choices["${OPTION}"]+isset}" ]]; then
+      echo "${OPTION}"
+      return
+    fi
+  done
+}
