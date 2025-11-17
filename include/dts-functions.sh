@@ -178,12 +178,19 @@ check_network_connection() {
     return 1
   fi
 }
+# supplement the code with a global variable, flag (to avoid repeating the message):
+NETWORK_WAIT_MSG_SHOWN=false  # added line
 
 wait_for_network_connection() {
   # if first argument equals true then print warning else print error
   local print_warning="$1"
-  echo 'Waiting for network connection ...'
+  
+  if [ "$NETWORK_WAIT_MSG_SHOWN" = false ]; then  # added line
+    echo 'Waiting for network connection ...'
+    NETWORK_WAIT_MSG_SHOWN=true  # added line
+  fi
   n="10"
+
 
   while :; do
     if check_network_connection; then
@@ -252,6 +259,7 @@ board_config() {
   # We download firmwares via network. At this point, the network connection
   # must be up already.
 
+# do usuniecia  4 ponizsze linie:
   if ! wait_for_network_connection true; then
     FETCH_LOCALLY="true"
     print_warning "DTS couldn't connect to the internet! Using local files instead."
