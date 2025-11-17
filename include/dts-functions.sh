@@ -272,324 +272,31 @@ board_config() {
   tar xf "$BOARD_CONFIG_PATH.tar.gz" -C "$BOARD_CONFIG_PATH" --strip-components=1
 
   echo "Checking if board is Dasharo compatible."
+  # Handle special cases that need preprocessing or should fail early
   case "$SYSTEM_VENDOR" in
-  "Notebook")
-    # Common settings for all Notebooks:
-    CAN_USE_FLASHROM="true"
-    HAVE_EC="true"
-    NEED_EC_RESET="true"
-    PLATFORM_SIGN_KEY="customer-keys/novacustom/novacustom-open-source-firmware-release-1.x-key.asc \
-        customer-keys/novacustom/dasharo-release-0.9.x-for-novacustom-signing-key.asc"
-    NEED_SMMSTORE_MIGRATION="true"
-    BUCKET_DPP_HEADS="dasharo-novacustom-heads"
-
-    case "$SYSTEM_MODEL" in
-    "NV4XMB,ME,MZ")
-      DASHARO_REL_NAME="novacustom_nv4x_tgl"
-      DASHARO_REL_VER="1.5.2"
-      CAN_INSTALL_BIOS="true"
-      COMPATIBLE_EC_FW_VERSION="2022-10-07_c662165"
-      if check_if_dasharo; then
-        # if v1.5.1 or older, flash the whole bios region
-        # TODO: Let DTS determine which parameters are suitable.
-        # FIXME: Can we ever get rid of that? We change so much in each release,
-        # that we almost always need to flash whole BIOS regions
-        # because of non-backward compatible or breaking changes.
-        compare_versions $DASHARO_VERSION 1.5.2
-        if [ $? -eq 1 ]; then
-          # For Dasharo version lesser than 1.5.2
-          NEED_BOOTSPLASH_MIGRATION="true"
-          FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-        fi
-      fi
-      ;;
-    "NS50_70MU")
-      DASHARO_REL_NAME="novacustom_ns5x_tgl"
-      DASHARO_REL_VER="1.5.2"
-      CAN_INSTALL_BIOS="true"
-      COMPATIBLE_EC_FW_VERSION="2022-08-31_cbff21b"
-      PROGRAMMER_EC="ite_ec:romsize=128K,autoload=disable"
-      if check_if_dasharo; then
-        # if v1.5.1 or older, flash the whole bios region
-        # TODO: Let DTS determine which parameters are suitable.
-        # FIXME: Can we ever get rid of that? We change so much in each release,
-        # that we almost always need to flash whole BIOS regions
-        # because of non-backward compatible or breaking changes.
-        compare_versions $DASHARO_VERSION 1.5.2
-        if [ $? -eq 1 ]; then
-          # For Dasharo version lesser than 1.5.2
-          NEED_BOOTSPLASH_MIGRATION="true"
-          FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-        fi
-      fi
-      ;;
-    "NS5x_NS7xPU")
-      DASHARO_REL_NAME="novacustom_ns5x_adl"
-      DASHARO_REL_VER="1.7.2"
-      COMPATIBLE_EC_FW_VERSION="2022-08-31_cbff21b"
-      if check_if_dasharo; then
-        # if v1.7.2 or older, flash the whole bios region
-        # TODO: Let DTS determine which parameters are suitable.
-        # FIXME: Can we ever get rid of that? We change so much in each release,
-        # that we almost always need to flash whole BIOS regions
-        # because of non-backward compatible or breaking changes.
-        compare_versions $DASHARO_VERSION 1.7.2
-        if [ $? -eq 1 ]; then
-          # For Dasharo version lesser than 1.7.2
-          NEED_BOOTSPLASH_MIGRATION="true"
-          FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-        fi
-      fi
-      ;;
-    "NV4xPZ")
-      if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
-        return 1
-      fi
-
-      HEADS_LINK_DPP="${BUCKET_DPP_HEADS}/${DASHARO_REL_NAME}/v${HEADS_REL_VER_DPP}/${DASHARO_REL_NAME}_v${HEADS_REL_VER_DPP}_heads.rom"
-      if check_if_dasharo; then
-        # if v1.7.2 or older, flash the whole bios region
-        # TODO: Let DTS determine which parameters are suitable.
-        # FIXME: Can we ever get rid of that? We change so much in each release,
-        # that we almost always need to flash whole BIOS regions
-        # because of non-backward compatible or breaking changes.
-        compare_versions $DASHARO_VERSION 1.7.2
-        if [ $? -eq 1 ]; then
-          # For Dasharo version lesser than 1.7.2
-          NEED_BOOTSPLASH_MIGRATION="true"
-          FLASHROM_ADD_OPT_UPDATE_OVERRIDE="--ifd -i bios"
-        else
-          HAVE_HEADS_FW="true"
-        fi
-        if [ "$DASHARO_FLAVOR" == "Dasharo (coreboot+heads)" ]; then
-          HAVE_HEADS_FW="true"
-        fi
-      fi
-      ;;
-    "V54x_6x_TU")
-      # Dasharo 0.9.0-rc10 and higher have board model in baseboard-version
-      if check_if_dasharo && compare_versions "$DASHARO_VERSION" 0.9.0-rc10; then
-        BOARD_MODEL="$($DMIDECODE dump_var_mock -s baseboard-version)"
-      elif ! $DASHARO_ECTOOL check_for_opensource_firm_mock info 2>>"$ERR_LOG_FILE"; then
-        ask_for_model V540TU V560TU
-      else
-        BOARD_MODEL=$($DASHARO_ECTOOL novacustom_check_sys_model_mock info | grep "board:" |
-          sed -r 's|.*novacustom/(.*)|\1|' | awk '{print toupper($1)}')
-      fi
-
-      if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
-        return 1
-      fi
-
-      BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
-      BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${BIOS_PATH_COMM_CAP}"
-      EC_LINK_COMM="${FW_STORE_URL}/${EC_PATH_COMM}"
-      ;;
-    "V5xTNC_TND_TNE")
-      if check_if_dasharo; then
-        BOARD_MODEL="$($DMIDECODE dump_var_mock -s baseboard-version)"
-      else
-        ask_for_model V540TNx V560TNx
-      fi
-
-      if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
-        return 1
-      fi
-
-      BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
-      BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${BIOS_PATH_COMM_CAP}"
-      EC_LINK_COMM="${FW_STORE_URL}/${EC_PATH_COMM}"
-      ;;
-    *)
-      print_error "Board model $SYSTEM_MODEL is currently not supported"
-      return 1
-      ;;
-    esac
-    BIOS_LINK_COMM=${BIOS_LINK_COMM:-"$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"}
-    EC_LINK_COMM=${EC_LINK_COMM:-"$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_ec_v${DASHARO_REL_VER}.rom"}
-    [ -n "${EOM_PATH_COMM_CAP}" ] && EOM_LINK_COMM_CAP="${FW_STORE_URL}/${EOM_PATH_COMM_CAP}"
-    ;;
-  "NovaCustom" | "ASRock Industrial")
-    if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
-      return 1
-    fi
-
-    BIOS_LINK_COMM="${FW_STORE_URL}/${DASHARO_REL_NAME}/uefi/v${DASHARO_REL_VER}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}.rom"
-    ;;
-  "Micro-Star International Co., Ltd.")
-    if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
-      return 1
-    fi
-
-    BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
-    ;;
-  "Dell Inc.")
-    # Common configuration for all Dell releases:
-    BUCKET_DPP="dasharo-optiplex-uefi"
-    DASHARO_REL_NAME="dell_optiplex_7010_9010"
-    DASHARO_REL_VER_DPP="0.1.1"
-    BIOS_LINK_DPP="$BUCKET_DPP/v$DASHARO_REL_VER_DPP/${DASHARO_REL_NAME}_v$DASHARO_REL_VER_DPP.rom"
-    CAN_INSTALL_BIOS="true"
-    NEED_SMBIOS_MIGRATION="true"
-    NEED_BLOB_TRANSMISSION="true"
-    SINIT_ACM_FILENAME="SNB_IVB_SINIT_20190708_PW.bin"
-    SINIT_ACM_HASH_FILENAME="${SINIT_ACM_FILENAME}.sha256"
-    ACM_MIRROR_URL="https://dl.3mdeb.com/mirror/intel/acm"
-    SINIT_ACM_URL="${ACM_MIRROR_URL}/${SINIT_ACM_FILENAME}"
-    SINIT_ACM_HASH_URL="${ACM_MIRROR_URL}/${SINIT_ACM_HASH_FILENAME}"
-    SINIT_ACM="/tmp/${SINIT_ACM_FILENAME}"
-    FLASHROM_ADD_OPT_DEPLOY="--ifd -i bios"
-    FLASHROM_ADD_OPT_UPDATE="--fmap -i RW_SECTION_A"
-
-    case "$SYSTEM_MODEL" in
-    "OptiPlex 7010")
-      DBT_BIOS_UPDATE_FILENAME="/tmp/O7010A29.exe"
-      DBT_BIOS_UPDATE_URL="https://dl.dell.com/FOLDER05066036M/1/O7010A29.exe"
-      DBT_BIOS_UPDATE_HASH="ceb82586c67cd8d5933ac858c12e0cb52f6e0e4cb3249f964f1c0cfc06d16f52  $DBT_BIOS_UPDATE_FILENAME"
-      DBT_UEFI_IMAGE="/tmp/_O7010A29.exe.extracted/65C10"
-      SCH5545_FW="/tmp/_O7010A29.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x50000/file-d386beb8-4b54-4e69-94f5-06091f67e0d3/section0.raw"
-      ACM_BIN="/tmp/_O7010A29.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x500000/file-2d27c618-7dcd-41f5-bb10-21166be7e143/object-0.raw"
-      ;;
-    "OptiPlex 9010")
-      DBT_BIOS_UPDATE_FILENAME="/tmp/O9010A30.exe"
-      DBT_BIOS_UPDATE_URL="https://dl.dell.com/FOLDER05066009M/1/O9010A30.exe"
-      DBT_BIOS_UPDATE_HASH="b11952f43d0ad66f3ce79558b8c5dd43f30866158ed8348e3b2dae1bbb07701b  $DBT_BIOS_UPDATE_FILENAME"
-      DBT_UEFI_IMAGE="/tmp/_O9010A30.exe.extracted/65C10"
-      SCH5545_FW="/tmp/_O9010A30.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x50000/file-d386beb8-4b54-4e69-94f5-06091f67e0d3/section0.raw"
-      ACM_BIN="/tmp/_O9010A30.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x500000/file-2d27c618-7dcd-41f5-bb10-21166be7e143/object-0.raw"
-      ;;
-    "Precision T1650")
-      # tested on Dasharo Firmware for OptiPlex 9010, will need to be
-      # enabled when build for T1650 exists
-      #
-      # DBT_BIOS_UPDATE_FILENAME="/tmp/T1650A28.exe"
-      # DBT_BIOS_UPDATE_URL="https://dl.dell.com/FOLDER05065992M/1/T1650A28.exe"
-      # DBT_BIOS_UPDATE_HASH="40a66210b8882f523885849c1d879e726dc58aa14718168b1e75f3e2caaa523b  $DBT_BIOS_UPDATE_FILENAME"
-      # DBT_UEFI_IMAGE="/tmp/_T1650A28.exe.extracted/65C10"
-      # SCH5545_FW="/tmp/_T1650A28.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x60000/file-d386beb8-4b54-4e69-94f5-06091f67e0d3/section0.raw"
-      # ACM_BIN="/tmp/_T1650A28.exe.extracted/65C10_output/pfsobject/section-7ec6c2b0-3fe3-42a0-a316-22dd0517c1e8/volume-0x500000/file-2d27c618-7dcd-41f5-bb10-21166be7e143/object-0.raw"
-      print_warning "Dasharo Firmware for Precision T1650 not available yet!"
-      print_error "Board model $SYSTEM_MODEL is currently not supported"
-      return 1
-      ;;
-    *)
-      print_error "Board model $SYSTEM_MODEL is currently not supported"
-      return 1
-      ;;
-    esac
-    ;;
-  "ASUS")
-    case "$SYSTEM_MODEL" in
-    "KGPE-D16")
-      DASHARO_REL_NAME="asus_kgpe-d16"
-      DASHARO_REL_VER="0.4.0"
-      CAN_INSTALL_BIOS="true"
-      case "$FLASH_CHIP_SIZE" in
-      "2")
-        BIOS_HASH_LINK_COMM="65e5370e9ea6b8ae7cd6cc878a031a4ff3a8f5d36830ef39656b8e5a6e37e889  $BIOS_UPDATE_FILE"
-        BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_vboot_notpm.rom"
-        ;;
-      "8")
-        BIOS_HASH_LINK_COMM="da4e6217d50f2ac199dcb9a927a0bc02aa4e792ed73c8c9bac8ba74fc787dbef  $BIOS_UPDATE_FILE"
-        BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_${FLASH_CHIP_SIZE}M_vboot_notpm.rom"
-        ;;
-      "16")
-        BIOS_HASH_LINK_COMM="20055cf57185f149259706f58d5e9552a1589259c6617999c1ac7d8d3c960020  $BIOS_UPDATE_FILE"
-        BIOS_LINK_COMM="$FW_STORE_URL/$DASHARO_REL_NAME/v$DASHARO_REL_VER/${DASHARO_REL_NAME}_v${DASHARO_REL_VER}_${FLASH_CHIP_SIZE}M_vboot_notpm.rom"
-        ;;
-      *)
-        print_error "Platform uses chipset with not supported size"
-        return 1
-        ;;
-      esac
-      NEED_SMBIOS_MIGRATION="true"
-      ;;
-    *)
-      print_error "Board model $SYSTEM_MODEL is currently not supported"
-      return 1
-      ;;
-    esac
-    ;;
-  "PC Engines")
-    if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
-      return 1
-    fi
-
-    BIOS_LINK_DPP="${BUCKET_DPP}/v${DASHARO_REL_VER_DPP}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP}.rom"
-    BIOS_LINK_DPP_SEABIOS="${BUCKET_DPP_SEABIOS}/pcengines_apu2/v${DASHARO_REL_VER_DPP_SEABIOS}/${DASHARO_REL_NAME}_seabios_v${DASHARO_REL_VER_DPP_SEABIOS}.rom"
-    ;;
-  "HARDKERNEL")
-    case "$SYSTEM_MODEL" in
-    "ODROID-H4")
-      if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
-        return 1
-      fi
-      ;;
-    *)
-      print_error "Board model $SYSTEM_MODEL is currently not supported"
-      return 1
-      ;;
-    esac
-
-    BIOS_LINK_DPP="$BUCKET_DPP/$DASHARO_REL_NAME/v$DASHARO_REL_VER_DPP/${DASHARO_REL_NAME}_v$DASHARO_REL_VER_DPP.rom"
-    # TODO: check if it really will be called "*_slimuefi_*.rom"
-    BIOS_LINK_DPP_SLIMUEFI="${BUCKET_DPP_SLIMUEFI}/${DASHARO_REL_NAME}/v${DASHARO_REL_VER_DPP_SLIMUEFI}/${DASHARO_REL_NAME}_v${DASHARO_REL_VER_DPP_SLIMUEFI}_slim_bootloader_uefi.rom"
-    ;;
-  "QEMU" | "Emulation")
-    case "$SYSTEM_MODEL" in
-    *Q35*ICH9* | *q35*ich9*)
-      # Update type:
-      CAN_INSTALL_BIOS="true"
-      # Download and versioning variables:
-      DASHARO_REL_NAME_CAP="qemu_q35"
-      DASHARO_REL_VER_CAP="0.2.0"
-      DASHARO_SUPPORT_CAP_FROM="0.2.0"
-      # TODO: wait till the binaries will be uploaded to the server.
-      BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${DASHARO_REL_NAME_CAP}/v${DASHARO_REL_VER_CAP}/"
-      ;;
-    *)
-      print_error "Board model $SYSTEM_MODEL is currently not supported"
-      return 1
-      ;;
-    esac
-    ;;
   "To Be Filled By O.E.M.")
     print_error "Cannot determine board vendor"
     return 1
     ;;
-  *)
-    print_error "Board vendor: $SYSTEM_VENDOR is currently not supported"
-    return 1
+  "Notebook")
+    if check_if_dasharo; then
+      BOARD_MODEL="$($DMIDECODE dump_var_mock -s baseboard-version)"
+    else
+      case "$SYSTEM_MODEL" in
+      "V54x_6x_TU")
+        ask_for_model V540TU V560TU
+        ;;
+      "V5xTNC_TND_TNE")
+        ask_for_model V540TNx V560TNx
+        ;;
+      esac
+    fi
     ;;
   esac
 
-  # Set some default values at the end:
-  [ -z "$BIOS_HASH_LINK_COMM" ] && BIOS_HASH_LINK_COMM="${BIOS_LINK_COMM}.sha256"
-  [ -z "$BIOS_SIGN_LINK_COMM" ] && BIOS_SIGN_LINK_COMM="${BIOS_HASH_LINK_COMM}.sig"
-  [ -z "$BIOS_HASH_LINK_DPP" ] && BIOS_HASH_LINK_DPP="${BIOS_LINK_DPP}.sha256"
-  [ -z "$BIOS_SIGN_LINK_DPP" ] && BIOS_SIGN_LINK_DPP="${BIOS_HASH_LINK_DPP}.sig"
-  [ -z "$BIOS_HASH_LINK_DPP_SEABIOS" ] && BIOS_HASH_LINK_DPP_SEABIOS="${BIOS_LINK_DPP_SEABIOS}.sha256"
-  [ -z "$BIOS_SIGN_LINK_DPP_SEABIOS" ] && BIOS_SIGN_LINK_DPP_SEABIOS="${BIOS_HASH_LINK_DPP_SEABIOS}.sig"
-  [ -z "$HEADS_HASH_LINK_DPP" ] && HEADS_HASH_LINK_DPP="${HEADS_LINK_DPP}.sha256"
-  [ -z "$HEADS_SIGN_LINK_DPP" ] && HEADS_SIGN_LINK_DPP="${HEADS_HASH_LINK_DPP}.sig"
-  [ -z "$BIOS_HASH_LINK_DPP_SLIMUEFI" ] && BIOS_HASH_LINK_DPP_SLIMUEFI="${BIOS_LINK_DPP_SLIMUEFI}.sha256"
-  [ -z "$BIOS_SIGN_LINK_DPP_SLIMUEFI" ] && BIOS_SIGN_LINK_DPP_SLIMUEFI="${BIOS_HASH_LINK_DPP_SLIMUEFI}.sig"
-  [ -z "$EC_HASH_LINK_COMM" ] && EC_HASH_LINK_COMM="${EC_LINK_COMM}.sha256"
-  [ -z "$EC_SIGN_LINK_COMM" ] && EC_SIGN_LINK_COMM="${EC_HASH_LINK_COMM}.sig"
-  [ -z "$EC_HASH_LINK_DPP" ] && EC_HASH_LINK_DPP="${EC_LINK_DPP}.sha256"
-  [ -z "$EC_SIGN_LINK_DPP" ] && EC_SIGN_LINK_DPP="${EC_HASH_LINK_DPP}.sig"
-  [ -z "$HEADS_EC_HASH_LINK_DPP" ] && HEADS_EC_HASH_LINK_DPP="${HEADS_EC_LINK_DPP}.sha256"
-  [ -z "$HEADS_EC_SIGN_LINK_DPP" ] && HEADS_EC_SIGN_LINK_DPP="${HEADS_EC_HASH_LINK_DPP}.sig"
-
-  # And for capsules as well:
-  [ -z "$BIOS_HASH_LINK_COMM_CAP" ] && BIOS_HASH_LINK_COMM_CAP="${BIOS_LINK_COMM_CAP}.sha256"
-  [ -z "$BIOS_SIGN_LINK_COMM_CAP" ] && BIOS_SIGN_LINK_COMM_CAP="${BIOS_HASH_LINK_COMM_CAP}.sig"
-  [ -z "$BIOS_HASH_LINK_DPP_CAP" ] && BIOS_HASH_LINK_DPP_CAP="${BIOS_LINK_DPP_CAP}.sha256"
-  [ -z "$BIOS_SIGN_LINK_DPP_CAP" ] && BIOS_SIGN_LINK_DPP_CAP="${BIOS_HASH_LINK_DPP_CAP}.sig"
-  [ -z "$EC_HASH_LINK_DPP_CAP" ] && EC_HASH_LINK_DPP_CAP="${EC_LINK_DPP_CAP}.sha256"
-  [ -z "$EC_SIGN_LINK_DPP_CAP" ] && EC_SIGN_LINK_DPP_CAP="${EC_HASH_LINK_DPP_CAP}.sig"
-  [ -z "$EOM_HASH_LINK_COMM_CAP" ] && EOM_HASH_LINK_COMM_CAP="${EOM_LINK_COMM_CAP}.sha256"
-  [ -z "$EOM_SIGN_LINK_COMM_CAP" ] && EOM_SIGN_LINK_COMM_CAP="${EOM_HASH_LINK_COMM_CAP}.sig"
+  if ! parse_and_verify_config "$SYSTEM_VENDOR" "$SYSTEM_MODEL" "$BOARD_MODEL"; then
+    return 1
+  fi
 
   rm -rf "$BOARD_CONFIG_PATH"
 }
@@ -1784,8 +1491,13 @@ parse_config() {
   local system_model="$2"
   local board_model="$3"
   # The JSONs names in configs directory the same as values in vendor variable
-  # but lowercase and spaces replaced with _
-  json_file="$BOARD_CONFIG_PATH/configs/$(echo "$vendor" | tr '[:upper:]' '[:lower:]' | sed 's/ /_/g').json"
+  # but lowercase. Spaces and '/' are replaced with _.
+  json_filename="$(echo "$vendor" | tr '[:upper:]' '[:lower:]' | sed -r 's@ |/@_@g').json"
+  json_file="$BOARD_CONFIG_PATH/configs/${json_filename}"
+  # JSON doesn't exist, file isn't JSON or JSON is empty
+  if ! jq -e '.[]' "${json_file}" >/dev/null 2>>"$ERR_LOG_FILE"; then
+    return 1
+  fi
   # Parse common variables for vendor
   # This finds all keys other than `models` and maps them to bash variables.
   # The variable names are converted to lowercase.
@@ -1806,10 +1518,9 @@ parse_config() {
 
   # shellcheck disable=SC2046
   output=$(jq -r 'to_entries[] | select(.key != "models") | "\(.key | ascii_upcase)=\"\(.value|tostring)\""' $json_file 2>>"$ERR_LOG_FILE")
-  if [ -z "$output" ]; then
-    return 1
+  if [ -n "$output" ]; then
+    eval "$output"
   fi
-  eval "$output"
 
   # Parse system model-specific variables
   # This finds all keys in `models[$SYSTEM_MODEL]` other than `board_models`
@@ -1818,16 +1529,12 @@ parse_config() {
   # --arg m $(echo "$system_model" ...) stores the lowercase value of
   # $system_model in the "$m" jq variable. That variable is then used to access
   # models[$system_model] (.models[$m])
-
-  # Disabling warning "Quote this to prevent word splitting" to avoid mixing
-  # quotes
-  # shellcheck disable=SC2046
   output=$(jq -r --arg m "$(echo "$system_model" | tr '[:upper:]' '[:lower:]')" '
-  .models[$m]
-  | to_entries[]
-  | select(.key != "board_models")
-  | "\(.key | ascii_upcase)=\"\(.value|tostring)\""
-' $json_file 2>>"$ERR_LOG_FILE")
+    .models[$m]
+    | to_entries[]
+    | select(.key != "board_models")
+    | "\(.key | ascii_upcase)=\"\(.value|tostring)\""
+  ' $json_file 2>>"$ERR_LOG_FILE")
   if [ -z "$output" ]; then
     return 2
   fi
@@ -1840,24 +1547,64 @@ parse_config() {
   # If .models[$m].board_models[$b] does not exist, the eval will not
   # create any new variables
 
-  # shellcheck disable=SC2046
   has_key=$(jq -r --arg m "$(echo "$system_model" | tr '[:upper:]' '[:lower:]')" '
   .models[$m] | has("board_models")
   ' $json_file)
 
   if [ "$has_key" == "true" ]; then
-    # shellcheck disable=SC2046
     output=$(jq -r --arg m "$(echo "$system_model" | tr '[:upper:]' '[:lower:]')" --arg b "$(echo "$board_model" | tr '[:upper:]' '[:lower:]')" '
-    .models[$m].board_models[$b]
-    | to_entries[]
-    | "\(.key | ascii_upcase)=\"\(.value|tostring)\""
-  ' $json_file 2>>"$ERR_LOG_FILE")
+      .models[$m].board_models[$b]
+      | to_entries[]
+      | "\(.key | ascii_upcase)=\"\(.value|tostring)\""
+    ' $json_file 2>>"$ERR_LOG_FILE")
     if [ -z "$output" ]; then
       return 3
     fi
     eval "$output"
   fi
+
+  eval_links
+
   return 0
+}
+
+# This is a helper function for parse_config(). It is used to evaluate links.
+# The reason is we cannot store full link in config as sometimes we need to use
+# local servers for development.
+eval_links() {
+  # evaluate BIOSes and ECs
+  [ -n "${BIOS_PATH_COMM}" ] && BIOS_LINK_COMM="${FW_STORE_URL}/${BIOS_PATH_COMM}"
+  [ -n "${EC_PATH_COMM}" ] && EC_LINK_COMM="${FW_STORE_URL}/${EC_PATH_COMM}"
+  [ -n "${BIOS_PATH_COMM_CAP}" ] && BIOS_LINK_COMM_CAP="${FW_STORE_URL}/${BIOS_PATH_COMM_CAP}"
+  [ -n "${EOM_PATH_COMM_CAP}" ] && EOM_LINK_COMM_CAP="${FW_STORE_URL}/${EOM_PATH_COMM_CAP}"
+
+  # Define signatures and hashes for BIOS and EC
+  [ -z "$BIOS_HASH_LINK_COMM" ] && BIOS_HASH_LINK_COMM="${BIOS_LINK_COMM}.sha256"
+  [ -z "$BIOS_SIGN_LINK_COMM" ] && BIOS_SIGN_LINK_COMM="${BIOS_HASH_LINK_COMM}.sig"
+  [ -z "$BIOS_HASH_LINK_DPP" ] && BIOS_HASH_LINK_DPP="${BIOS_LINK_DPP}.sha256"
+  [ -z "$BIOS_SIGN_LINK_DPP" ] && BIOS_SIGN_LINK_DPP="${BIOS_HASH_LINK_DPP}.sig"
+  [ -z "$BIOS_HASH_LINK_DPP_SEABIOS" ] && BIOS_HASH_LINK_DPP_SEABIOS="${BIOS_LINK_DPP_SEABIOS}.sha256"
+  [ -z "$BIOS_SIGN_LINK_DPP_SEABIOS" ] && BIOS_SIGN_LINK_DPP_SEABIOS="${BIOS_HASH_LINK_DPP_SEABIOS}.sig"
+  [ -z "$HEADS_HASH_LINK_DPP" ] && HEADS_HASH_LINK_DPP="${HEADS_LINK_DPP}.sha256"
+  [ -z "$HEADS_SIGN_LINK_DPP" ] && HEADS_SIGN_LINK_DPP="${HEADS_HASH_LINK_DPP}.sig"
+  [ -z "$BIOS_HASH_LINK_DPP_SLIMUEFI" ] && BIOS_HASH_LINK_DPP_SLIMUEFI="${BIOS_LINK_DPP_SLIMUEFI}.sha256"
+  [ -z "$BIOS_SIGN_LINK_DPP_SLIMUEFI" ] && BIOS_SIGN_LINK_DPP_SLIMUEFI="${BIOS_HASH_LINK_DPP_SLIMUEFI}.sig"
+  [ -z "$EC_HASH_LINK_COMM" ] && EC_HASH_LINK_COMM="${EC_LINK_COMM}.sha256"
+  [ -z "$EC_SIGN_LINK_COMM" ] && EC_SIGN_LINK_COMM="${EC_HASH_LINK_COMM}.sig"
+  [ -z "$EC_HASH_LINK_DPP" ] && EC_HASH_LINK_DPP="${EC_LINK_DPP}.sha256"
+  [ -z "$EC_SIGN_LINK_DPP" ] && EC_SIGN_LINK_DPP="${EC_HASH_LINK_DPP}.sig"
+  [ -z "$HEADS_EC_HASH_LINK_DPP" ] && HEADS_EC_HASH_LINK_DPP="${HEADS_EC_LINK_DPP}.sha256"
+  [ -z "$HEADS_EC_SIGN_LINK_DPP" ] && HEADS_EC_SIGN_LINK_DPP="${HEADS_EC_HASH_LINK_DPP}.sig"
+
+  # Same as above but for capsules
+  [ -z "$BIOS_HASH_LINK_COMM_CAP" ] && BIOS_HASH_LINK_COMM_CAP="${BIOS_LINK_COMM_CAP}.sha256"
+  [ -z "$BIOS_SIGN_LINK_COMM_CAP" ] && BIOS_SIGN_LINK_COMM_CAP="${BIOS_HASH_LINK_COMM_CAP}.sig"
+  [ -z "$BIOS_HASH_LINK_DPP_CAP" ] && BIOS_HASH_LINK_DPP_CAP="${BIOS_LINK_DPP_CAP}.sha256"
+  [ -z "$BIOS_SIGN_LINK_DPP_CAP" ] && BIOS_SIGN_LINK_DPP_CAP="${BIOS_HASH_LINK_DPP_CAP}.sig"
+  [ -z "$EC_HASH_LINK_DPP_CAP" ] && EC_HASH_LINK_DPP_CAP="${EC_LINK_DPP_CAP}.sha256"
+  [ -z "$EC_SIGN_LINK_DPP_CAP" ] && EC_SIGN_LINK_DPP_CAP="${EC_HASH_LINK_DPP_CAP}.sig"
+  [ -z "$EOM_HASH_LINK_COMM_CAP" ] && EOM_HASH_LINK_COMM_CAP="${EOM_LINK_COMM_CAP}.sha256"
+  [ -z "$EOM_SIGN_LINK_COMM_CAP" ] && EOM_SIGN_LINK_COMM_CAP="${EOM_HASH_LINK_COMM_CAP}.sig"
 }
 
 fetch_fw() {
