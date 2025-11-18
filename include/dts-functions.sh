@@ -22,24 +22,24 @@ function echo_yellow() {
 # print_warning <msg>
 # Print yellow warning <msg>
 print_warning() {
-  echo_yellow "$1"
+  tui_echo_yellow "$1"
 }
 
 # print_error <msg>
 # Print red error <msg>
 print_error() {
-  echo_red "$1"
+  tui_echo_red "$1"
 }
 
 # print_error <msg>
 # Print green <msg>
 print_ok() {
-  echo_green "$1"
+  tui_echo_green "$1"
 }
 
 # Clears the line, usable for carriage returns to make sure no garbage is left.
 clear_line() {
-  printf '\r\033[K'
+  tui_clear_line
 }
 
 check_if_dasharo() {
@@ -829,18 +829,19 @@ sync_clocks() {
 }
 
 print_disclaimer() {
-  echo -e \
-    "Please note that the report is not anonymous, but we will use it only for\r
-backup and future improvement of the Dasharo product. Every log is encrypted\r
-and sent over HTTPS, so security is assured.\r
-If you still have doubts, you can skip HCL report generation.\r\n
-What is inside the HCL report? We gather information about:\r
-  - PCI, Super I/O, GPIO, EC, audio, and Intel configuration,\r
-  - MSRs, CMOS NVRAM, CPU info, DIMMs, state of touchpad, SMBIOS and ACPI tables,\r
-  - Decoded BIOS information, full firmware image backup, kernel dmesg,\r
-  - IO ports, input bus types, and topology - including I2C and USB,\r
-\r
-You can find more info about HCL in docs.dasharo.com/glossary\r"
+  tui_echo_normal \
+    "Please note that the report is not anonymous, but we will use it only for
+backup and future improvement of the Dasharo product. Every log is encrypted
+and sent over HTTPS, so security is assured.
+If you still have doubts, you can skip HCL report generation.
+
+What is inside the HCL report? We gather information about:
+  - PCI, Super I/O, GPIO, EC, audio, and Intel configuration,
+  - MSRs, CMOS NVRAM, CPU info, DIMMs, state of touchpad, SMBIOS and ACPI tables,
+  - Decoded BIOS information, full firmware image backup, kernel dmesg,
+  - IO ports, input bus types, and topology - including I2C and USB,
+
+You can find more info about HCL in docs.dasharo.com/glossary"
 }
 
 show_ram_inf() {
@@ -888,7 +889,7 @@ show_ram_inf() {
 
   # Print the extracted values preformatted:
   for entry in "${memory_devices_array[@]}"; do
-    echo -e "${BLUE}**${YELLOW}    RAM ${entry}"
+    echo -e "RAM ${entry}"
   done
   start_trace_logging
 }
@@ -939,11 +940,9 @@ show_ssh_info() {
     # Display "check your connection" in red color in IP field in case no IPV4
     # address is assigned, otherwise display IP/PORT:
     if [[ -z "$ip" ]]; then
-      echo -e "${BLUE}**${NORMAL}    SSH status: ${GREEN}ON${NORMAL} IP: ${RED}check your connection${NORMAL}"
-      echo -e "${BLUE}*********************************************************${NORMAL}"
+      tui_echo_red "check your connection"
     else
-      echo -e "${BLUE}**${NORMAL}    SSH status: ${GREEN}ON${NORMAL} IP: ${ip}${NORMAL}"
-      echo -e "${BLUE}*********************************************************${NORMAL}"
+      echo "${ip}"
     fi
   fi
 }
@@ -1697,4 +1696,29 @@ ask_for_choice() {
       return
     fi
   done
+}
+
+# change_global_state variable value
+# after function finishes, state/variable value can be retrieved
+# via get_global_state
+set_global_state() {
+  local var="$1"
+  local value="$2"
+  (
+    flock -x 200
+    touch "${DTS_STATE}"
+    sed -i "/^${var}=/d" "${DTS_STATE}"
+    echo "${var}=${value}" >>"${DTS_STATE}"
+  ) 200>"${DTS_STATE_LOCKFILE}"
+}
+
+get_global_state() {
+  local var="$1"
+  (
+    flock -x 200
+    touch "${DTS_STATE}"
+    # print <val> in first occurrence of <var>=<val>
+    awk -F '=' -v var="${var}" '$0 ~ "^" var "=" {print $2; exit}' "${DTS_STATE}"
+
+  ) 200>"${DTS_STATE_LOCKFILE}"
 }
