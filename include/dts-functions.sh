@@ -180,15 +180,15 @@ check_network_connection() {
 }
 
 # supplement the code with a global variable, flag (to avoid repeating the message):
-NETWORK_WAIT_MSG_SHOWN=false  # added line
+NETWORK_WAIT_MSG_SHOWN=false
 
 wait_for_network_connection() {
   # if first argument equals true then print warning else print error
   local print_warning="$1"
 
-  if [ "$NETWORK_WAIT_MSG_SHOWN" = false ]; then  # added line
+  if [ "$NETWORK_WAIT_MSG_SHOWN" = false ]; then
     echo 'Waiting for network connection ...'
-    NETWORK_WAIT_MSG_SHOWN=true  # added line
+    NETWORK_WAIT_MSG_SHOWN=true
   fi
   n="10"
 
