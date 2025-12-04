@@ -185,16 +185,15 @@ NETWORK_WAIT_MSG_SHOWN=false
 wait_for_network_connection() {
   # if first argument equals true then print warning else print error
   local print_warning="$1"
+  n="10" 
 
   if [ "$NETWORK_WAIT_MSG_SHOWN" = false ]; then
     echo 'Waiting for network connection ...'
     NETWORK_WAIT_MSG_SHOWN=true
   fi
-  n="10"
 
   while :; do
     if check_network_connection; then
-      print_ok "Network connection have been established!"
       return 0
     fi
 
