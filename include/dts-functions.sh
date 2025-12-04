@@ -185,7 +185,7 @@ NETWORK_WAIT_MSG_SHOWN=false
 wait_for_network_connection() {
   # if first argument equals true then print warning else print error
   local print_warning="$1"
-  n="10" 
+  n="10"
 
   if [ "$NETWORK_WAIT_MSG_SHOWN" = false ]; then
     echo 'Waiting for network connection ...'
