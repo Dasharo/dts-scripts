@@ -5,20 +5,19 @@ ncm_mtl_key=e64b6b0e82c68fecc58f750d3696c26e1c98bf9e3149c81f3b2ed775eb9d2c157a99
 rom=flashdump.bin
 
 echo "Reading flash..."
-flashrom -p internal --ifd -i bios -i me -i fd -r $rom > /dev/null 2>&1
+flashrom -p internal --ifd -i bios -i me -i fd -r $rom >/dev/null 2>&1
 
 echo "Extracting key manifest..."
-bg-prov km-export $rom km.bin > /dev/null
+bg-prov km-export $rom km.bin >/dev/null
 
 modulus=$(bg-prov km-show km.bin | grep "Key And Signature" -A 8 | grep Data | cut -d ' ' -f 10 | tail -c +8)
 exponent=01000100
 
-echo $modulus$exponent| awk '{gsub(/.{2}/,"& ")}1' | xxd -r -p | sha384sum | grep -q $ncm_mtl_key
+echo $modulus$exponent | awk '{gsub(/.{2}/,"& ")}1' | xxd -r -p | sha384sum | grep -q $ncm_mtl_key
 
 if [ $? -ne 0 ]; then
-	echo "Key matches NovaCustom Meteor Lake signing key."
+  echo "Key matches NovaCustom Meteor Lake signing key."
 else
-	echo "Key does not match NovaCustom Meteor Lake signing key!"
-	exit 1
+  echo "Key does not match NovaCustom Meteor Lake signing key!"
+  exit 1
 fi
-

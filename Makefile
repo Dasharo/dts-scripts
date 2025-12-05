@@ -20,6 +20,7 @@ install:
 	install -m 0755 scripts/dts-boot.sh $(DESTDIR)$(SBINDIR)/dts-boot
 	install -m 0755 scripts/ec_transition.sh $(DESTDIR)$(SBINDIR)/ec_transition
 	install -m 0755 scripts/logging.sh $(DESTDIR)$(SBINDIR)/logging
+	install -m 0755 scripts/btg_key_validator $(DESTDIR)$(SBINDIR)
 
 	install -m 0755 reports/dasharo-hcl-report.sh $(DESTDIR)$(SBINDIR)/dasharo-hcl-report
 	install -m 0755 reports/touchpad-info.sh $(DESTDIR)$(SBINDIR)/touchpad-info
