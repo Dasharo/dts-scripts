@@ -107,6 +107,11 @@ get_dpp_creds() {
   echo ""
   read -p "Enter password:    " 'DPP_PASSWORD'
 
+  if [[ -z "${DPP_EMAIL}" ]]; then
+    print_warning "No email address was provided."
+    return 1
+  fi
+
   if [[ -z "${DPP_PASSWORD}" ]]; then
     print_warning "No password was provided."
     return 1
