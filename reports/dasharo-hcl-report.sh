@@ -424,7 +424,16 @@ if [ "$SEND_LOGS" = "true" ]; then
     DPP_HCL_LINK="${PUBLIC_HCL_BUCKET}"
   fi
 
-  mc cp "$(readlink -f $filename.tar.gz)" "${ALIAS}/${DPP_HCL_LINK}/"
+  # Do not send HCLs when using mocks. Because in such case HCL will contain
+  # only mocked information and will be useless. If such HCLs will be send every
+  # time the testing with mocks is done - the HCLs database will soon be
+  # polluted.
+  if [ -z "$DTS_TESTING" ]; then
+    mc cp "$(readlink -f $filename.tar.gz)" "${ALIAS}/${DPP_HCL_LINK}/"
+  else
+    echo "HCL will not be sent for mocked hardware."
+  fi
+
   if [ "$?" -ne "0" ]; then
     echo "Failed to send logs to 3mdeb."
     exit 1
