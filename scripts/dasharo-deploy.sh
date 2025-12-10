@@ -963,6 +963,19 @@ deploy_firmware() {
     _jobs+=("-p $PROGRAMMER_BIOS ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w $BIOS_UPDATE_FILE ${_flashrom_extra_args}")
   fi
 
+  # If any job flashes FD region, schedule a dedicated job just for that.
+  # The reason is, regions are FD dependent.
+  for job in "${_jobs[@]}"; do
+    if [[ "$job" == *"-i fd"* ]]; then
+      local fd_prep_msg="Failed to flash FD"
+      local fd_prep_job="-p $PROGRAMMER_BIOS ${FLASH_CHIP_SELECT} -N --ifd -i fd -w $BIOS_UPDATE_FILE"
+
+      _jobs=("$fd_prep_job" "${_jobs[@]}")
+      _messages=("$fd_prep_msg" "${_messages[@]}")
+      break
+    fi
+  done
+
   _jobs_total=${#_jobs[@]}
 
   # Execute scheduled tasks
