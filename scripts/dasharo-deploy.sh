@@ -878,6 +878,9 @@ deploy_firmware() {
   #
   # $DEPLOY_COMMAND $DEPLOY_ARGS &>> $LOGS_FILE
   local _mode
+  local _jobs=()
+  local _messages=()
+  local _jobs_total=0
   _mode="$1"
 
   if [ "$_mode" == "update" ]; then
@@ -909,19 +912,16 @@ deploy_firmware() {
       # using the `check_blobs_in_binary` function.
       set_intel_regions_update_params "$FLASHROM_ADD_OPT_UPDATE_OVERRIDE"
       FLASHROM_ADD_OPT_UPDATE_OVERRIDE="$FLASHROM_ADD_OPT_REGIONS"
-      flashrom_write_and_check "Failed to update Dasharo firmware" \
-        -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE_OVERRIDE} \
-        -w "$BIOS_UPDATE_FILE"
+      _messages+=("Failed to update Dasharo firmware")
+      _jobs+=("-p $PROGRAMMER_BIOS ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE_OVERRIDE} -w $BIOS_UPDATE_FILE")
     else
       set_intel_regions_update_params "-N --ifd"
-      flashrom_write_and_check "Failed to update Dasharo firmware" \
-        -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE} \
-        -w "$BIOS_UPDATE_FILE"
+      _messages+=("Failed to update Dasharo firmware")
+      _jobs+=("-p $PROGRAMMER_BIOS ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE} -w $BIOS_UPDATE_FILE")
       if [ $BINARY_HAS_RW_B -eq 0 ]; then
-        echo "Updating second firmware partition..."
-        flashrom_write_and_check "Failed to update second firmware partition" \
-          -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} --fmap -N -i RW_SECTION_B \
-          -w "$BIOS_UPDATE_FILE"
+        echo "Scheduling second firmware partition update..."
+        _messages+=("Failed to update second firmware partition")
+        _jobs+=("-p $PROGRAMMER_BIOS ${FLASH_CHIP_SELECT} --fmap -N -i RW_SECTION_B -w $BIOS_UPDATE_FILE")
       fi
     fi
 
@@ -945,32 +945,41 @@ deploy_firmware() {
       if [ $UPDATE_ME -eq 0 ]; then
         UPDATE_STRING+="Management Engine"
       fi
-      echo "Updating $UPDATE_STRING"
-      flashrom_write_and_check "Failed to update $UPDATE_STRING" \
-        -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} \
-        -w "$BIOS_UPDATE_FILE"
+      echo "Scheduling $UPDATE_STRING update..."
+      _messages+=("Failed to update $UPDATE_STRING")
+      _jobs+=("-p $PROGRAMMER_BIOS ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w $BIOS_UPDATE_FILE")
     fi
-
-    return 0
   elif [ "$_mode" == "install" ]; then
     firmware_pre_installation_routine
 
-    echo "Installing Dasharo firmware..."
+    echo "Scheduling Dasharo firmware installation..."
     # FIXME: It seems we do not have an easy way to add some flasrhom extra args
     # globally for specific platform and variant
     local _flashrom_extra_args=""
     if [ "${BIOS_LINK}" = "${BIOS_LINK_DPP_SEABIOS}" ]; then
       _flashrom_extra_args="--fmap -i COREBOOT"
     fi
-    flashrom_write_and_check "Failed to install Dasharo firmware" \
-      -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} \
-      -w "$BIOS_UPDATE_FILE" ${_flashrom_extra_args}
-    print_ok "Successfully installed Dasharo firmware"
-    return 0
+    _messages+=("Failed to install Dasharo firmware")
+    _jobs+=("-p $PROGRAMMER_BIOS ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w $BIOS_UPDATE_FILE ${_flashrom_extra_args}")
   fi
 
-  # Must not get here.
-  return 1
+  _jobs_total=${#_jobs[@]}
+
+  # Execute scheduled tasks
+  for i in "${!_jobs[@]}"; do
+    message="${_messages[$i]}"
+    job="${_jobs[$i]}"
+    job_number=$((i + 1))
+
+    echo -n "Executing job $job_number of $_jobs_total... "
+    flashrom_write_and_check "$message" $job
+
+    print_ok "OK"
+  done
+
+  print_ok "All jobs completed successfully!"
+
+  return 0
 }
 
 check_if_cpu_compatible() {
