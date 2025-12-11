@@ -13,7 +13,7 @@ source $DTS_HAL
 
 # Vars for controlling progress bar
 progress_bar_cntr=0
-PROGRESS_BAR_TASKS_TOTAL=29
+PROGRESS_BAR_TASKS_TOTAL=30
 
 # Helper vars
 FW_DUMP_DEFAULT_PATH="logs/rom.bin"
@@ -313,6 +313,26 @@ progress_bar_update
 # echo "Getting TPM information..."
 find "$(realpath /sys/class/tpm/tpm*)" -type f -print -exec cat {} \; >logs/tpm_version.log 2>logs/tpm_version.err.log
 update_result "TPM information" logs/tpm_version.err.log
+progress_bar_update
+
+# dump all PCRs
+rm -f "logs/tpm_pcrs.log" "logs/tpm_pcrs.err.log"
+for tpm in /sys/class/tpm/tpm*; do
+  [ ! -d "${tpm}" ] && break
+  echo "$(basename "${tpm}"):" >>logs/tpm_pcrs.log
+  for pcr_bank in "${tpm}"/pcr-sha[0-9]*; do
+    [ ! -d "${pcr_bank}" ] && continue
+    echo "  $(basename "${pcr_bank}"):" >>logs/tpm_pcrs.log
+    pcrs="$(find "${pcr_bank}" -type f -exec basename {} \; | sort -n)"
+    for pcr in ${pcrs}; do
+      pcr_path="${pcr_bank}/${pcr}"
+      [ ! -f "${pcr_path}" ] && continue
+      echo -n "    ${pcr}: " >>logs/tpm_pcrs.log
+      cat "${pcr_path}" >>logs/tpm_pcrs.log 2>>logs/tpm_pcrs.err.log
+    done
+  done
+done
+update_result "TPM PCRs" logs/tpm_pcrs.err.log
 progress_bar_update
 
 # echo "Checking AMT..."
