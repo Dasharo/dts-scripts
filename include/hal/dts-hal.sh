@@ -59,6 +59,7 @@ REBOOT="tool_wrapper reboot"
 RDMSR="tool_wrapper rdmsr"
 LSPCI="tool_wrapper lspci"
 LSUSB="tool_wrapper lsusb"
+DUMP_PCRS="tool_wrapper dump_pcrs"
 
 ################################################################################
 # Tools wrapper.

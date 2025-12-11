@@ -1698,3 +1698,27 @@ ask_for_choice() {
     fi
   done
 }
+
+# dumps PCRs to stdout in format:
+# tpm<x>:
+#    pcr-sha<y>:
+#      0: <sha>
+#      ...
+#      23: <sha>
+dump_pcrs() {
+  for tpm in /sys/class/tpm/tpm*; do
+    [ ! -d "${tpm}" ] && break
+    echo "$(basename "${tpm}"):"
+    for pcr_bank in "${tpm}"/pcr-sha[0-9]*; do
+      [ ! -d "${pcr_bank}" ] && continue
+      echo "  $(basename "${pcr_bank}"):"
+      pcrs="$(find "${pcr_bank}" -type f -exec basename {} \; | sort -n)"
+      for pcr in ${pcrs}; do
+        pcr_path="${pcr_bank}/${pcr}"
+        [ ! -f "${pcr_path}" ] && continue
+        echo -n "    ${pcr}: "
+        cat "${pcr_path}"
+      done
+    done
+  done
+}

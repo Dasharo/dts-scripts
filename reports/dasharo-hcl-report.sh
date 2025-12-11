@@ -317,21 +317,7 @@ progress_bar_update
 
 # dump all PCRs
 rm -f "logs/tpm_pcrs.log" "logs/tpm_pcrs.err.log"
-for tpm in /sys/class/tpm/tpm*; do
-  [ ! -d "${tpm}" ] && break
-  echo "$(basename "${tpm}"):" >>logs/tpm_pcrs.log
-  for pcr_bank in "${tpm}"/pcr-sha[0-9]*; do
-    [ ! -d "${pcr_bank}" ] && continue
-    echo "  $(basename "${pcr_bank}"):" >>logs/tpm_pcrs.log
-    pcrs="$(find "${pcr_bank}" -type f -exec basename {} \; | sort -n)"
-    for pcr in ${pcrs}; do
-      pcr_path="${pcr_bank}/${pcr}"
-      [ ! -f "${pcr_path}" ] && continue
-      echo -n "    ${pcr}: " >>logs/tpm_pcrs.log
-      cat "${pcr_path}" >>logs/tpm_pcrs.log 2>>logs/tpm_pcrs.err.log
-    done
-  done
-done
+$DUMP_PCRS >>"logs/tpm_pcrs.log" 2>>"logs/tpm_pcrs.err.log"
 update_result "TPM PCRs" logs/tpm_pcrs.err.log
 progress_bar_update
 
