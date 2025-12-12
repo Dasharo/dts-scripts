@@ -612,8 +612,7 @@ smbios_migration() {
 # helper function for smmstore_migration. Returns non-zero if any command failed
 smmstore_migrate() {
   $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} \
-    -r /tmp/dasharo_dump.rom ${FLASHROM_ADD_OPT_READ} --fmap -i FMAP \
-    -i SMMSTORE >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
+    -r /tmp/dasharo_dump.rom --fmap -i FMAP -i SMMSTORE >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
   if [ $? -ne 0 ]; then
     return 1
   fi
@@ -645,7 +644,8 @@ Updating BIOS will result in all configuration being restored to default."
 }
 
 bootsplash_migration() {
-  $FLASHROM read_firm_bootsplash_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r /tmp/dasharo_dump.rom ${FLASHROM_ADD_OPT_READ} --fmap -i FMAP -i BOOTSPLASH >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
+  $FLASHROM read_firm_bootsplash_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} \
+    -r /tmp/dasharo_dump.rom --fmap -i FMAP -i BOOTSPLASH >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
   # If no custom logo, return from bootsplash_migration early and don't show
   # unnecessary messages
   $CBFSTOOL read_bootsplash_mock /tmp/dasharo_dump.rom extract -r BOOTSPLASH -n logo.bmp -f /tmp/logo.bmp >>$ERR_LOG_FILE 2>&1 || return 1
