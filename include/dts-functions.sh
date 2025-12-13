@@ -428,10 +428,15 @@ download_ec() {
 download_keys() {
   mkdir -p $KEYS_DIR
   wget -O $KEYS_DIR/recovery_key.vbpubk https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/recovery_key.vbpubk >>$ERR_LOG_FILE 2>&1
+  error_check "Failed to download recovery_key.vbpubk. Aborting..."
   wget -O $KEYS_DIR/firmware.keyblock https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/firmware.keyblock >>$ERR_LOG_FILE 2>&1
+  error_check "Failed to download firmware.keyblock. Aborting..."
   wget -O $KEYS_DIR/firmware_data_key.vbprivk https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/firmware_data_key.vbprivk >>$ERR_LOG_FILE 2>&1
+  error_check "Failed to download firmware_data_key.vbprivk. Aborting..."
   wget -O $KEYS_DIR/kernel_subkey.vbpubk https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/kernel_subkey.vbpubk >>$ERR_LOG_FILE 2>&1
+  error_check "Failed to download kernel_subkey.vbpubk. Aborting..."
   wget -O $KEYS_DIR/root_key.vbpubk https://github.com/Dasharo/vboot/raw/dasharo/tests/devkeys/root_key.vbpubk >>$ERR_LOG_FILE 2>&1
+  error_check "Failed to download root_key.vbpubk. Aborting..."
 }
 
 get_signing_keys() {
