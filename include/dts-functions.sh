@@ -688,6 +688,41 @@ set_flashrom_update_params() {
   fi
 }
 
+# A final check for locked regions before flashing via flashrom.
+# Decide whether we can proceed if any regions are locked.
+flashrom_sanity_check() {
+  local locked_regions=()
+  local region_list verb
+
+  if [ "$BOARD_FD_REGION_RW" -eq 0 ]; then
+    locked_regions+=("FD")
+  fi
+
+  if [ "$BOARD_ME_REGION_RW" -eq 0 ]; then
+    locked_regions+=("ME")
+  fi
+
+  if [ "${#locked_regions[@]}" -eq 0 ]; then
+    return 0
+  fi
+
+  if [ "${#locked_regions[@]}" -eq 1 ]; then
+    region_list="${locked_regions[0]}"
+    verb="is"
+  else
+    region_list="${locked_regions[0]} and ${locked_regions[1]}"
+    verb="are"
+  fi
+
+  if [[ "$SWITCHING_TO" == "heads" ]]; then
+    print_error "Cannot proceed with heads update when $region_list $verb locked!"
+    return 1
+  fi
+
+  print_warning "Proceeding without $region_list $verb flashing, as they $verb not critical."
+  return 0
+}
+
 set_intel_regions_update_params() {
   local fd_me_locked="no"
   if [ $BOARD_HAS_FD_REGION -eq 0 ]; then

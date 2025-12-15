@@ -1050,6 +1050,11 @@ deploy_firmware() {
     fi
   done
 
+  # Last restort check before flashing
+  if ! flashrom_sanity_check; then
+    return 1
+  fi
+
   _jobs_total=${#_jobs[@]}
 
   # Execute scheduled tasks
@@ -1245,7 +1250,10 @@ update_workflow() {
     display_warning
   fi
 
-  deploy_firmware update
+  # Check if update succeeded
+  if ! deploy_firmware update; then
+    return 1
+  fi
 
   # TODO: Could it be placed somewhere else?
   if [ ! -z "$SWITCHING_TO" ]; then
