@@ -905,6 +905,7 @@ deploy_firmware() {
 
     # FLASHROM_ADD_OPT_UPDATE_OVERRIDE takes priority over auto-detected update params.
     # It set only by platform-specific and firmware version-specific conditions
+    echo "Scheduling main firmware update..."
     if [ -n "$FLASHROM_ADD_OPT_UPDATE_OVERRIDE" ]; then
       # To standardize the operation of the FLASHROM_ADD_OPT_UPDATE_OVERRIDE flag,
       # by default it contains only the bios section, below we verify the
@@ -970,6 +971,7 @@ deploy_firmware() {
       local fd_prep_msg="Failed to flash FD"
       local fd_prep_job="-p $PROGRAMMER_BIOS ${FLASH_CHIP_SELECT} -N --ifd -i fd -w $BIOS_UPDATE_FILE"
 
+      echo "Scheduling dedicated FD update..."
       _jobs=("$fd_prep_job" "${_jobs[@]}")
       _messages=("$fd_prep_msg" "${_messages[@]}")
       break
@@ -984,12 +986,11 @@ deploy_firmware() {
     job="${_jobs[$i]}"
     job_number=$((i + 1))
 
-    echo -n "Executing job $job_number of $_jobs_total... "
+    draw_progress_bar "$job_number" "$_jobs_total"
     flashrom_write_and_check "$message" $job
-
-    print_ok "OK"
   done
 
+  echo
   print_ok "All jobs completed successfully!"
 
   return 0
