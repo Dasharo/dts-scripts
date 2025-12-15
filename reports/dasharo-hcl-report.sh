@@ -12,26 +12,24 @@ source $DTS_FUNCS
 source $DTS_HAL
 
 # Vars for controlling progress bar
-progress_bar_cntr=0
-PROGRESS_BAR_TASKS_TOTAL=30
+bar_cntr=0
+BAR_TASKS_TOTAL=30
 
 # Helper vars
 FW_DUMP_DEFAULT_PATH="logs/rom.bin"
 fw_bin_path="$FW_DUMP_DEFAULT_PATH"
 
-progress_bar_update() {
+draw_progress_bar() {
+  local current=$1
+  local total=$2
   local BAR_WIDTH=67
 
-  # Increment counter
-  ((progress_bar_cntr++))
-
   # Clamp counter
-  if ((progress_bar_cntr > PROGRESS_BAR_TASKS_TOTAL)); then
-    progress_bar_cntr=$PROGRESS_BAR_TASKS_TOTAL
-  fi
+  ((current < 0)) && current=0
+  ((current > total)) && current=$total
 
   # Calculate progress
-  local filled=$((progress_bar_cntr * BAR_WIDTH / PROGRESS_BAR_TASKS_TOTAL))
+  local filled=$((current * BAR_WIDTH / total))
   local empty=$((BAR_WIDTH - filled))
 
   # Build bar
@@ -42,7 +40,7 @@ progress_bar_update() {
   fi
 
   # Print with carriage return
-  printf "\r[%s] %d/%d" "$bar" "$progress_bar_cntr" "$PROGRESS_BAR_TASKS_TOTAL"
+  printf "\r[%s] %d/%d" "$bar" "$current" "$total"
 }
 
 update_result() {
@@ -102,52 +100,52 @@ fi
 # echo "Dumping PCI configuration space and topology..."
 $LSPCI -nnvvvxxxx >logs/lspci.log 2>logs/lspci.err.log
 update_result "PCI configuration space and topology" logs/lspci.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Dumping USB devices and topology..."
 $LSUSB -vvv >logs/lsusb.log 2>logs/lsusb.err.log
 update_result "USB devices and topology" logs/lsusb.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Dumping Super I/O configuration..."
 $SUPERIOTOOL -deV >logs/superiotool.log 2>logs/superiotool.err.log
 update_result "Super I/O configuration" logs/superiotool.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Dumping Embedded Controller configuration (this may take a while if EC is not present)..."
 $ECTOOL -ip >logs/ectool.log 2>logs/ectool.err.log
 update_result "EC configuration" logs/ectool.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Dumping MSRs..."
 $MSRTOOL >logs/msrtool.log 2>logs/msrtool.err.log
 update_result "MSRs" logs/msrtool.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Dumping SMBIOS tables..."
 $DMIDECODE >logs/dmidecode.log 2>logs/dmidecode.err.log
 update_result "SMBIOS tables" logs/dmidecode.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Decoding BIOS information..."
 biosdecode >logs/biosdecode.log 2>logs/biosdecode.err.log
 update_result "BIOS information" logs/biosdecode.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Extracting CMOS NVRAM..."
 nvramtool -x >logs/nvramtool.log 2>logs/nvramtool.err.log
 update_result "CMOS NVRAM" logs/nvramtool.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Dumping Intel configuration registers..."
 inteltool -a >logs/inteltool.log 2>logs/inteltool.err.log
 update_result "Intel configuration registers" logs/inteltool.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Dumping AMD configuration registers..."
 $AMDTOOL on_amd_mock -a >logs/amdtool.log 2>logs/amdtool.err.log
 update_result "AMD configuration registers" logs/amdtool.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Generating GPIO configuration C header files for coreboot..."
 intelp2m -file logs/inteltool.log -fld cb -i -p snr -o logs/gpio_snr.h >logs/intelp2m.log 2>logs/intelp2m.err.log
@@ -155,17 +153,17 @@ intelp2m -file logs/inteltool.log -fld cb -i -p cnl -o logs/gpio_cnl.h >>logs/in
 intelp2m -file logs/inteltool.log -fld cb -i -p apl -o logs/gpio_apl.h >>logs/intelp2m.log 2>>logs/intelp2m.err.log
 intelp2m -file logs/inteltool.log -fld cb -i -p lbg -o logs/gpio_lbg.h >>logs/intelp2m.log 2>>logs/intelp2m.err.log
 update_result "GPIO configuration C header files" logs/intelp2m.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Dumping kernel dmesg..."
 $DMESG >logs/dmesg.log 2>logs/dmesg.err.log
 update_result "kernel dmesg" logs/dmesg.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Dumping ACPI tables..."
 acpidump >logs/acpidump.log 2>logs/acpidump.err.log
 update_result "ACPI tables" logs/acpidump.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Dumping Audio devices configuration..."
 # FIXME: https://github.com/Dasharo/dts-scripts/issues/108
@@ -194,22 +192,22 @@ done
 for x in /sys/class/sound/card0/hw*; do cat "$x/init_pin_configs" >logs/pin_"$(basename "$x")" 2>logs/pin_"$(basename "$x")".err.log; done
 for x in /proc/asound/card0/codec#*; do cat "$x" >logs/"$(basename "$x")" 2>logs/"$(basename "$x")".err.log; done
 update_result "Audio devices configuration" 0 UNKNOWN
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Dumping CPU info..."
 cat /proc/cpuinfo >logs/cpuinfo.log 2>logs/cpuinfo.err.log
 update_result "CPU info" logs/cpuinfo.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Dumping I/O ports..."
 cat /proc/ioports >logs/ioports.log 2>logs/ioports.err.log
 update_result "I/O ports" logs/ioports.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Dumping input bus types..."
 cat /sys/class/input/input*/id/bustype >logs/input_bustypes.log
 update_result "Input bus types" logs/ioports.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # flashrom does not support QEMU. TODO: this could be handled in a better way:
 if [ "${SYSTEM_VENDOR}" != "QEMU" ] && [ "${SYSTEM_VENDOR}" != "Emulation" ]; then
@@ -245,7 +243,7 @@ if [ "${SYSTEM_VENDOR}" != "QEMU" ] && [ "${SYSTEM_VENDOR}" != "Emulation" ]; th
   update_result "Firmware image" logs/flashrom_read.err.log
 fi
 ## Update progress bar anyway
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # Run psptool on dumped or external firmware
 if [ ! -f "$fw_bin_path" ] && [ -d "/firmware/external" ]; then
@@ -268,7 +266,7 @@ psptool -E "$fw_bin_path" >>logs/psptool.log 2>>logs/psptool.err.log
 #   print warnings, not errors.
 # This needs to be fixed at tool level.
 update_result "PSP firmware entries" logs/psptool.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Probing all I2C buses..."
 MAX_I2C_ID=$(i2cdetect -l | awk 'BEGIN{c1=0} //{c1++} END{print "",--c1}')
@@ -277,7 +275,7 @@ for bus in $(seq 0 "$MAX_I2C_ID"); do
   i2cdetect -y "$bus" >>logs/i2cdetect.log 2>>logs/i2cdetect.err.log
 done
 update_result "I2C bus" logs/i2cdetect.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Decompiling ACPI tables..."
 # FIXME: https://github.com/Dasharo/dts-scripts/issues/109
@@ -288,48 +286,48 @@ if pushd logs/acpi >/dev/null 2>>"$ERR_LOG_FILE"; then
   popd >/dev/null 2>>"$ERR_LOG_FILE" || return 1
 fi
 update_result "ACPI tables" 0 UNKNOWN
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Getting touchpad information..."
 touchpad-info >logs/touchpad.log 2>logs/touchpad.err.log
 update_result "Touchpad information" logs/touchpad.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Getting DIMMs information..."
 decode-dimms >logs/decode-dimms.log 2>logs/decode-dimms.err.log
 update_result "DIMMs information" logs/decode-dimms.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Getting CBMEM table..."
 $CBMEM >logs/cbmem.log 2>logs/cbmem.err.log
 update_result "CBMEM table information" logs/cbmem.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Getting CBMEM console..."
 $CBMEM -1 >logs/cbmem_console.log 2>logs/cbmem_console.err.log
 update_result "CBMEM console" logs/cbmem_console.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Getting TPM information..."
 find "$(realpath /sys/class/tpm/tpm*)" -type f -print -exec cat {} \; >logs/tpm_version.log 2>logs/tpm_version.err.log
 update_result "TPM information" logs/tpm_version.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # dump all PCRs
 rm -f "logs/tpm_pcrs.log" "logs/tpm_pcrs.err.log"
 $DUMP_PCRS >>"logs/tpm_pcrs.log" 2>>"logs/tpm_pcrs.err.log"
 update_result "TPM PCRs" logs/tpm_pcrs.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Checking AMT..."
 $MEI_AMT_CHECK >logs/amt-check.log 2>logs/amt-check.err.log
 update_result "AMT information" logs/amt-check.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Checking ME..."
 $INTELMETOOL -m >logs/intelmetool.log 2>logs/intelmetool.err.log
 update_result "ME information" logs/intelmetool.err.log
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 
 # echo "Getting graphics VBT"
 # FIXME: https://github.com/Dasharo/dts-scripts/issues/110
@@ -339,7 +337,7 @@ for file in $files; do
   cp "$file" "logs/dri_$(basename "$(dirname "$file")")_$(basename "$file")"
 done
 update_result "Graphics VBT" 0 UNKNOWN
-progress_bar_update
+draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 # next two echo cmds helps with printing
 echo
 echo
