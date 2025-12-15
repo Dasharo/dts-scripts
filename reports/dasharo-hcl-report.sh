@@ -19,30 +19,6 @@ BAR_TASKS_TOTAL=30
 FW_DUMP_DEFAULT_PATH="logs/rom.bin"
 fw_bin_path="$FW_DUMP_DEFAULT_PATH"
 
-draw_progress_bar() {
-  local current=$1
-  local total=$2
-  local BAR_WIDTH=67
-
-  # Clamp counter
-  ((current < 0)) && current=0
-  ((current > total)) && current=$total
-
-  # Calculate progress
-  local filled=$((current * BAR_WIDTH / total))
-  local empty=$((BAR_WIDTH - filled))
-
-  # Build bar
-  local bar
-  bar=$(printf "%0.s#" $(seq 1 $filled))
-  if ((empty > 0)); then
-    bar+=$(printf "%0.s " $(seq 1 $empty))
-  fi
-
-  # Print with carriage return
-  printf "\r[%s] %d/%d" "$bar" "$current" "$total"
-}
-
 update_result() {
   TOOL=$1
   ERRORFILE=$2

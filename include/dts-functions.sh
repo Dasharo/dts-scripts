@@ -42,6 +42,32 @@ clear_line() {
   printf '\r\033[K'
 }
 
+# Draws a simple progress bar
+# Example usage: draw_progress_bar "$((++TASK_NO))" "$TOTAL_TASKS"
+draw_progress_bar() {
+  local current=$1
+  local total=$2
+  local BAR_WIDTH=67
+
+  # Clamp counter
+  ((current < 0)) && current=0
+  ((current > total)) && current=$total
+
+  # Calculate progress
+  local filled=$((current * BAR_WIDTH / total))
+  local empty=$((BAR_WIDTH - filled))
+
+  # Build bar
+  local bar
+  bar=$(printf "%0.s#" $(seq 1 $filled))
+  if ((empty > 0)); then
+    bar+=$(printf "%0.s " $(seq 1 $empty))
+  fi
+
+  # Print with carriage return
+  printf "\r[%s] %d/%d" "$bar" "$current" "$total"
+}
+
 check_if_dasharo() {
   if [[ $BIOS_VENDOR == *$DASHARO_VENDOR* &&
     $BIOS_VERSION == *$DASHARO_NAME* ||
