@@ -883,6 +883,35 @@ deploy_firmware() {
   local _jobs_total=0
   _mode="$1"
 
+  # Helper function to schedule a flashrom job
+  schedule_job() {
+    local msg="$1"
+    shift
+
+    local idx=${#_jobs[@]}
+    _jobs+=("$idx")
+    _messages+=("$msg")
+
+    # Declare a global array for this job
+    declare -g -a "_job_args_$idx"
+    local -n args_ref="_job_args_$idx"
+    args_ref=("$@")
+  }
+
+  # Helper function to check whether fd flashing is among arguments
+  check_for_fd() {
+    local -n _args="$1"
+    local i
+
+    for ((i = 0; i < ${#_args[@]} - 1; i++)); do
+      if [[ "${_args[i]}" == "-i" && "${_args[i + 1]}" == "fd" ]]; then
+        return 0 # Found
+      fi
+    done
+
+    return 1 # Not found
+  }
+
   if [ "$_mode" == "update" ]; then
     echo "Updating Dasharo firmware..."
     print_warning "This may take several minutes. Please be patient and do not"
@@ -913,16 +942,25 @@ deploy_firmware() {
       # using the `check_blobs_in_binary` function.
       set_intel_regions_update_params "$FLASHROM_ADD_OPT_UPDATE_OVERRIDE"
       FLASHROM_ADD_OPT_UPDATE_OVERRIDE="$FLASHROM_ADD_OPT_REGIONS"
-      _messages+=("Failed to update Dasharo firmware")
-      _jobs+=("-p $PROGRAMMER_BIOS ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE_OVERRIDE} -w $BIOS_UPDATE_FILE")
+      schedule_job "Failed to update Dasharo firmware" \
+        -p "$PROGRAMMER_BIOS" \
+        ${FLASH_CHIP_SELECT} \
+        ${FLASHROM_ADD_OPT_UPDATE_OVERRIDE} \
+        -w "$BIOS_UPDATE_FILE"
     else
       set_intel_regions_update_params "-N --ifd"
-      _messages+=("Failed to update Dasharo firmware")
-      _jobs+=("-p $PROGRAMMER_BIOS ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE} -w $BIOS_UPDATE_FILE")
+      schedule_job "Failed to update Dasharo firmware" \
+        -p "$PROGRAMMER_BIOS" \
+        ${FLASH_CHIP_SELECT} \
+        ${FLASHROM_ADD_OPT_UPDATE} \
+        -w "$BIOS_UPDATE_FILE"
       if [ $BINARY_HAS_RW_B -eq 0 ]; then
         echo "Scheduling second firmware partition update..."
-        _messages+=("Failed to update second firmware partition")
-        _jobs+=("-p $PROGRAMMER_BIOS ${FLASH_CHIP_SELECT} --fmap -N -i RW_SECTION_B -w $BIOS_UPDATE_FILE")
+        schedule_job "Failed to update second firmware partition" \
+          -p "$PROGRAMMER_BIOS" \
+          ${FLASH_CHIP_SELECT} \
+          --fmap -N -i RW_SECTION_B \
+          -w "$BIOS_UPDATE_FILE"
       fi
     fi
 
@@ -947,8 +985,11 @@ deploy_firmware() {
         UPDATE_STRING+="Management Engine"
       fi
       echo "Scheduling $UPDATE_STRING update..."
-      _messages+=("Failed to update $UPDATE_STRING")
-      _jobs+=("-p $PROGRAMMER_BIOS ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w $BIOS_UPDATE_FILE")
+      schedule_job "Failed to update $UPDATE_STRING" \
+        -p "$PROGRAMMER_BIOS" \
+        ${FLASH_CHIP_SELECT} \
+        ${FLASHROM_ADD_OPT_REGIONS} \
+        -w "$BIOS_UPDATE_FILE"
     fi
   elif [ "$_mode" == "install" ]; then
     firmware_pre_installation_routine
@@ -956,24 +997,37 @@ deploy_firmware() {
     echo "Scheduling Dasharo firmware installation..."
     # FIXME: It seems we do not have an easy way to add some flasrhom extra args
     # globally for specific platform and variant
-    local _flashrom_extra_args=""
+    local _flashrom_extra_args=()
     if [ "${BIOS_LINK}" = "${BIOS_LINK_DPP_SEABIOS}" ]; then
-      _flashrom_extra_args="--fmap -i COREBOOT"
+      _flashrom_extra_args=(--fmap -i COREBOOT)
     fi
-    _messages+=("Failed to install Dasharo firmware")
-    _jobs+=("-p $PROGRAMMER_BIOS ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w $BIOS_UPDATE_FILE ${_flashrom_extra_args}")
+    schedule_job "Failed to install Dasharo firmware" \
+      -p "$PROGRAMMER_BIOS" \
+      ${FLASH_CHIP_SELECT} \
+      ${FLASHROM_ADD_OPT_REGIONS} \
+      -w "$BIOS_UPDATE_FILE" \
+      "${_flashrom_extra_args[@]}"
   fi
 
   # If any job flashes FD region, schedule a dedicated job just for that.
   # The reason is, regions are FD dependent.
-  for job in "${_jobs[@]}"; do
-    if [[ "$job" == *"-i fd"* ]]; then
-      local fd_prep_msg="Failed to flash FD"
-      local fd_prep_job="-p $PROGRAMMER_BIOS ${FLASH_CHIP_SELECT} -N --ifd -i fd -w $BIOS_UPDATE_FILE"
+  for i in "${_jobs[@]}"; do
+    # Nameref binding is treated as a string assignment, but at runtime args_ref
+    # refers to an array.
+    # shellcheck disable=SC2178
+    local -n args_ref="_job_args_$i"
 
+    if check_for_fd args_ref; then
       echo "Scheduling dedicated FD update..."
-      _jobs=("$fd_prep_job" "${_jobs[@]}")
-      _messages=("$fd_prep_msg" "${_messages[@]}")
+      schedule_job "Failed to flash FD" \
+        -p "$PROGRAMMER_BIOS" \
+        ${FLASH_CHIP_SELECT} \
+        -N --ifd -i fd \
+        -w "$BIOS_UPDATE_FILE"
+
+      local fd_idx=$((${#_jobs[@]} - 1))
+      _jobs=("$fd_idx" "${_jobs[@]:0:fd_idx}")
+      _messages=("${_messages[$fd_idx]}" "${_messages[@]:0:fd_idx}")
       break
     fi
   done
@@ -981,13 +1035,15 @@ deploy_firmware() {
   _jobs_total=${#_jobs[@]}
 
   # Execute scheduled tasks
-  for i in "${!_jobs[@]}"; do
-    message="${_messages[$i]}"
-    job="${_jobs[$i]}"
-    job_number=$((i + 1))
+  for n in "${!_jobs[@]}"; do
+    local i="${_jobs[$n]}"
+    # Nameref binding is treated as a string assignment, but at runtime args_ref
+    # refers to an array.
+    # shellcheck disable=SC2178
+    local -n args_ref="_job_args_$i"
 
-    draw_progress_bar "$job_number" "$_jobs_total"
-    flashrom_write_and_check "$message" $job
+    draw_progress_bar "$((n + 1))" "$_jobs_total"
+    flashrom_write_and_check "${_messages[$i]}" "${args_ref[@]}"
   done
 
   echo

@@ -705,8 +705,7 @@ set_intel_regions_update_params() {
         FLASHROM_ADD_OPT_REGIONS+=" -i fd"
       else
         fd_me_locked="yes"
-        print_error "The firmware binary to be flashed contains Flash Descriptor (FD), but FD is not writable!"
-        print_warning "Proceeding without FD flashing, as it is not critical."
+        print_warning "The firmware binary to be flashed contains Flash Descriptor (FD), but FD is not writable!"
         echo "The firmware binary contains Flash Descriptor (FD), but FD is not writable!" >>$ERR_LOG_FILE
       fi
     fi
