@@ -28,7 +28,7 @@ DTS_VERBOSE_LOG_FILE="$TMP_LOG_DIR/dts-verbose_$(basename "$(tty)").log"
 source "$BASH_ENV"
 start_trace_logging
 start_logging
-if [ -z "$ERR_LOG_FILE" ]; then
+if [[ -z "$ERR_LOG_FILE" || "$ERR_LOG_FILE" == "/dev/null" ]]; then
   # pass everything written to $ERR_LOG_FILE to logger function and save it's
   # output to $ERR_LOG_FILE_REALPATH file
   exec {ERR_LOG_FILE}> >(logger >>"$ERR_LOG_FILE_REALPATH")
