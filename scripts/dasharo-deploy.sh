@@ -878,38 +878,52 @@ deploy_firmware() {
   #
   # $DEPLOY_COMMAND $DEPLOY_ARGS &>> $LOGS_FILE
   local _mode
-  local _jobs=()
-  local _messages=()
+  local _jobs=()     # List of scheduled job indices
+  local _messages=() # List of error messages
+  # _job_args_<i> # List of flashrom params per job indice
+  # These are created dynamically in schedule_job() and referenced via nameref.
   local _jobs_total=0
   _mode="$1"
 
   # Helper function to schedule a flashrom job
+  # Each job consists of:
+  #  - a unique numeric index
+  #  - an associated error message
+  #  - a dedicated argument array holding flashrom parameters
   schedule_job() {
     local msg="$1"
     shift
 
+    # Use current job count as a unique job identifier
     local idx=${#_jobs[@]}
+    # Track job order and corresponding error message
     _jobs+=("$idx")
     _messages+=("$msg")
 
-    # Declare a global array for this job
+    # Create a per-job global array for flashrom arguments accessible to
+    # mother-function
     declare -g -a "_job_args_$idx"
+    # Bind a nameref to the per-job argument array and populate it
     local -n args_ref="_job_args_$idx"
+    # Needed as bash does not support dynamic variable names expansion
     args_ref=("$@")
   }
 
   # Helper function to check whether fd flashing is among arguments
+  # 0 if found, 1 otherwise.
   check_for_fd() {
     local -n _args="$1"
     local i
 
+    # Scan argument array for the exact flashrom region selector "-i fd".
+    # Iterate only up to length-1 since we always inspect pairs (i, i+1).
     for ((i = 0; i < ${#_args[@]} - 1; i++)); do
       if [[ "${_args[i]}" == "-i" && "${_args[i + 1]}" == "fd" ]]; then
-        return 0 # Found
+        return 0
       fi
     done
 
-    return 1 # Not found
+    return 1
   }
 
   if [ "$_mode" == "update" ]; then
@@ -1012,8 +1026,10 @@ deploy_firmware() {
   # If any job flashes FD region, schedule a dedicated job just for that.
   # The reason is, regions are FD dependent.
   for i in "${_jobs[@]}"; do
-    # Nameref binding is treated as a string assignment, but at runtime args_ref
-    # refers to an array.
+    # _job_args_$i is a dynamically named (runtime-created) global array holding
+    # flashrom arguments for a single job. The array's created in schedule_job().
+    # A nameref is used to reference that array as bash does not support
+    # dynamic variable expansion.
     # shellcheck disable=SC2178
     local -n args_ref="_job_args_$i"
 
@@ -1025,7 +1041,9 @@ deploy_firmware() {
         -N --ifd -i fd \
         -w "$BIOS_UPDATE_FILE"
 
+      # fd_idx is the index of the newly added FD job
       local fd_idx=$((${#_jobs[@]} - 1))
+      # Move the FD job to the front of the queue
       _jobs=("$fd_idx" "${_jobs[@]:0:fd_idx}")
       _messages=("${_messages[$fd_idx]}" "${_messages[@]:0:fd_idx}")
       break
@@ -1036,9 +1054,12 @@ deploy_firmware() {
 
   # Execute scheduled tasks
   for n in "${!_jobs[@]}"; do
+    # Current job ID
     local i="${_jobs[$n]}"
-    # Nameref binding is treated as a string assignment, but at runtime args_ref
-    # refers to an array.
+    # _job_args_$i is a dynamically named (runtime-created) global array holding
+    # flashrom arguments for a single job. The array's created in schedule_job().
+    # A nameref is used to reference that array as bash does not support
+    # dynamic variable expansion.
     # shellcheck disable=SC2178
     local -n args_ref="_job_args_$i"
 
