@@ -1,23 +1,95 @@
 #!/bin/bash
 
-ncm_mtl_key=e64b6b0e82c68fecc58f750d3696c26e1c98bf9e3149c81f3b2ed775eb9d2c157a99c103c62c44c0cdc61be971caeae1
+# shellcheck source=../include/dts-environment.sh
+source "$DTS_ENV"
+# shellcheck source=../include/dts-functions.sh
+source "$DTS_FUNCS"
 
-rom=flashdump.bin
+print_help() {
+  cat <<EOF
+$(basename "$0") [OPTION]...
 
-echo "Reading flash..."
-flashrom -p internal --ifd -i bios -i me -i fd -r $rom >/dev/null 2>&1
+Script that allows for verification whether firmware binary is signed with correct keys.
+Options:
+  -f|--file <file>          Path to firmware file for which to check key hash.
+  -k|--key-hash <hash>      Expected key hash
+  -v|--verbose              Enable trace output
+  -h|--help                 Print this help
+EOF
+}
+
+parse_args() {
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+    -v | --verbose)
+      set -x
+      shift
+      ;;
+    -h | --help)
+      print_help
+      exit 0
+      ;;
+    -f | --file)
+      if [ ! -f "$2" ]; then
+        error_exit "File '$2' doesn't exist"
+      fi
+      rom="$2"
+      shift 2
+      ;;
+    -k | --key-hash)
+      if [ -z "$2" ]; then
+        error_exit "--key-hash argument cannot be empty"
+      fi
+      expected_hash="$2"
+      shift 2
+      ;;
+    -*)
+      print_help
+      error_exit "Unknown option $1"
+      ;;
+    *)
+      print_usage
+      error_exit "Script doesn't accept any positional arguments, but got $#"
+      ;;
+    esac
+  done
+}
+
+expected_hash=
+rom="flashdump.bin"
+
+parse_args "$@"
+
+if [ -z "$expected_hash" ]; then
+  board_config
+  error_check "Failed to download board configuration"
+  if [ -z "$INTEL_BTG_HASH" ]; then
+    error_exit "Cannot determine expected key hash.
+Make sure your platform firmware supports Intel BootGuard"
+  fi
+  expected_hash="$INTEL_BTG_HASH"
+fi
+if [ ! -f "$rom" ]; then
+  echo "Reading flash..."
+  $FLASHROM -p "$PROGRAMMER_BIOS" --ifd -i bios -i me -i fd -r "${rom}" >>"$FLASHROM_LOG_FILE" 2>>"$ERR_LOG_FILE"
+  error_check "Failed to read flash"
+fi
 
 echo "Extracting key manifest..."
-bg-prov km-export $rom km.bin >/dev/null
+bg-prov km-export "${rom}" km.bin 2>>"$ERR_LOG_FILE" >&2
+error_check "Failed to export key manifest."
 
 modulus=$(bg-prov km-show km.bin | grep "Key And Signature" -A 8 | grep Data | cut -d ' ' -f 10 | tail -c +11)
 exponent=01000100
 
-echo $modulus$exponent | awk '{gsub(/.{2}/,"& ")}1' | xxd -r -p | sha384sum | grep -q $ncm_mtl_key
+fw_key_hash="$(echo "$modulus$exponent" | awk '{gsub(/.{2}/,"& ")}1' | xxd -r -p | sha384sum | awk '{print $1}')"
 
-if [ $? -eq 0 ]; then
-  echo "Key matches NovaCustom Meteor Lake signing key."
+if grep -q "${expected_hash}" <<<"${fw_key_hash}"; then
+  echo_green "Firmware is signed with expected key hash:"
+  echo_green "  ${expected_hash}"
 else
-  echo "Key does not match NovaCustom Meteor Lake signing key!"
+  echo_red "Firmware signature doesn't match expected hash:"
+  echo_red "  Expected: ${expected_hash}"
+  echo_red "  Signed  : ${fw_key_hash}"
   exit 1
 fi
