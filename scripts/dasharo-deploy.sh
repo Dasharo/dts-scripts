@@ -1052,6 +1052,34 @@ deploy_firmware() {
   return 0
 }
 
+# A helper function for transition/recovery flows.
+# Makes sure if FD region is flashed, it gets a dedicated job first.
+# The reason is, other regions are FD dependent.
+flash_bios_fd_first() {
+  local rom_file="$1"
+  local operation="$2"
+
+  if [[ " ${FLASHROM_ADD_OPT_REGIONS} " == *" -i fd "* ]]; then
+    echo "Flashing FD region..."
+
+    flashrom_write_and_check \
+      "Failed to flash FD region" \
+      -p "$PROGRAMMER_BIOS" \
+      ${FLASH_CHIP_SELECT} \
+      -N --ifd -i fd \
+      -w "$rom_file"
+
+    echo "Flashing remaining regions..."
+  fi
+
+  flashrom_write_and_check \
+    "Failed to ${operation} Dasharo firmware!" \
+    -p "$PROGRAMMER_BIOS" \
+    ${FLASH_CHIP_SELECT} \
+    ${FLASHROM_ADD_OPT_REGIONS} \
+    -w "$rom_file"
+}
+
 check_if_cpu_compatible() {
   # Perform preliminary checks for Dasharo releases' compatibility with certain
   # CPUs on certain boards.
@@ -1370,10 +1398,7 @@ transition_firmware() {
   firmware_pre_installation_routine
 
   echo "Transitioning Dasharo firmware..."
-  # FIXME: It seems we do not have an easy way to add some flasrhom extra args
-  # globally for specific platform and variant
-  $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "$BIOS_UPDATE_FILE" >>$FLASHROM_LOG_FILE 2>>"$ERR_LOG_FILE"
-  error_check "Failed to transition Dasharo firmware"
+  flash_bios_fd_first "$BIOS_UPDATE_FILE" "transition"
   print_ok "Successfully transitioned Dasharo firmware"
 
   return $OK
@@ -1470,8 +1495,7 @@ restore() {
             check_blobs_in_binary /tmp/logs/rom.bin
             check_if_me_disabled
             set_intel_regions_update_params "-N --ifd -i bios"
-            $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "/tmp/logs/rom.bin" >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
-            error_check "Failed to restore BIOS firmware! You can try one more time."
+            flash_bios_fd_first "/tmp/logs/rom.bin" "restore"
             print_ok "Successfully restored firmware"
             echo "Returning to main menu..."
             exit 0
@@ -1508,8 +1532,7 @@ restore() {
         check_blobs_in_binary /tmp/logs/rom.bin
         check_if_me_disabled
         set_intel_regions_update_params "-N --ifd -i bios"
-        $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "/tmp/logs/rom.bin" >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
-        error_check "Failed to restore BIOS firmware! You can try one more time."
+        flash_bios_fd_first "/tmp/logs/rom.bin" "restore"
         print_ok "Successfully restored firmware"
       else
         print_error "Report does not have firmware backup!"
