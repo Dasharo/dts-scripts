@@ -7,11 +7,8 @@
 SBIN_DIR="/usr/sbin"
 FUM_EFIVAR="/sys/firmware/efi/efivars/FirmwareUpdateMode-d15b327e-ff2d-4fc1-abf6-c12bd08c1359"
 
-export DTS_FUNCS="$SBIN_DIR/dts-functions.sh"
-export DTS_ENV="$SBIN_DIR/dts-environment.sh"
-export DTS_SUBS="$SBIN_DIR/dts-subscription.sh"
-export DTS_HAL="$SBIN_DIR/dts-hal.sh"
-export DTS_MOCK_COMMON="$SBIN_DIR/common-mock-func.sh"
+# shellcheck source=../dts-profile.sh
+source "/etc/profile.d/dts-profile.sh"
 export BASH_ENV="$SBIN_DIR/logging"
 export TMP_LOG_DIR="/tmp/logs"
 export ERR_LOG_FILE_REALPATH
