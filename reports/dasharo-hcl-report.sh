@@ -11,38 +11,16 @@ source $DTS_FUNCS
 # shellcheck source=../include/hal/dts-hal.sh
 source $DTS_HAL
 
-# Vars for controlling progress bar
-progress_bar_cntr=0
-PROGRESS_BAR_TASKS_TOTAL=30
-
 # Helper vars
 FW_DUMP_DEFAULT_PATH="logs/rom.bin"
 fw_bin_path="$FW_DUMP_DEFAULT_PATH"
 
+# Vars for controlling progress bar
+bar_cntr=0
+BAR_TASKS_TOTAL=30
+
 progress_bar_update() {
-  local BAR_WIDTH=67
-
-  # Increment counter
-  ((progress_bar_cntr++))
-
-  # Clamp counter
-  if ((progress_bar_cntr > PROGRESS_BAR_TASKS_TOTAL)); then
-    progress_bar_cntr=$PROGRESS_BAR_TASKS_TOTAL
-  fi
-
-  # Calculate progress
-  local filled=$((progress_bar_cntr * BAR_WIDTH / PROGRESS_BAR_TASKS_TOTAL))
-  local empty=$((BAR_WIDTH - filled))
-
-  # Build bar
-  local bar
-  bar=$(printf "%0.s#" $(seq 1 $filled))
-  if ((empty > 0)); then
-    bar+=$(printf "%0.s " $(seq 1 $empty))
-  fi
-
-  # Print with carriage return
-  printf "\r[%s] %d/%d" "$bar" "$progress_bar_cntr" "$PROGRESS_BAR_TASKS_TOTAL"
+  draw_progress_bar "$((++bar_cntr))" "$BAR_TASKS_TOTAL"
 }
 
 update_result() {

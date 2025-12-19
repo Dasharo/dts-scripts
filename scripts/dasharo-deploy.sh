@@ -878,7 +878,53 @@ deploy_firmware() {
   #
   # $DEPLOY_COMMAND $DEPLOY_ARGS &>> $LOGS_FILE
   local _mode
+  local _jobs=()     # List of scheduled job indices
+  local _messages=() # List of error messages
+  # _job_args_<i> # List of flashrom params per job indice
+  # These are created dynamically in schedule_job() and referenced via nameref.
+  local _jobs_total=0
   _mode="$1"
+
+  # Helper function to schedule a flashrom job
+  # Each job consists of:
+  #  - a unique numeric index
+  #  - an associated error message
+  #  - a dedicated argument array holding flashrom parameters
+  schedule_job() {
+    local msg="$1"
+    shift
+
+    # Use current job count as a unique job identifier
+    local idx=${#_jobs[@]}
+    # Track job order and corresponding error message
+    _jobs+=("$idx")
+    _messages+=("$msg")
+
+    # Create a per-job global array for flashrom arguments accessible to
+    # mother-function
+    declare -g -a "_job_args_$idx"
+    # Bind a nameref to the per-job argument array and populate it
+    local -n args_ref="_job_args_$idx"
+    # Needed as bash does not support dynamic variable names expansion
+    args_ref=("$@")
+  }
+
+  # Helper function to check whether fd flashing is among arguments
+  # 0 if found, 1 otherwise.
+  check_for_fd() {
+    local -n _args="$1"
+    local i
+
+    # Scan argument array for the exact flashrom region selector "-i fd".
+    # Iterate only up to length-1 since we always inspect pairs (i, i+1).
+    for ((i = 0; i < ${#_args[@]} - 1; i++)); do
+      if [[ "${_args[i]}" == "-i" && "${_args[i + 1]}" == "fd" ]]; then
+        return 0
+      fi
+    done
+
+    return 1
+  }
 
   if [ "$_mode" == "update" ]; then
     echo "Updating Dasharo firmware..."
@@ -902,6 +948,7 @@ deploy_firmware() {
 
     # FLASHROM_ADD_OPT_UPDATE_OVERRIDE takes priority over auto-detected update params.
     # It set only by platform-specific and firmware version-specific conditions
+    echo "Scheduling main firmware update..."
     if [ -n "$FLASHROM_ADD_OPT_UPDATE_OVERRIDE" ]; then
       # To standardize the operation of the FLASHROM_ADD_OPT_UPDATE_OVERRIDE flag,
       # by default it contains only the bios section, below we verify the
@@ -909,18 +956,24 @@ deploy_firmware() {
       # using the `check_blobs_in_binary` function.
       set_intel_regions_update_params "$FLASHROM_ADD_OPT_UPDATE_OVERRIDE"
       FLASHROM_ADD_OPT_UPDATE_OVERRIDE="$FLASHROM_ADD_OPT_REGIONS"
-      flashrom_write_and_check "Failed to update Dasharo firmware" \
-        -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE_OVERRIDE} \
+      schedule_job "Failed to update Dasharo firmware" \
+        -p "$PROGRAMMER_BIOS" \
+        ${FLASH_CHIP_SELECT} \
+        ${FLASHROM_ADD_OPT_UPDATE_OVERRIDE} \
         -w "$BIOS_UPDATE_FILE"
     else
       set_intel_regions_update_params "-N --ifd"
-      flashrom_write_and_check "Failed to update Dasharo firmware" \
-        -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_UPDATE} \
+      schedule_job "Failed to update Dasharo firmware" \
+        -p "$PROGRAMMER_BIOS" \
+        ${FLASH_CHIP_SELECT} \
+        ${FLASHROM_ADD_OPT_UPDATE} \
         -w "$BIOS_UPDATE_FILE"
       if [ $BINARY_HAS_RW_B -eq 0 ]; then
-        echo "Updating second firmware partition..."
-        flashrom_write_and_check "Failed to update second firmware partition" \
-          -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} --fmap -N -i RW_SECTION_B \
+        echo "Scheduling second firmware partition update..."
+        schedule_job "Failed to update second firmware partition" \
+          -p "$PROGRAMMER_BIOS" \
+          ${FLASH_CHIP_SELECT} \
+          --fmap -N -i RW_SECTION_B \
           -w "$BIOS_UPDATE_FILE"
       fi
     fi
@@ -945,32 +998,107 @@ deploy_firmware() {
       if [ $UPDATE_ME -eq 0 ]; then
         UPDATE_STRING+="Management Engine"
       fi
-      echo "Updating $UPDATE_STRING"
-      flashrom_write_and_check "Failed to update $UPDATE_STRING" \
-        -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} \
+      echo "Scheduling $UPDATE_STRING update..."
+      schedule_job "Failed to update $UPDATE_STRING" \
+        -p "$PROGRAMMER_BIOS" \
+        ${FLASH_CHIP_SELECT} \
+        ${FLASHROM_ADD_OPT_REGIONS} \
         -w "$BIOS_UPDATE_FILE"
     fi
-
-    return 0
   elif [ "$_mode" == "install" ]; then
     firmware_pre_installation_routine
 
-    echo "Installing Dasharo firmware..."
+    echo "Scheduling Dasharo firmware installation..."
     # FIXME: It seems we do not have an easy way to add some flasrhom extra args
     # globally for specific platform and variant
-    local _flashrom_extra_args=""
+    local _flashrom_extra_args=()
     if [ "${BIOS_LINK}" = "${BIOS_LINK_DPP_SEABIOS}" ]; then
-      _flashrom_extra_args="--fmap -i COREBOOT"
+      _flashrom_extra_args=(--fmap -i COREBOOT)
     fi
-    flashrom_write_and_check "Failed to install Dasharo firmware" \
-      -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} \
-      -w "$BIOS_UPDATE_FILE" ${_flashrom_extra_args}
-    print_ok "Successfully installed Dasharo firmware"
-    return 0
+    schedule_job "Failed to install Dasharo firmware" \
+      -p "$PROGRAMMER_BIOS" \
+      ${FLASH_CHIP_SELECT} \
+      ${FLASHROM_ADD_OPT_REGIONS} \
+      -w "$BIOS_UPDATE_FILE" \
+      "${_flashrom_extra_args[@]}"
   fi
 
-  # Must not get here.
-  return 1
+  # If any job flashes FD region, schedule a dedicated job just for that.
+  # The reason is, regions are FD dependent.
+  for i in "${_jobs[@]}"; do
+    # _job_args_$i is a dynamically named (runtime-created) global array holding
+    # flashrom arguments for a single job. The array's created in schedule_job().
+    # A nameref is used to reference that array as bash does not support
+    # dynamic variable expansion.
+    # shellcheck disable=SC2178
+    local -n args_ref="_job_args_$i"
+
+    if check_for_fd args_ref; then
+      echo "Scheduling dedicated FD update..."
+      schedule_job "Failed to flash FD" \
+        -p "$PROGRAMMER_BIOS" \
+        ${FLASH_CHIP_SELECT} \
+        -N --ifd -i fd \
+        -w "$BIOS_UPDATE_FILE"
+
+      # fd_idx is the index of the newly added FD job
+      local fd_idx=$((${#_jobs[@]} - 1))
+      # Move the FD job to the front of the queue
+      _jobs=("$fd_idx" "${_jobs[@]:0:fd_idx}")
+      _messages=("${_messages[$fd_idx]}" "${_messages[@]:0:fd_idx}")
+      break
+    fi
+  done
+
+  _jobs_total=${#_jobs[@]}
+
+  # Execute scheduled tasks
+  for n in "${!_jobs[@]}"; do
+    # Current job ID
+    local i="${_jobs[$n]}"
+    # _job_args_$i is a dynamically named (runtime-created) global array holding
+    # flashrom arguments for a single job. The array's created in schedule_job().
+    # A nameref is used to reference that array as bash does not support
+    # dynamic variable expansion.
+    # shellcheck disable=SC2178
+    local -n args_ref="_job_args_$i"
+
+    draw_progress_bar "$((n + 1))" "$_jobs_total"
+    flashrom_write_and_check "${_messages[$i]}" "${args_ref[@]}"
+  done
+
+  echo
+  print_ok "All jobs completed successfully!"
+
+  return 0
+}
+
+# A helper function for transition/recovery flows.
+# Makes sure if FD region is flashed, it gets a dedicated job first.
+# The reason is, other regions are FD dependent.
+flash_bios_fd_first() {
+  local rom_file="$1"
+  local operation="$2"
+
+  if [[ " ${FLASHROM_ADD_OPT_REGIONS} " == *" -i fd "* ]]; then
+    echo "Flashing FD region..."
+
+    flashrom_write_and_check \
+      "Failed to flash FD region" \
+      -p "$PROGRAMMER_BIOS" \
+      ${FLASH_CHIP_SELECT} \
+      -N --ifd -i fd \
+      -w "$rom_file"
+
+    echo "Flashing remaining regions..."
+  fi
+
+  flashrom_write_and_check \
+    "Failed to ${operation} Dasharo firmware!" \
+    -p "$PROGRAMMER_BIOS" \
+    ${FLASH_CHIP_SELECT} \
+    ${FLASHROM_ADD_OPT_REGIONS} \
+    -w "$rom_file"
 }
 
 check_if_cpu_compatible() {
@@ -1291,10 +1419,7 @@ transition_firmware() {
   firmware_pre_installation_routine
 
   echo "Transitioning Dasharo firmware..."
-  # FIXME: It seems we do not have an easy way to add some flasrhom extra args
-  # globally for specific platform and variant
-  $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "$BIOS_UPDATE_FILE" >>$FLASHROM_LOG_FILE 2>>"$ERR_LOG_FILE"
-  error_check "Failed to transition Dasharo firmware"
+  flash_bios_fd_first "$BIOS_UPDATE_FILE" "transition"
   print_ok "Successfully transitioned Dasharo firmware"
 
   return $OK
@@ -1391,8 +1516,7 @@ restore() {
             check_blobs_in_binary /tmp/logs/rom.bin
             check_if_me_disabled
             set_intel_regions_update_params "-N --ifd -i bios"
-            $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "/tmp/logs/rom.bin" >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
-            error_check "Failed to restore BIOS firmware! You can try one more time."
+            flash_bios_fd_first "/tmp/logs/rom.bin" "restore"
             print_ok "Successfully restored firmware"
             echo "Returning to main menu..."
             exit 0
@@ -1429,8 +1553,7 @@ restore() {
         check_blobs_in_binary /tmp/logs/rom.bin
         check_if_me_disabled
         set_intel_regions_update_params "-N --ifd -i bios"
-        $FLASHROM -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} ${FLASHROM_ADD_OPT_REGIONS} -w "/tmp/logs/rom.bin" >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
-        error_check "Failed to restore BIOS firmware! You can try one more time."
+        flash_bios_fd_first "/tmp/logs/rom.bin" "restore"
         print_ok "Successfully restored firmware"
       else
         print_error "Report does not have firmware backup!"
