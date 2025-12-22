@@ -62,10 +62,10 @@ parse_args "$@"
 
 if [ -z "$expected_hash" ]; then
   board_config
-  error_check "Failed to download board configuration"
+  error_check "Failed to download board configuration."
   if [ -z "$INTEL_BTG_HASH" ]; then
-    error_exit "Cannot determine expected key hash.
-Make sure your platform firmware supports Intel BootGuard"
+    error_exit "Platform configuration is missing expected key hash.
+The most likely reason is that there is no fusing binary for your platform."
   fi
   expected_hash="$INTEL_BTG_HASH"
 fi
