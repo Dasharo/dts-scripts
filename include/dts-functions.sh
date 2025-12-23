@@ -688,6 +688,80 @@ set_flashrom_update_params() {
   fi
 }
 
+# Does combined check to assess whether the board has region and if its locked.
+is_region_locked() {
+  local region="$1"
+  local has_var rw_var
+
+  # Uppercase
+  region="${region^^}"
+
+  has_var="BOARD_HAS_${region}_REGION"
+  rw_var="BOARD_${region}_REGION_RW"
+
+  [[ "${!has_var}" -eq 1 && "${!rw_var}" -eq 0 ]]
+}
+
+# Helper function to check whether a certain region is to be flashed.
+# 0 if found, 1 otherwise.
+flashrom_check_for_region() {
+  local region="$1"
+  local -n _args="$2"
+  local i
+
+  # Iterate only up to length-1 since we inspect pairs (i, i+1)
+  for ((i = 0; i < ${#_args[@]} - 1; i++)); do
+    if [[ "${_args[i]}" == "-i" && "${_args[i + 1]}" == "$region" ]]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+# Does a final check for all flashrom parameters if FD or ME are to be flashed
+# and if they're locked. Decide whether we can proceed if any regions are locked.
+flashrom_region_check() {
+  local -n args="$1"
+  local locked_regions=()
+  local region_list verb
+
+  # If switching to heads, always check the region, otherwise check region only
+  # if specified in params.
+  # The reason is we want to handle both "overwrites" form metadata as well as
+  # dynamically added params from set_intel_regions_update_params()
+  if { flashrom_check_for_region fd args || [[ "$SWITCHING_TO" == "heads" ]]; } &&
+    is_region_locked fd; then
+    locked_regions+=("FD")
+  fi
+
+  if { flashrom_check_for_region me args || [[ "$SWITCHING_TO" == "heads" ]]; } &&
+    is_region_locked me; then
+    locked_regions+=("ME")
+  fi
+
+  if [ "${#locked_regions[@]}" -eq 0 ]; then
+    return 0
+  fi
+
+  if [ "${#locked_regions[@]}" -eq 1 ]; then
+    region_list="${locked_regions[0]}"
+    verb="is"
+  else
+    region_list="${locked_regions[0]} and ${locked_regions[1]}"
+    verb="are"
+  fi
+
+  if [[ "$SWITCHING_TO" == "heads" ]]; then
+    print_error "Cannot proceed with heads update when $region_list $verb locked!"
+    print_error "Refer to: https://docs.dasharo.com/guides/firmware-update/#known-issues"
+    return 1
+  fi
+
+  print_warning "Proceeding without $region_list flashing, as it is not critical."
+  return 0
+}
+
 set_intel_regions_update_params() {
   local fd_me_locked="no"
   if [ $BOARD_HAS_FD_REGION -eq 0 ]; then
