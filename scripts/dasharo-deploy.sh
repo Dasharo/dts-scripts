@@ -880,9 +880,11 @@ deploy_firmware() {
   local _mode
   local _jobs=()     # List of scheduled job indices
   local _messages=() # List of error messages
-  # _job_args_<i> # List of flashrom params per job indice
+  # _job_args_<i>    # List of flashrom params per job indice
   # These are created dynamically in schedule_job() and referenced via nameref.
   local _jobs_total=0
+  local _all_flashrom_args=() # An array for all flashrom args from all jobs
+  local n i                   # Loop iterators
   _mode="$1"
 
   # Helper function to schedule a flashrom job
@@ -907,23 +909,6 @@ deploy_firmware() {
     local -n args_ref="_job_args_$idx"
     # Needed as bash does not support dynamic variable names expansion
     args_ref=("$@")
-  }
-
-  # Helper function to check whether fd flashing is among arguments
-  # 0 if found, 1 otherwise.
-  check_for_fd() {
-    local -n _args="$1"
-    local i
-
-    # Scan argument array for the exact flashrom region selector "-i fd".
-    # Iterate only up to length-1 since we always inspect pairs (i, i+1).
-    for ((i = 0; i < ${#_args[@]} - 1; i++)); do
-      if [[ "${_args[i]}" == "-i" && "${_args[i + 1]}" == "fd" ]]; then
-        return 0
-      fi
-    done
-
-    return 1
   }
 
   if [ "$_mode" == "update" ]; then
@@ -1033,7 +1018,7 @@ deploy_firmware() {
     # shellcheck disable=SC2178
     local -n args_ref="_job_args_$i"
 
-    if check_for_fd args_ref; then
+    if flashrom_check_for_region fd args_ref; then
       echo "Scheduling dedicated FD update..."
       schedule_job "Failed to flash FD" \
         -p "$PROGRAMMER_BIOS" \
@@ -1050,8 +1035,19 @@ deploy_firmware() {
     fi
   done
 
-  # Last restort check before flashing
-  if ! flashrom_sanity_check; then
+  # Create array of all flashrom params to call flashrom_region_check only once
+  for n in "${!_jobs[@]}"; do
+    i="${_jobs[$n]}"
+    # _job_args_$i is a dynamically named (runtime-created) global array holding
+    # flashrom arguments for a single job.
+    # shellcheck disable=SC2178
+    local -n args_ref="_job_args_$i"
+
+    _all_flashrom_args+=("${args_ref[@]}")
+  done
+
+  # Last resort check before flashing
+  if ! flashrom_region_check _all_flashrom_args; then
     return 1
   fi
 
