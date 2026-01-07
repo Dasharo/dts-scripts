@@ -1018,7 +1018,7 @@ deploy_firmware() {
     # shellcheck disable=SC2178
     local -n args_ref="_job_args_$i"
 
-    if flashrom_check_for_region fd args_ref; then
+    if flashrom_check_for_region fd "${args_ref[@]}"; then
       echo "Scheduling dedicated FD update..."
       schedule_job "Failed to flash FD" \
         -p "$PROGRAMMER_BIOS" \
@@ -1047,7 +1047,7 @@ deploy_firmware() {
   done
 
   # Last resort check before flashing
-  if ! flashrom_region_check _all_flashrom_args; then
+  if ! flashrom_region_check "${_all_flashrom_args[@]}"; then
     return 1
   fi
 

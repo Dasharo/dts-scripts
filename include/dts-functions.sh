@@ -706,12 +706,12 @@ is_region_locked() {
 # 0 if found, 1 otherwise.
 flashrom_check_for_region() {
   local region="$1"
-  local -n _args="$2"
-  local i
+  shift
+  local -a args=("$@")
 
   # Iterate only up to length-1 since we inspect pairs (i, i+1)
-  for ((i = 0; i < ${#_args[@]} - 1; i++)); do
-    if [[ "${_args[i]}" == "-i" && "${_args[i + 1]}" == "$region" ]]; then
+  for ((i = 0; i < ${#args[@]} - 1; i++)); do
+    if [[ "${args[i]}" == "-i" && "${args[i + 1]}" == "$region" ]]; then
       return 0
     fi
   done
@@ -722,7 +722,7 @@ flashrom_check_for_region() {
 # Does a final check for all flashrom parameters if FD or ME are to be flashed
 # and if they're locked. Decide whether we can proceed if any regions are locked.
 flashrom_region_check() {
-  local -n args="$1"
+  local -a args=("$@")
   local locked_regions=()
   local region_list verb
 
@@ -730,12 +730,12 @@ flashrom_region_check() {
   # if specified in params.
   # The reason is we want to handle both "overwrites" form metadata as well as
   # dynamically added params from set_intel_regions_update_params()
-  if (flashrom_check_for_region fd args || [[ "$SWITCHING_TO" == "heads" ]]) &&
+  if (flashrom_check_for_region fd "${args[@]}" || [[ "$SWITCHING_TO" == "heads" ]]) &&
     is_region_locked fd; then
     locked_regions+=("FD")
   fi
 
-  if (flashrom_check_for_region me args || [[ "$SWITCHING_TO" == "heads" ]]) &&
+  if (flashrom_check_for_region me "${args[@]}" || [[ "$SWITCHING_TO" == "heads" ]]) &&
     is_region_locked me; then
     locked_regions+=("ME")
   fi
