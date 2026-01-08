@@ -1596,7 +1596,7 @@ fuse_workflow() {
   check_if_ac
   download_bios
   verify_artifacts bios
-  btg_key_validator --file "$BIOS_UPDATE_FILE" --key-hash "$INTEL_BTG_HASH"
+  $BTG_KEY_VALIDATOR --file "$BIOS_UPDATE_FILE" --key-hash "$INTEL_BTG_HASH"
   error_check "Firmware Intel BootGuard signature check failed. Aborting...
 Platform has not been fused and no changes were made."
   # Ask user for confirmation:
