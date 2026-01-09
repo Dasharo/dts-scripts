@@ -790,6 +790,6 @@ amdtool_on_amd_mock() {
 # cap_upd_tool
 ################################################################################
 
-cap_upd_tool_mock() {
+cap_upd_tool_common_mock() {
   return 0
 }
