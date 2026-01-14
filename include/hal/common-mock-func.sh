@@ -785,3 +785,34 @@ amdtool_on_amd_mock() {
   fi
   return 1
 }
+
+################################################################################
+# cap_upd_tool
+################################################################################
+
+cap_upd_tool_common_mock() {
+  return 0
+}
+
+################################################################################
+# cap_upd_tool
+################################################################################
+# Set this variable to:
+# - leave empty - call original tool
+# - "success" - key verification succeeded
+# - "fail_hash" - key verification failed with hash error
+# - anything else - return 1 and don't print anything
+TEST_KEY_VALIDATOR_RESULT="${TEST_KEY_VALIDATOR_RESULT:-}"
+
+btg_key_validator_common_mock() {
+  if [ -z "${TEST_KEY_VALIDATOR_RESULT}" ]; then
+    btg_key_validator "$@"
+    return
+  elif [ "${TEST_KEY_VALIDATOR_RESULT}" = "success" ]; then
+    echo "Firmware is signed with expected key hash"
+    return 0
+  elif [ "${TEST_KEY_VALIDATOR_RESULT}" = "fail_hash" ]; then
+    print_error "Firmware signature doesn't match expected hash"
+  fi
+  return 1
+}

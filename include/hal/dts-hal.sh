@@ -60,6 +60,7 @@ RDMSR="tool_wrapper rdmsr"
 LSPCI="tool_wrapper lspci"
 LSUSB="tool_wrapper lsusb"
 DUMP_PCRS="tool_wrapper dump_pcrs"
+BTG_KEY_VALIDATOR="tool_wrapper btg_key_validator"
 
 ################################################################################
 # Tools wrapper.

@@ -1573,6 +1573,9 @@ fuse_workflow() {
     echo "No release with fusing support is available for your platform."
     exit "${CANCEL}"
   fi
+  if [ -z "$INTEL_BTG_HASH" ]; then
+    error_exit "Platform config is missing hash of the key used to sign firmware"
+  fi
 
   BIOS_LINK="${EOM_LINK_COMM_CAP}"
   BIOS_HASH_LINK="${EOM_HASH_LINK_COMM_CAP}"
@@ -1593,6 +1596,9 @@ fuse_workflow() {
   check_if_ac
   download_bios
   verify_artifacts bios
+  $BTG_KEY_VALIDATOR --file "$BIOS_UPDATE_FILE" --key-hash "$INTEL_BTG_HASH"
+  error_check "Firmware Intel BootGuard signature check failed. Aborting...
+Platform has not been fused and no changes were made."
   # Ask user for confirmation:
   display_warning
 
