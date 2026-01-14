@@ -723,13 +723,28 @@ flashrom_check_for_region() {
 # and if they're locked. Decide whether we can proceed if any regions are locked.
 flashrom_region_check() {
   local -a args=("$@")
-  local locked_regions=()
-  local region_list verb
+  local -a locked_regions=()
+  local -a missing=()
+  local region_list verb msg
 
+  # Regions to be flashed check section for heads.
+  # Do not allow heads flashing if any of FD, ME or BIOS are not specified.
+  # https://github.com/Dasharo/dasharo-issues/issues/1536#issuecomment-3636956833
+  if [[ "$SWITCHING_TO" == "heads" ]]; then
+    flashrom_check_for_region fd "${args[@]}" || missing+=("FD")
+    flashrom_check_for_region me "${args[@]}" || missing+=("ME")
+    flashrom_check_for_region bios "${args[@]}" || missing+=("BIOS")
+
+    if [[ "${#missing[@]}" -gt 0 ]]; then
+      msg="Cannot proceed with heads update without flashing the following regions: ${missing[*]}"
+    fi
+  fi
+
+  # Regions locked/unlocked check section.
   # If switching to heads, always check the region, otherwise check region only
-  # if specified in params.
-  # The reason is we want to handle both "overwrites" form metadata as well as
-  # dynamically added params from set_intel_regions_update_params()
+  # if specified in params. The reason is we want to handle both "overwrites"
+  # form metadata as well as dynamically added params from
+  # set_intel_regions_update_params()
   if (flashrom_check_for_region fd "${args[@]}" || [[ "$SWITCHING_TO" == "heads" ]]) &&
     is_region_locked fd; then
     locked_regions+=("FD")
@@ -740,25 +755,33 @@ flashrom_region_check() {
     locked_regions+=("ME")
   fi
 
-  if [ "${#locked_regions[@]}" -eq 0 ]; then
-    return 0
+  # Compose a message if regions locked. This overwrites missing check for heads.
+  if [[ "${#locked_regions[@]}" -gt 0 ]]; then
+    if [[ "${#locked_regions[@]}" -eq 1 ]]; then
+      region_list="${locked_regions[0]}"
+      verb="is"
+    else
+      region_list="${locked_regions[0]} and ${locked_regions[1]}"
+      verb="are"
+    fi
+
+    msg="Cannot proceed with heads update when $region_list $verb locked!"
   fi
 
-  if [ "${#locked_regions[@]}" -eq 1 ]; then
-    region_list="${locked_regions[0]}"
-    verb="is"
-  else
-    region_list="${locked_regions[0]} and ${locked_regions[1]}"
-    verb="are"
-  fi
-
-  if [[ "$SWITCHING_TO" == "heads" ]]; then
-    print_error "Cannot proceed with heads update when $region_list $verb locked!"
+  # Allow or decline heads update.
+  # Check locked regions first, as msg might have been overwritten.
+  if [[ "$SWITCHING_TO" == "heads" ]] &&
+    ([[ "${#locked_regions[@]}" -gt 0 ]] || [[ "${#missing[@]}" -gt 0 ]]); then
+    print_error "$msg"
     print_error "Refer to: https://docs.dasharo.com/guides/firmware-update/#known-issues"
     return 1
   fi
 
-  print_warning "Proceeding without $region_list flashing, as it is not critical."
+  # If non-heads update and regions are locked, just display the warning.
+  if [[ "${#locked_regions[@]}" -gt 0 ]]; then
+    print_warning "Proceeding without $region_list flashing, as it is not critical."
+  fi
+
   return 0
 }
 
