@@ -707,16 +707,7 @@ is_region_locked() {
 flashrom_check_for_region() {
   local region="$1"
   shift
-  local -a args=("$@")
-
-  # Iterate only up to length-1 since we inspect pairs (i, i+1)
-  for ((i = 0; i < ${#args[@]} - 1; i++)); do
-    if [[ "${args[i]}" == "-i" && "${args[i + 1]}" == "$region" ]]; then
-      return 0
-    fi
-  done
-
-  return 1
+  [[ "${*}" == *"-i ${region}"* ]]
 }
 
 # A last resort check helper function before executing flashrom updates.
