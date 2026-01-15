@@ -719,67 +719,64 @@ flashrom_check_for_region() {
   return 1
 }
 
-# Does a final check for all flashrom parameters if FD or ME are to be flashed
-# and if they're locked. Decide whether we can proceed if any regions are locked.
+# A last resort check helper function before executing flashrom updates.
+# For generic updates, verifies whether regions to be flashed are unlocked.
+# For heads, verifies whether FD, ME and bios are specified, and whether any is
+# locked.
 flashrom_region_check() {
   local -a args=("$@")
-  local -a locked_regions=()
+  local -a specified=()
   local -a missing=()
-  local region_list verb msg
+  local -a locked_regions=()
+  local ref_link="Refer to https://docs.dasharo.com/guides/firmware-update/#known-issues"
 
-  # Regions to be flashed check section for heads.
-  # Do not allow heads flashing if any of FD, ME or BIOS are not specified.
-  # https://github.com/Dasharo/dasharo-issues/issues/1536#issuecomment-3636956833
-  if [[ "$SWITCHING_TO" == "heads" ]]; then
-    flashrom_check_for_region fd "${args[@]}" || missing+=("FD")
-    flashrom_check_for_region me "${args[@]}" || missing+=("ME")
-    flashrom_check_for_region bios "${args[@]}" || missing+=("BIOS")
+  # Gather current state information
+  # Check what is to be flashed and what is locked
 
-    if [[ "${#missing[@]}" -gt 0 ]]; then
-      msg="Cannot proceed with heads update without flashing the following regions: ${missing[*]}"
-    fi
-  fi
-
-  # Regions locked/unlocked check section.
-  # If switching to heads, always check the region, otherwise check region only
-  # if specified in params. The reason is we want to handle both "overwrites"
-  # form metadata as well as dynamically added params from
-  # set_intel_regions_update_params()
-  if (flashrom_check_for_region fd "${args[@]}" || [[ "$SWITCHING_TO" == "heads" ]]) &&
-    is_region_locked fd; then
-    locked_regions+=("FD")
-  fi
-
-  if (flashrom_check_for_region me "${args[@]}" || [[ "$SWITCHING_TO" == "heads" ]]) &&
-    is_region_locked me; then
-    locked_regions+=("ME")
-  fi
-
-  # Compose a message if regions locked. This overwrites missing check for heads.
-  if [[ "${#locked_regions[@]}" -gt 0 ]]; then
-    if [[ "${#locked_regions[@]}" -eq 1 ]]; then
-      region_list="${locked_regions[0]}"
-      verb="is"
+  for region in fd me bios; do
+    # Check what regions are specified and what are missing
+    if flashrom_check_for_region "$region" "${args[@]}"; then
+      specified+=("${region^^}")
     else
-      region_list="${locked_regions[0]} and ${locked_regions[1]}"
-      verb="are"
+      missing+=("${region^^}")
     fi
+    # Check what regions are locked, skip bios as this check is not implemented
+    if [[ "$region" != "bios" ]] && is_region_locked "$region"; then
+      locked_regions+=("${region^^}")
+    fi
+  done
 
-    msg="Cannot proceed with heads update when $region_list $verb locked!"
+  # Generic, non-heads update
+  # For generic update any region that is specified must be unlocked
+
+  if [[ "$SWITCHING_TO" != "heads" ]]; then
+    for region in "${locked_regions[@]}"; do
+      if [[ " ${specified[*]} " == *" $region "* ]]; then
+        print_error "Cannot proceed: $region region is locked but was requested for flashing."
+        print_error "$ref_link"
+        return 1
+      fi
+    done
+
+    return 0
   fi
 
-  # Allow or decline heads update.
-  # Check locked regions first, as msg might have been overwritten.
-  if [[ "$SWITCHING_TO" == "heads" ]] &&
-    ([[ "${#locked_regions[@]}" -gt 0 ]] || [[ "${#missing[@]}" -gt 0 ]]); then
-    print_error "$msg"
-    print_error "Refer to: https://docs.dasharo.com/guides/firmware-update/#known-issues"
+  # Heads update
+  # For heads, all three regions (FD, ME or BIOS) must be specified:
+  # https://github.com/Dasharo/dasharo-issues/issues/1536#issuecomment-3636956833
+  # Cannot proceed if either FD or ME are locked.
+
+  if [[ "${#missing[@]}" -gt 0 ]]; then
+    print_error "Cannot proceed with heads update without flashing the following region(s): ${missing[*]}"
+    print_error "$ref_link"
     return 1
   fi
 
-  # If non-heads update and regions are locked, just display the warning.
+  # No locked regions allowed
   if [[ "${#locked_regions[@]}" -gt 0 ]]; then
-    print_warning "Proceeding without $region_list flashing, as it is not critical."
+    print_error "Cannot proceed with heads update due to following region(s) being locked: ${locked_regions[*]}"
+    print_error "$ref_link"
+    return 1
   fi
 
   return 0
