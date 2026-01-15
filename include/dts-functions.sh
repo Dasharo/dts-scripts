@@ -758,14 +758,21 @@ flashrom_region_check() {
   # Cannot proceed if either FD or ME are locked.
 
   if [[ "${#missing[@]}" -gt 0 ]]; then
-    print_error "Cannot proceed with heads update without flashing the following region(s): ${missing[*]}"
+    local regions
+
+    printf -v regions '%s, ' "${missing[@]}"
+    regions=${regions%, }
+    print_error "Cannot proceed with heads update without flashing the following region(s): $regions"
     print_error "$ref_link"
     return 1
   fi
 
-  # No locked regions allowed
   if [[ "${#locked_regions[@]}" -gt 0 ]]; then
-    print_error "Cannot proceed with heads update due to following region(s) being locked: ${locked_regions[*]}"
+    local regions
+
+    printf -v regions '%s, ' "${locked_regions[@]}"
+    regions=${regions%, }
+    print_error "Cannot proceed with heads update due to following region(s) being locked: $regions"
     print_error "$ref_link"
     return 1
   fi
