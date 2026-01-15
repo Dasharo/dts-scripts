@@ -1080,7 +1080,8 @@ show_main_menu() {
   fi
   # flashrom does not support QEMU. TODO: this could be handled in a better way:
   if [ "${SYSTEM_VENDOR}" != "QEMU" ] && [ "${SYSTEM_VENDOR}" != "Emulation" ]; then
-    echo -e "${BLUE}**${YELLOW}     ${REST_FIRM_OPT})${BLUE} Restore firmware from Dasharo HCL report${NORMAL}"
+    # Grayed out due to the lack of testing and potential bricks
+    echo -e "${BLUE}**${GRAY}     ${REST_FIRM_OPT}) Restore firmware from Dasharo HCL report${NORMAL}"
   fi
   if [ -n "${DPP_IS_LOGGED}" ]; then
     echo -e "${BLUE}**${YELLOW}     ${DPP_KEYS_OPT})${BLUE} Edit your DPP keys${NORMAL}"
@@ -1190,16 +1191,18 @@ main_menu_options() {
     return 0
     ;;
   "${REST_FIRM_OPT}")
+    # Commented out due to lack of testing and potential bricks
+
     # flashrom does not support QEMU, but restore depends on flashrom.
     # TODO: this could be handled in a better way:
-    [ "${SYSTEM_VENDOR}" = "QEMU" ] || [ "${SYSTEM_VENDOR}" = "Emulation" ] && return 0
+    # [ "${SYSTEM_VENDOR}" = "QEMU" ] || [ "${SYSTEM_VENDOR}" = "Emulation" ] && return 0
 
-    if check_if_dasharo; then
-      if ! ${CMD_DASHARO_DEPLOY} restore; then
-        send_dts_logs ask && return 0
-      fi
-    fi
-    read -p "Press Enter to continue."
+    # if check_if_dasharo; then
+    #   if ! ${CMD_DASHARO_DEPLOY} restore; then
+    #     send_dts_logs ask && return 0
+    #   fi
+    # fi
+    # read -p "Press Enter to continue."
 
     return 0
     ;;
