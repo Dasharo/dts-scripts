@@ -688,6 +688,98 @@ set_flashrom_update_params() {
   fi
 }
 
+# Does combined check to assess whether the board has region and if its locked.
+is_region_locked() {
+  local region="$1"
+  local has_var rw_var
+
+  # Uppercase
+  region="${region^^}"
+
+  has_var="BOARD_HAS_${region}_REGION"
+  rw_var="BOARD_${region}_REGION_RW"
+
+  [[ "${!has_var}" -eq 1 && "${!rw_var}" -eq 0 ]]
+}
+
+# Helper function to check whether a certain region is to be flashed.
+# 0 if found, 1 otherwise.
+flashrom_check_for_region() {
+  local region="$1"
+  shift
+  [[ "${*}" == *"-i ${region}"* ]]
+}
+
+# A last resort check helper function before executing flashrom updates.
+# For generic updates, verifies whether regions to be flashed are unlocked.
+# For heads, verifies whether FD, ME and bios are specified, and whether any is
+# locked.
+flashrom_region_check() {
+  local -a args=("$@")
+  local -a specified=()
+  local -a missing=()
+  local -a locked_regions=()
+  local ref_link="Refer to https://docs.dasharo.com/guides/firmware-update/#known-issues"
+
+  # Gather current state information
+  # Check what is to be flashed and what is locked
+
+  for region in fd me bios; do
+    # Check what regions are specified and what are missing
+    if flashrom_check_for_region "$region" "${args[@]}"; then
+      specified+=("${region^^}")
+    else
+      missing+=("${region^^}")
+    fi
+    # Check what regions are locked, skip bios as this check is not implemented
+    if [[ "$region" != "bios" ]] && is_region_locked "$region"; then
+      locked_regions+=("${region^^}")
+    fi
+  done
+
+  # Generic, non-heads update
+  # For generic update any region that is specified must be unlocked
+
+  if [[ "$SWITCHING_TO" != "heads" ]]; then
+    for region in "${locked_regions[@]}"; do
+      if [[ " ${specified[*]} " == *" $region "* ]]; then
+        print_error "Cannot proceed: $region region is locked but was requested for flashing."
+        print_error "$ref_link"
+        return 1
+      fi
+    done
+
+    return 0
+  fi
+
+  # Heads update
+  # For heads, all three regions (FD, ME or BIOS) must be specified:
+  # https://github.com/Dasharo/dasharo-issues/issues/1536#issuecomment-3636956833
+  # Cannot proceed if either FD or ME are locked.
+
+  if [[ "${#missing[@]}" -gt 0 ]]; then
+    local regions
+
+    printf -v regions '%s, ' "${missing[@]}"
+    regions=${regions%, }
+    print_error "Cannot proceed with heads update without flashing the following region(s): $regions"
+    print_error "$ref_link"
+    return 1
+  fi
+
+  if [[ "${#locked_regions[@]}" -gt 0 ]]; then
+    local regions
+
+    printf -v regions '%s, ' "${locked_regions[@]}"
+    regions=${regions%, }
+    print_error "Cannot proceed with heads update due to following region(s) being locked: $regions"
+    print_error "$ref_link"
+    return 1
+  fi
+
+  return 0
+}
+
 set_intel_regions_update_params() {
   local fd_me_locked="no"
   if [ $BOARD_HAS_FD_REGION -eq 0 ]; then
@@ -988,7 +1080,8 @@ show_main_menu() {
   fi
   # flashrom does not support QEMU. TODO: this could be handled in a better way:
   if [ "${SYSTEM_VENDOR}" != "QEMU" ] && [ "${SYSTEM_VENDOR}" != "Emulation" ]; then
-    echo -e "${BLUE}**${YELLOW}     ${REST_FIRM_OPT})${BLUE} Restore firmware from Dasharo HCL report${NORMAL}"
+    # Grayed out due to the lack of testing and potential bricks
+    echo -e "${BLUE}**${GRAY}     ${REST_FIRM_OPT}) Restore firmware from Dasharo HCL report${NORMAL}"
   fi
   if [ -n "${DPP_IS_LOGGED}" ]; then
     echo -e "${BLUE}**${YELLOW}     ${DPP_KEYS_OPT})${BLUE} Edit your DPP keys${NORMAL}"
@@ -1098,16 +1191,18 @@ main_menu_options() {
     return 0
     ;;
   "${REST_FIRM_OPT}")
+    # Commented out due to lack of testing and potential bricks
+
     # flashrom does not support QEMU, but restore depends on flashrom.
     # TODO: this could be handled in a better way:
-    [ "${SYSTEM_VENDOR}" = "QEMU" ] || [ "${SYSTEM_VENDOR}" = "Emulation" ] && return 0
+    # [ "${SYSTEM_VENDOR}" = "QEMU" ] || [ "${SYSTEM_VENDOR}" = "Emulation" ] && return 0
 
-    if check_if_dasharo; then
-      if ! ${CMD_DASHARO_DEPLOY} restore; then
-        send_dts_logs ask && return 0
-      fi
-    fi
-    read -p "Press Enter to continue."
+    # if check_if_dasharo; then
+    #   if ! ${CMD_DASHARO_DEPLOY} restore; then
+    #     send_dts_logs ask && return 0
+    #   fi
+    # fi
+    # read -p "Press Enter to continue."
 
     return 0
     ;;
