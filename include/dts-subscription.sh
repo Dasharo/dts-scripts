@@ -110,7 +110,7 @@ get_dpp_creds() {
   # Export DPP creds to a file for future use. Currently these are being used
   # for both: MinIO (and its mc CLI) and cloudsend (deprecated, all DPP
   # sibscribtions will be megrated to MinIO):
-  echo ${DPP_EMAIL} >>${DPP_CREDENTIAL_FILE}
+  echo ${DPP_EMAIL} >${DPP_CREDENTIAL_FILE}
   echo ${DPP_PASSWORD} >>${DPP_CREDENTIAL_FILE}
 
   print_ok "Dasharo DPP credentials have been saved"
