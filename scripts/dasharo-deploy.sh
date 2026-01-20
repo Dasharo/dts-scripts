@@ -573,7 +573,7 @@ romhole_migration() {
   $CBFSTOOL layout_mock $BIOS_UPDATE_FILE layout -w | grep -q "ROMHOLE" && _romhole_destination="flashmap"
   # Sometimes ROMHOLE may be inside COREBOOT region (e.g. Dasharo
   # (coreboot+Heads)):
-  $CBFSTOOL dont_mock $BIOS_UPDATE_FILE print -r COREBOOT | grep -q msi_romhole.bin && _romhole_destination="cbfs"
+  $CBFSTOOL layout_mock $BIOS_UPDATE_FILE print -r COREBOOT | grep -q msi_romhole.bin && _romhole_destination="cbfs"
 
   # Read currently installed firmware for ROMHOLE dump.
   $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r $_current_firm --ifd -i bios >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE

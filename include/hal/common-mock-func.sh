@@ -402,6 +402,7 @@ TEST_IS_SEABIOS="${TEST_IS_SEABIOS:-}"
 TEST_IS_COREBOOT="${TEST_IS_COREBOOT:-}"
 TEST_GBB_WP_RO_OVERLAP="${TEST_GBB_WP_RO_OVERLAP:-}"
 TEST_BOARD_HAS_SMMSTORE="${TEST_BOARD_HAS_SMMSTORE:-true}"
+TEST_ROMHOLE_CBFS_MIGRATION="${TEST_ROMHOLE_CBFS_MIGRATION:-false}"
 
 check_if_coreboot() {
   # if we are checking current firmware, return value based on TEST_IS_COREBOOT
@@ -433,21 +434,31 @@ cbfstool_layout_mock() {
   if ! check_if_coreboot "$_file_to_check"; then
     return 1
   fi
-  echo "This image contains the following sections that can be accessed with this tool:"
-  echo ""
-  # Emulating ROMHOLE presence, check romhole_migration function for more inf.:
-  [ "$TEST_ROMHOLE_MIGRATION" = "true" ] && echo "'ROMHOLE' (test)"
-  # Emulating difference in Coreboot FS, check function
-  # set_flashrom_update_params for more inf.:
-  [ "$TEST_DIFFERENT_FMAP" = "true" ] && [ "$_file_to_check" != "$BIOS_DUMP_FILE" ] && echo "test"
+  _region_to_list=$(parse_for_arg_return_next "-r" "$@")
 
-  for region in "${_regions[@]}"; do
-    if [[ "$region" = "GBB" && -z "$TEST_GBB_WP_RO_OVERLAP" ]]; then
-      echo "'$region' (size 100, offset 1000)"
-    else
-      echo "'$region' (size 100, offset 100)"
+  if [ -z "$_region_to_list" ]; then
+    echo "This image contains the following sections that can be accessed with this tool:"
+    echo ""
+    # Emulating ROMHOLE presence, check romhole_migration function for more inf.:
+    [ "$TEST_ROMHOLE_MIGRATION" = "true" ] && echo "'ROMHOLE' (test)"
+    # Emulating difference in Coreboot FS, check function
+    # set_flashrom_update_params for more inf.:
+    [ "$TEST_DIFFERENT_FMAP" = "true" ] && [ "$_file_to_check" != "$BIOS_DUMP_FILE" ] && echo "test"
+
+    for region in "${_regions[@]}"; do
+      if [[ "$region" = "GBB" && -z "$TEST_GBB_WP_RO_OVERLAP" ]]; then
+        echo "'$region' (size 100, offset 1000)"
+      else
+        echo "'$region' (size 100, offset 100)"
+      fi
+    done
+  elif [[ "$_region_to_list" == "COREBOOT" ]]; then
+    echo "FMAP REGION: COREBOOT"
+    echo "Name                           Offset     Type           Size   Comp"
+    if [[ "$TEST_ROMHOLE_CBFS_MIGRATION" == "true" ]]; then
+      echo "msi_romhole.bin"
     fi
-  done
+  fi
 
   return 0
 }
