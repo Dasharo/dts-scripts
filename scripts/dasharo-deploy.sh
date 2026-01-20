@@ -812,6 +812,10 @@ firmware_pre_updating_routine() {
     error_check "Device does not have Dasharo EC firmware - cannot continue update!"
   fi
 
+  if [ "$NEED_ROMHOLE_MIGRATION" = "true" ]; then
+    romhole_migration
+  fi
+
   # FIXME: remove FIRMWARE_VERSION check after moving Heads transition to
   # separate workflow
   if [ "$NEED_SMMSTORE_MIGRATION" = "true" ] && [ "$FIRMWARE_VERSION" != "heads" ]; then
