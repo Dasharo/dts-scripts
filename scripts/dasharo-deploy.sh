@@ -545,23 +545,82 @@ backup() {
 }
 
 romhole_migration() {
-  $CBFSTOOL dont_mock $BIOS_UPDATE_FILE layout -w | grep -q "ROMHOLE" || return
+  # This function migrate ROMHOLE region from currently installed firmware to the
+  # to-be-installed firmware. Cases for ROMHOLE migration:
+  #
+  # 1. Initial deployment of Dasharo firmware.
+  # 2. Update of Dasharo firmware.
+  # 3. Trantitions between payloads of the Dasharo firmware.
+  #
+  # The ROMHOLE must be migrated because it contains unique platform data.
+  #
+  # Currently we support migration from Dasharo (coreboot+UEFI) to Dasharo
+  # (coreboot+Heads) only, we do not support getting back to UEFI. But in case it
+  # will be added in future, the commands would be:
+  #
+  # Extracting ROMHOLE from cbfs of the currently-installed Dasharo
+  # (coreboot+Heads):
+  # cbfstool $_current_firm extract -r COREBOOT -n msi_romhole.bin -t raw -f $_romhole
+  # And migrating it:
+  # cbfstool $BIOS_UPDATE_FILE write -r ROMHOLE -f $_romhole -u 0
+  # These commands have not been tested yet!
+  local _romhole="/tmp/romhole.bin"
+  local _current_firm="/tmp/rom.bin"
+  local _romhole_destination
 
-  $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r /tmp/rom.bin --ifd -i bios >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
-  error_check "Failed to read current firmware to migrate MSI ROMHOLE"
+  # For Dasharo (coreboot+UEFI) ROMHOLE is located in flashmap. This covers
+  # initial deployments and updates:
+  $CBFSTOOL layout_mock $BIOS_UPDATE_FILE layout -w | grep -q "ROMHOLE" && _romhole_destination="flashmap"
+  # Sometimes ROMHOLE may be inside COREBOOT region (e.g. Dasharo
+  # (coreboot+Heads)):
+  $CBFSTOOL dont_mock $BIOS_UPDATE_FILE print -r COREBOOT | grep -q msi_romhole.bin && _romhole_destination="cbfs"
+
+  # Read currently installed firmware for ROMHOLE dump.
+  $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r $_current_firm --ifd -i bios >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
+  error_check "Failed to read current firmware to migrate ROMHOLE."
+
   if check_if_dasharo; then
-    $CBFSTOOL layout_mock /tmp/rom.bin layout -w | grep -q "ROMHOLE" || return
-    # This one is rather unlikely to fail, but just in case print a warning
-    $CBFSTOOL read_romhole_mock /tmp/rom.bin read -r ROMHOLE -f /tmp/romhole.bin 2>>"$ERR_LOG_FILE"
+    # Update of Dasharo firmware case:
+
+    # Check if there is a ROMHOLE to be migrated, if there is no - that ok,
+    # return 0.
+    $CBFSTOOL layout_mock $_current_firm layout -w | grep -q "ROMHOLE" || return 0
+
+    # Dump ROMHOLE from currently installed firmware. Only dump from flashmap is
+    # handled currently.
+    $CBFSTOOL read_romhole_mock $_current_firm read -r ROMHOLE -f $_romhole 2>>"$ERR_LOG_FILE"
+
     if [ $? -ne 0 ]; then
-      print_warning "Failed to migrate MSI ROMHOLE, your platform's unique SMBIOS/DMI data may be lost"
-      return
+      print_error "Failed to migrate ROMHOLE."
+      return 1
     fi
   else
-    dd if=/tmp/rom.bin of=/tmp/romhole.bin skip=$((0x17C0000)) bs=128K count=1 iflag=skip_bytes >/dev/null 2>>"$ERR_LOG_FILE"
+    # Initial deployment case:
+    dd if=$_current_firm of=$_romhole skip=$((0x17C0000)) bs=128K count=1 iflag=skip_bytes >/dev/null 2>>"$ERR_LOG_FILE"
   fi
 
-  $CBFSTOOL "$BIOS_UPDATE_FILE" write -r ROMHOLE -f /tmp/romhole.bin -u 2>>"$ERR_LOG_FILE"
+  # If there is ROMHOLE to be megrated - we need to check if there is a region
+  # in BIOS_UPDATE_FILE reserved for it:
+  if [ -z "$_romhole_destination" ]; then
+    # If there is no region for it - then we cannot megrate ROMHOLE
+    print_error "Detected ROMHOLE that should be migrated, but cannot migrate."
+    return 1
+  fi
+
+  # Migrate ROMHOLE depending on destination:
+  if [[ "$_romhole_destination" == "flashmap" ]]; then
+    $CBFSTOOL "$BIOS_UPDATE_FILE" write -r ROMHOLE -f $_romhole -u 2>>"$ERR_LOG_FILE"
+  elif [[ "$_romhole_destination" == "cbfs" ]]; then
+    # For CBFS case the ROMHOLE must be firstly deleted from the COREBOOT
+    # regions and then written.
+    $CBFSTOOL "$BIOS_UPDATE_FILE" remove -r COREBOOT -n msi_romhole.bin 2>>"$ERR_LOG_FILE"
+    $CBFSTOOL "$BIOS_UPDATE_FILE" add -r COREBOOT -n msi_romhole.bin -f $_romhole -b 0xff7c0000 -t raw 2>>"$ERR_LOG_FILE"
+  fi
+
+  # Cleanup
+  rm -f $_romhole $_current_firm
+
+  return 0
 }
 
 smbios_migration() {
