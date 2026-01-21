@@ -608,11 +608,14 @@ romhole_migration() {
   # Migrate ROMHOLE depending on destination:
   if [[ "$_romhole_destination" == "flashmap" ]]; then
     $CBFSTOOL "$BIOS_UPDATE_FILE" write -r ROMHOLE -f $_romhole -u 2>>"$ERR_LOG_FILE"
+    error_check "Failed to migrate ROMHOLE."
   elif [[ "$_romhole_destination" == "cbfs" ]]; then
     # For CBFS case the ROMHOLE must be firstly deleted from the COREBOOT
     # regions and then written.
     $CBFSTOOL "$BIOS_UPDATE_FILE" remove -r COREBOOT -n msi_romhole.bin 2>>"$ERR_LOG_FILE"
+    error_check "Failed to migrate ROMHOLE."
     $CBFSTOOL "$BIOS_UPDATE_FILE" add -r COREBOOT -n msi_romhole.bin -f $_romhole -b 0xff7c0000 -t raw 2>>"$ERR_LOG_FILE"
+    error_check "Failed to migrate ROMHOLE."
   fi
 
   # Cleanup
