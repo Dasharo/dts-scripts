@@ -404,6 +404,7 @@ TEST_GBB_WP_RO_OVERLAP="${TEST_GBB_WP_RO_OVERLAP:-}"
 TEST_BOARD_HAS_SMMSTORE="${TEST_BOARD_HAS_SMMSTORE:-true}"
 TEST_ROMHOLE_MIGRATION_FROM="${TEST_ROMHOLE_MIGRATION_FROM:-}"
 TEST_ROMHOLE_MIGRATION_TO="${TEST_ROMHOLE_MIGRATION_TO:-}"
+TEST_READ_ROMHOLE_FAIL="${TEST_READ_ROMHOLE_FAIL:-false}"
 
 check_if_coreboot() {
   # if we are checking current firmware, return value based on TEST_IS_COREBOOT
@@ -481,6 +482,9 @@ cbfstool_read_romhole_mock() {
   if ! check_if_coreboot "$_file_to_check"; then
     return 1
   fi
+
+  [[ "$TEST_READ_ROMHOLE_FAIL" == "true" ]] && return 1
+
   echo "Testing..." >"$_file_to_write_into"
 
   return 0
