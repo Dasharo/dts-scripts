@@ -402,7 +402,8 @@ TEST_IS_SEABIOS="${TEST_IS_SEABIOS:-}"
 TEST_IS_COREBOOT="${TEST_IS_COREBOOT:-}"
 TEST_GBB_WP_RO_OVERLAP="${TEST_GBB_WP_RO_OVERLAP:-}"
 TEST_BOARD_HAS_SMMSTORE="${TEST_BOARD_HAS_SMMSTORE:-true}"
-TEST_ROMHOLE_CBFS_MIGRATION="${TEST_ROMHOLE_CBFS_MIGRATION:-false}"
+TEST_ROMHOLE_MIGRATION_FROM="${TEST_ROMHOLE_MIGRATION_FROM:-}"
+TEST_ROMHOLE_MIGRATION_TO="${TEST_ROMHOLE_MIGRATION_TO:-}"
 
 check_if_coreboot() {
   # if we are checking current firmware, return value based on TEST_IS_COREBOOT
@@ -440,7 +441,12 @@ cbfstool_layout_mock() {
     echo "This image contains the following sections that can be accessed with this tool:"
     echo ""
     # Emulating ROMHOLE presence, check romhole_migration function for more inf.:
-    [ "$TEST_ROMHOLE_MIGRATION" = "true" ] && echo "'ROMHOLE' (test)"
+    if [[ "$TEST_ROMHOLE_MIGRATION_FROM" == "flashmap" && "$_file_to_check" != "$BIOS_UPDATE_FILE" ]]; then
+      echo "'ROMHOLE' (test)"
+    elif [[ "$TEST_ROMHOLE_MIGRATION_TO" == "flashmap" && "$_file_to_check" == "$BIOS_UPDATE_FILE" ]]; then
+      echo "'ROMHOLE' (test)"
+    fi
+
     # Emulating difference in Coreboot FS, check function
     # set_flashrom_update_params for more inf.:
     [ "$TEST_DIFFERENT_FMAP" = "true" ] && [ "$_file_to_check" != "$BIOS_DUMP_FILE" ] && echo "test"
@@ -455,7 +461,9 @@ cbfstool_layout_mock() {
   elif [[ "$_region_to_list" == "COREBOOT" ]]; then
     echo "FMAP REGION: COREBOOT"
     echo "Name                           Offset     Type           Size   Comp"
-    if [[ "$TEST_ROMHOLE_CBFS_MIGRATION" == "true" ]]; then
+    if [[ "$TEST_ROMHOLE_MIGRATION_FROM" == "cbfs" && "$_file_to_check" != "$BIOS_UPDATE_FILE" ]]; then
+      echo "msi_romhole.bin"
+    elif [[ "$TEST_ROMHOLE_MIGRATION_TO" == "cbfs" && "$_file_to_check" == "$BIOS_UPDATE_FILE" ]]; then
       echo "msi_romhole.bin"
     fi
   fi
