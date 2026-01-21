@@ -592,11 +592,7 @@ romhole_migration() {
     # Dump ROMHOLE from currently installed firmware. Only dump from flashmap is
     # handled currently.
     $CBFSTOOL read_romhole_mock $_current_firm read -r ROMHOLE -f $_romhole 2>>"$ERR_LOG_FILE"
-
-    if [ $? -ne 0 ]; then
-      print_error "Failed to migrate ROMHOLE."
-      return 1
-    fi
+    error_check "Failed to migrate ROMHOLE."
   else
     # Initial deployment case:
     dd if=$_current_firm of=$_romhole skip=$((0x17C0000)) bs=128K count=1 iflag=skip_bytes >/dev/null 2>>"$ERR_LOG_FILE"
@@ -606,8 +602,7 @@ romhole_migration() {
   # in BIOS_UPDATE_FILE reserved for it:
   if [ -z "$_romhole_destination" ]; then
     # If there is no region for it - then we cannot megrate ROMHOLE
-    print_error "Detected ROMHOLE that should be migrated, but cannot migrate."
-    return 1
+    error_exit "ROMHOLE not found in the firmware file to be flashed. Cannot migrate ROMHOLE."
   fi
 
   # Migrate ROMHOLE depending on destination:
