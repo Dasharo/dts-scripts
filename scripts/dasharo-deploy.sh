@@ -570,10 +570,12 @@ romhole_migration() {
 
   # For Dasharo (coreboot+UEFI) ROMHOLE is located in flashmap. This covers
   # initial deployments and updates:
-  $CBFSTOOL layout_mock $BIOS_UPDATE_FILE layout -w | grep -q "ROMHOLE" && _romhole_destination="flashmap"
+  $CBFSTOOL layout_mock $BIOS_UPDATE_FILE layout -w 2>>"$ERR_LOG_FILE" | grep "ROMHOLE" &>>"$ERR_LOG_FILE"
+  [ $? -eq 0 ] && _romhole_destination="flashmap"
   # Sometimes ROMHOLE may be inside COREBOOT region (e.g. Dasharo
   # (coreboot+Heads)):
-  $CBFSTOOL layout_mock $BIOS_UPDATE_FILE print -r COREBOOT | grep -q msi_romhole.bin && _romhole_destination="cbfs"
+  $CBFSTOOL layout_mock $BIOS_UPDATE_FILE print -r COREBOOT 2>>"$ERR_LOG_FILE" | grep msi_romhole.bin &>>"$ERR_LOG_FILE"
+  [ $? -eq 0 ] && _romhole_destination="cbfs"
 
   # Read currently installed firmware for ROMHOLE dump.
   $FLASHROM read_firm_mock -p "$PROGRAMMER_BIOS" ${FLASH_CHIP_SELECT} -r $_current_firm --ifd -i bios >>$FLASHROM_LOG_FILE 2>>$ERR_LOG_FILE
@@ -584,7 +586,8 @@ romhole_migration() {
 
     # Check if there is a ROMHOLE to be migrated, if there is no - that ok,
     # return 0.
-    $CBFSTOOL layout_mock $_current_firm layout -w | grep -q "ROMHOLE" || return 0
+    $CBFSTOOL layout_mock $_current_firm layout -w 2>>"$ERR_LOG_FILE" | grep "ROMHOLE" &>>"$ERR_LOG_FILE"
+    [ $? -ne 0 ] && return 0
 
     # Dump ROMHOLE from currently installed firmware. Only dump from flashmap is
     # handled currently.
