@@ -584,10 +584,18 @@ romhole_migration() {
   if check_if_dasharo; then
     # Update of Dasharo firmware case:
 
-    # Check if there is a ROMHOLE to be migrated, if there is no - that ok,
-    # return 0.
+    # Check if there is a ROMHOLE to be migrated in flashmap:
     $CBFSTOOL layout_mock $_current_firm layout -w 2>>"$ERR_LOG_FILE" | grep "ROMHOLE" &>>"$ERR_LOG_FILE"
-    [ $? -ne 0 ] && return 0
+    if [ $? -ne 0 ]; then
+      # In case the ROMHOLE is inside COREBOOT region - fail, because we do not
+      # support ROMHOLE migration from CBFS:
+      $CBFSTOOL layout_mock $_current_firm print -r COREBOOT 2>>"$ERR_LOG_FILE" | grep msi_romhole.bin &>>"$ERR_LOG_FILE"
+      [ $? -eq 0 ] && error_exit "ROMHOLE migration from CBFS is not supported yet. Cannot migrate ROMHOLE."
+
+      # If there is no ROMHOLE in flashmap and CBFS - then there is nothing to
+      # migrate:
+      return 0
+    fi
 
     # Dump ROMHOLE from currently installed firmware. Only dump from flashmap is
     # handled currently.
