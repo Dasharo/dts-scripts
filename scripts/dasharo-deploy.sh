@@ -545,18 +545,19 @@ backup() {
 }
 
 romhole_migration() {
-  # This function migrate ROMHOLE region from currently installed firmware to the
-  # to-be-installed firmware. Cases for ROMHOLE migration:
+  # This function migrates ROMHOLE region from currently installed firmware to
+  # the to-be-installed firmware. Cases for ROMHOLE migration:
   #
   # 1. Initial deployment of Dasharo firmware.
   # 2. Update of Dasharo firmware.
-  # 3. Trantitions between payloads of the Dasharo firmware.
+  # 3. Transitions between Dasharo firmware payloads.
   #
   # The ROMHOLE must be migrated because it contains unique platform data.
   #
-  # Currently we support migration from Dasharo (coreboot+UEFI) to Dasharo
-  # (coreboot+Heads) only, we do not support getting back to UEFI. But in case it
-  # will be added in future, the commands would be:
+  # As for migration from CBFS: Currently we support migration from Dasharo
+  # (coreboot+UEFI) to Dasharo (coreboot+Heads) only that covers migration from
+  # flashmap to CBFS, we do not support getting back to UEFI, hence to flashmap.
+  # But in case it will be added in future, the commands would be:
   #
   # Extracting ROMHOLE from cbfs of the currently-installed Dasharo
   # (coreboot+Heads):
@@ -606,7 +607,7 @@ romhole_migration() {
     dd if=$_current_firm of=$_romhole skip=$((0x17C0000)) bs=128K count=1 iflag=skip_bytes >/dev/null 2>>"$ERR_LOG_FILE"
   fi
 
-  # If there is ROMHOLE to be megrated - we need to check if there is a region
+  # If there is ROMHOLE to be migrated - we need to check if there is a region
   # in BIOS_UPDATE_FILE reserved for it:
   if [ -z "$_romhole_destination" ]; then
     # If there is no region for it - then we cannot megrate ROMHOLE
