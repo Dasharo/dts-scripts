@@ -107,19 +107,42 @@ get_dpp_creds() {
   echo ""
   read -p "Enter password:    " 'DPP_PASSWORD'
 
+  # Validate that email is not empty
+  if [ -z "$DPP_EMAIL" ]; then
+    echo ""
+    print_error "Email cannot be empty. Please try again."
+    return 1
+  fi
+
+  # Validate that password is not empty
+  if [ -z "$DPP_PASSWORD" ]; then
+    echo ""
+    print_error "Password cannot be empty. Please try again."
+    return 1
+  fi
+
   # Export DPP creds to a file for future use. Currently these are being used
   # for both: MinIO (and its mc CLI) and cloudsend (deprecated, all DPP
   # sibscribtions will be megrated to MinIO):
-  echo ${DPP_EMAIL} >>${DPP_CREDENTIAL_FILE}
-  echo ${DPP_PASSWORD} >>${DPP_CREDENTIAL_FILE}
+  # Note: Use > for first line to overwrite any existing credentials
+  echo "${DPP_EMAIL}" >"${DPP_CREDENTIAL_FILE}"
+  echo "${DPP_PASSWORD}" >>"${DPP_CREDENTIAL_FILE}"
 
   print_ok "Dasharo DPP credentials have been saved"
+  return 0
 }
 
 login_to_dpp_server() {
+  # Safety check: ensure credentials are not empty before attempting login
+  if [ -z "$DPP_EMAIL" ] || [ -z "$DPP_PASSWORD" ]; then
+    print_error "Cannot log in: credentials are empty."
+    return 1
+  fi
+
   # Check if the user is already logged in, log in if not:
-  if [ -z "$(mc alias list | grep ${DPP_EMAIL})" ]; then
-    if ! mc alias set $DPP_SERVER_USER_ALIAS $DPP_SERVER_ADDRESS $DPP_EMAIL $DPP_PASSWORD >/dev/null 2>>"$ERR_LOG_FILE"; then
+  if [ -z "$(mc alias list 2>/dev/null | grep "${DPP_EMAIL}")" ]; then
+    if ! mc alias set "$DPP_SERVER_USER_ALIAS" "$DPP_SERVER_ADDRESS" "$DPP_EMAIL" "$DPP_PASSWORD" >/dev/null 2>>"$ERR_LOG_FILE"; then
+      print_error "Failed to log in to DPP server. Please check your credentials."
       return 1
     fi
   fi
@@ -141,9 +164,20 @@ subscription_routine() {
   # Each time the main menu is rendered, check for DPP credentials and export
   # them, if file exists
   if [ -e "${DPP_CREDENTIAL_FILE}" ]; then
-    DPP_EMAIL=$(sed -n '1p' <${DPP_CREDENTIAL_FILE} | tr -d '\n')
-    DPP_PASSWORD=$(sed -n '2p' <${DPP_CREDENTIAL_FILE} | tr -d '\n')
-    export DPP_IS_LOGGED="true"
+    DPP_EMAIL=$(sed -n '1p' <"${DPP_CREDENTIAL_FILE}" | tr -d '\n')
+    DPP_PASSWORD=$(sed -n '2p' <"${DPP_CREDENTIAL_FILE}" | tr -d '\n')
+
+    # Only mark as logged in if credentials are not empty
+    if [ -n "$DPP_EMAIL" ] && [ -n "$DPP_PASSWORD" ]; then
+      export DPP_IS_LOGGED="true"
+    else
+      # Credentials file exists but contains empty values - remove it
+      rm -f "${DPP_CREDENTIAL_FILE}"
+      unset DPP_EMAIL
+      unset DPP_PASSWORD
+      unset DPP_IS_LOGGED
+      return 1
+    fi
   else
     unset DPP_EMAIL
     unset DPP_IS_LOGGED
