@@ -813,12 +813,19 @@ amdtool_on_amd_mock() {
 # cap_upd_tool
 ################################################################################
 
+TEST_CAPSULE_UPDATE_FAIL="${TEST_CAPSULE_UPDATE_FAIL:-}"
+
 cap_upd_tool_common_mock() {
-  return 0
+  if [ "${TEST_CAPSULE_UPDATE_FAIL}" = "true" ]; then
+    echo "cat: invalid argument" 2>&1
+    return 1
+  else
+    return 0
+  fi
 }
 
 ################################################################################
-# cap_upd_tool
+# btg_key_validator
 ################################################################################
 # Set this variable to:
 # - leave empty - call original tool

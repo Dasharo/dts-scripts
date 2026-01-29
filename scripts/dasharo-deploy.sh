@@ -994,7 +994,9 @@ deploy_firmware() {
     if [ "$FIRMWARE_VERSION" == "community_cap" ] || [ "$FIRMWARE_VERSION" == "dpp_cap" ]; then
       # Linux Kernel driver is responsible for handling UEFI Capsule Updates, so
       # the capsule should be fed to a specific device:
-      $CAP_UPD_TOOL "$BIOS_UPDATE_FILE"
+      $CAP_UPD_TOOL "$BIOS_UPDATE_FILE" 2>>"$ERR_LOG_FILE"
+      error_check "Failed to queue capsule update! Most likely reason is enabled ME.
+You can read more at https://docs.dasharo.com/guides/firmware-update/#known-issues"
       # Return after updating. The below code is for flashrom updates (using
       # binaries) only.
       return 0
@@ -1680,7 +1682,7 @@ Platform has not been fused and no changes were made."
   display_warning
 
   if ! $CAP_UPD_TOOL "$BIOS_UPDATE_FILE" 2>>"$ERR_LOG_FILE"; then
-    error_exit Failed to queue capsule update!
+    error_exit "Failed to queue capsule update!"
   fi
 
   send_dts_logs
