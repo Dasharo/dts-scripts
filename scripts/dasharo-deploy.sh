@@ -1667,8 +1667,14 @@ fuse_workflow() {
     # https://docs.dasharo.com/guides/capsule-update/#how-to-use-uefi-update-capsules
     error_exit "Cannot fuse platform, ME has to be HAP disabled."
   fi
+  print_warning "
+Fusing is irreversible!
+After it is done, you won't be able to use firmware other than one signed by ${AUTHORITY_NAME}.
+You can read more at:
+https://docs.dasharo.com/dasharo-tools-suite/documentation/features/#fuse-platform-dasharo-trustroot
 
-  if ! ask_for_confirmation "Fusing is irreversible. Are you sure you want to continue?"; then
+By continuing, you confirm that you know what you are doing."
+  if ! ask_for_confirmation "Are you sure you want to continue?"; then
     exit "${CANCEL}"
   fi
 
