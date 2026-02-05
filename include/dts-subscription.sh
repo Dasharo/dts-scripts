@@ -142,11 +142,29 @@ get_dpp_creds() {
 }
 
 login_to_dpp_server() {
-  # Check if the user is already logged in, log in if not:
-  if [ -z "$(mc alias list | grep ${DPP_EMAIL})" ]; then
+  # Check if the user is already logged in, log in if not.
+  if [ "$(mc alias ls "$DPP_SERVER_USER_ALIAS" --json | jq -r .accessKey)" = "null" ]; then
     if ! mc alias set $DPP_SERVER_USER_ALIAS $DPP_SERVER_ADDRESS $DPP_EMAIL $DPP_PASSWORD >/dev/null 2>>"$ERR_LOG_FILE"; then
       return 1
     fi
+  fi
+
+  return 0
+}
+
+login_to_dpp_server() {
+  # Capture the access key
+  local access_key
+  access_key=$(mc alias ls "$DPP_SERVER_USER_ALIAS" --json | jq -r .accessKey 2>>"$ERR_LOG_FILE")
+
+  # Check if the access key is valid
+  if [ "$access_key" != "null" ] && [ "$access_key" = "$DPP_EMAIL" ]; then
+    # Nothing to do
+    return 0
+  fi
+
+  if ! mc alias set "$DPP_SERVER_USER_ALIAS" "$DPP_SERVER_ADDRESS" "$DPP_EMAIL" "$DPP_PASSWORD" >/dev/null 2>>"$ERR_LOG_FILE"; then
+    return 1
   fi
 
   return 0
