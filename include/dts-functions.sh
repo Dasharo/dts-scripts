@@ -42,6 +42,11 @@ clear_line() {
   printf '\r\033[K'
 }
 
+# Prints and empty line
+print_new_line() {
+  echo ""
+}
+
 # Draws a simple progress bar
 # Example usage: draw_progress_bar "$((++TASK_NO))" "$TOTAL_TASKS"
 draw_progress_bar() {
@@ -1215,10 +1220,14 @@ main_menu_options() {
     # Try to log in using available DPP credentials, start loop over if login
     # was not successful:
     if ! login_to_dpp_server; then
-      echo "Cannot log in to DPP server."
+      print_warning "Cannot log in to DPP server, wrong email or password."
+      print_warning "The credentials won't be saved!"
+      clean_dpp_creds
       read -p "Press Enter to continue"
       return 0
     fi
+
+    print_ok "Dasharo DPP credentials are valid and have been saved."
 
     # Check for Dasharo Firmware for the current platform, continue to
     # packages after checking:

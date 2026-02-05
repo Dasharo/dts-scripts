@@ -101,11 +101,36 @@ check_dts_extensions_access() {
   return 0
 }
 
+clean_dpp_creds() {
+  rm -f "$DPP_CREDENTIAL_FILE"
+  unset DPP_EMAIL
+  unset DPP_PASSWORD
+}
+
 get_dpp_creds() {
-  echo ""
-  read -p "Enter DPP email:   " 'DPP_EMAIL'
-  echo ""
-  read -p "Enter password:    " 'DPP_PASSWORD'
+  print_new_line
+
+  read -p "Enter DPP email:   " DPP_EMAIL
+  print_new_line
+  if [[ -z "$DPP_EMAIL" ]]; then
+    print_warning "Email cannot be empty, aborting."
+    return 1
+  fi
+  if [[ "$DPP_EMAIL" == *" "* ]]; then
+    print_warning "Email cannot contain spaces, aborting."
+    return 1
+  fi
+
+  read -p "Enter password:    " DPP_PASSWORD
+  print_new_line
+  if [[ -z "$DPP_PASSWORD" ]]; then
+    print_warning "Password cannot be empty, aborting."
+    return 1
+  fi
+  if [[ "$DPP_PASSWORD" == *" "* ]]; then
+    print_warning "Password cannot contain spaces, aborting."
+    return 1
+  fi
 
   # Export DPP creds to a file for future use. Currently these are being used
   # for both: MinIO (and its mc CLI) and cloudsend (deprecated, all DPP
@@ -113,7 +138,7 @@ get_dpp_creds() {
   echo ${DPP_EMAIL} >>${DPP_CREDENTIAL_FILE}
   echo ${DPP_PASSWORD} >>${DPP_CREDENTIAL_FILE}
 
-  print_ok "Dasharo DPP credentials have been saved"
+  return 0
 }
 
 login_to_dpp_server() {
