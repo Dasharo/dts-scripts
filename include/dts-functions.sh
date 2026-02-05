@@ -42,11 +42,6 @@ clear_line() {
   printf '\r\033[K'
 }
 
-# Prints and empty line
-print_new_line() {
-  echo ""
-}
-
 # Draws a simple progress bar
 # Example usage: draw_progress_bar "$((++TASK_NO))" "$TOTAL_TASKS"
 draw_progress_bar() {

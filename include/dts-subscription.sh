@@ -108,10 +108,7 @@ clean_dpp_creds() {
 }
 
 get_dpp_creds() {
-  print_new_line
-
   read -p "Enter DPP email:   " DPP_EMAIL
-  print_new_line
   if [[ -z "$DPP_EMAIL" ]]; then
     print_warning "Email cannot be empty, aborting."
     return 1
@@ -122,7 +119,6 @@ get_dpp_creds() {
   fi
 
   read -p "Enter password:    " DPP_PASSWORD
-  print_new_line
   if [[ -z "$DPP_PASSWORD" ]]; then
     print_warning "Password cannot be empty, aborting."
     return 1
@@ -137,17 +133,6 @@ get_dpp_creds() {
   # sibscribtions will be megrated to MinIO):
   echo ${DPP_EMAIL} >${DPP_CREDENTIAL_FILE}
   echo ${DPP_PASSWORD} >>${DPP_CREDENTIAL_FILE}
-
-  return 0
-}
-
-login_to_dpp_server() {
-  # Check if the user is already logged in, log in if not.
-  if [ "$(mc alias ls "$DPP_SERVER_USER_ALIAS" --json | jq -r .accessKey)" = "null" ]; then
-    if ! mc alias set $DPP_SERVER_USER_ALIAS $DPP_SERVER_ADDRESS $DPP_EMAIL $DPP_PASSWORD >/dev/null 2>>"$ERR_LOG_FILE"; then
-      return 1
-    fi
-  fi
 
   return 0
 }
