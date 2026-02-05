@@ -490,7 +490,6 @@ verify_artifacts() {
   local _hash_file=""
   local _sign_file=""
   local _name=""
-  local _sig_result=""
 
   while [[ $# -gt 0 ]]; do
     local _type="$1"
@@ -522,11 +521,10 @@ verify_artifacts() {
 
     if [[ -n "$PLATFORM_SIGN_KEY" && "$FETCH_LOCALLY" != "true" ]]; then
       echo -n "Checking $_name firmware signature... "
-      _sig_result="$(cat $_hash_file | gpg --verify $_sign_file - >>$ERR_LOG_FILE 2>&1)"
-      error_check "Failed to verify $_name firmware signature.$'\n'$_sig_result"
+      cat $_hash_file | gpg --verify $_sign_file - >>$ERR_LOG_FILE 2>&1
+      error_check "Failed to verify $_name firmware signature."
       print_ok "Verified."
     fi
-    echo "$_sig_result"
   done
 
   return 0
