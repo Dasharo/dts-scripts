@@ -107,6 +107,27 @@ clean_dpp_creds() {
   unset DPP_PASSWORD
 }
 
+# Backup dpp creds file in case new creds are bad.
+backup_dpp_creds() {
+  cp "$DPP_CREDENTIAL_FILE" "$DPP_CREDENTIAL_FILE_BCKP" 2>/dev/null
+}
+
+# Restores credential file and settings from backup and deletes backup.
+# Returns 0 if file was restored, 1 otherwise.
+restore_dpp_creds() {
+  # No backup, nothing to do
+  [ ! -f "$DPP_CREDENTIAL_FILE_BCKP" ] && return 1
+
+  # Backup exists → restore credentials
+  cp "$DPP_CREDENTIAL_FILE_BCKP" "$DPP_CREDENTIAL_FILE" || return 1
+  rm -f "$DPP_CREDENTIAL_FILE_BCKP" 2>/dev/null
+
+  DPP_EMAIL=$(sed -n '1p' <"$DPP_CREDENTIAL_FILE" | tr -d '\n')
+  DPP_PASSWORD=$(sed -n '2p' <"$DPP_CREDENTIAL_FILE" | tr -d '\n')
+
+  return 0
+}
+
 get_dpp_creds() {
   read -p "Enter DPP email:   " DPP_EMAIL
   if [[ -z "$DPP_EMAIL" ]]; then
@@ -127,6 +148,9 @@ get_dpp_creds() {
     print_warning "Password cannot contain spaces, aborting."
     return 1
   fi
+
+  # Make a copy of the file if credentials won't be accepted by minio
+  backup_dpp_creds
 
   # Export DPP creds to a file for future use. Currently these are being used
   # for both: MinIO (and its mc CLI) and cloudsend (deprecated, all DPP

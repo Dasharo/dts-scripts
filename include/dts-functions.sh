@@ -1216,8 +1216,12 @@ main_menu_options() {
     # was not successful:
     if ! login_to_dpp_server; then
       print_warning "Cannot log in to DPP server, wrong email or password."
-      print_warning "The credentials won't be saved!"
-      clean_dpp_creds
+      if restore_dpp_creds; then
+        print_warning "Keeping existing credentials!"
+      else
+        print_warning "The credentials won't be saved!"
+        clean_dpp_creds
+      fi
       read -p "Press Enter to continue"
       return 0
     fi
