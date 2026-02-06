@@ -1306,6 +1306,9 @@ update_workflow() {
   fi
 
   check_if_cpu_compatible
+  if [ "$FIRMWARE_VERSION" == "community_cap" ] || [ "$FIRMWARE_VERSION" == "dpp_cap" ]; then
+    fum_and_capsule_check
+  fi
 
   if [ "$HAVE_EC" == "true" ]; then
     download_ec
@@ -1655,6 +1658,7 @@ fuse_workflow() {
   if [ -z "$INTEL_BTG_HASH" ]; then
     error_exit "Platform config is missing hash of the key used to sign firmware"
   fi
+  fum_and_capsule_check
 
   BIOS_LINK="${EOM_LINK_COMM_CAP}"
   BIOS_HASH_LINK="${EOM_HASH_LINK_COMM_CAP}"

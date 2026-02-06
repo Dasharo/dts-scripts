@@ -228,3 +228,11 @@ fi
 # Try to fetch config and fw binaries locally. Used mainly as a workaround for
 # no internet connection when booting via iPXE on MTL iGPU 0.9.0
 FETCH_LOCALLY="false"
+
+# Set by firmware
+# https://github.com/Dasharo/edk2/blob/edbff52d39d1420a22cc4df8b56d8e78dd43fce4/DasharoModulePkg/Library/DasharoVariablesLib/DasharoVariablesLib.c#L573-L579
+FUM_EFIVAR="/sys/firmware/efi/efivars/FirmwareUpdateMode-d15b327e-ff2d-4fc1-abf6-c12bd08c1359"
+# Empty - we haven't checked yet
+# "true" - we are in FUM
+# "false" - we are not in FUM
+export IN_FUM

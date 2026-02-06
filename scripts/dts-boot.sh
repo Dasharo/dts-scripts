@@ -5,7 +5,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 SBIN_DIR="/usr/sbin"
-FUM_EFIVAR="/sys/firmware/efi/efivars/FirmwareUpdateMode-d15b327e-ff2d-4fc1-abf6-c12bd08c1359"
 
 # shellcheck source=../dts-profile.sh
 source "/etc/profile.d/dts-profile.sh"
@@ -44,7 +43,9 @@ source $DTS_HAL
 
 mkdir -p "$TEMP_DIR"
 
-if $FSREAD_TOOL test -f "${FUM_EFIVAR}"; then
+# clear in case of nested dts-boot situation
+export IN_FUM=
+if check_if_in_fum; then
   choice="$(
     ask_for_choice "You have entered Firmware Update Mode." \
       "1" "If you wish to continue with unattended firmware update process" \
