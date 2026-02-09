@@ -164,10 +164,14 @@ get_dpp_creds() {
 login_to_dpp_server() {
   # Capture the access key
   local access_key
+  local secret_key
   access_key=$(mc alias ls "$DPP_SERVER_USER_ALIAS" --json | jq -r .accessKey 2>>"$ERR_LOG_FILE")
+  secret_key=$(mc alias ls "$DPP_SERVER_USER_ALIAS" --json | jq -r .secretKey 2>>"$ERR_LOG_FILE")
 
-  # Check if the access key is valid
-  if [ "$access_key" != "null" ] && [ "$access_key" = "$DPP_EMAIL" ]; then
+  # Check if the access key is valid and if password has changed
+  if [ "$access_key" != "null" ] &&
+    [ "$access_key" = "$DPP_EMAIL" ] &&
+    [ "$secret_key" = "$DPP_PASSWORD" ]; then
     # Nothing to do
     return 0
   fi
