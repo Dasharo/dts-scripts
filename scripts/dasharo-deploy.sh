@@ -1306,6 +1306,9 @@ update_workflow() {
   fi
 
   check_if_cpu_compatible
+  if [ "$FIRMWARE_VERSION" == "community_cap" ] || [ "$FIRMWARE_VERSION" == "dpp_cap" ]; then
+    fum_and_capsule_check
+  fi
 
   if [ "$HAVE_EC" == "true" ]; then
     download_ec
@@ -1655,6 +1658,7 @@ fuse_workflow() {
   if [ -z "$INTEL_BTG_HASH" ]; then
     error_exit "Platform config is missing hash of the key used to sign firmware"
   fi
+  fum_and_capsule_check
 
   BIOS_LINK="${EOM_LINK_COMM_CAP}"
   BIOS_HASH_LINK="${EOM_HASH_LINK_COMM_CAP}"
@@ -1667,8 +1671,14 @@ fuse_workflow() {
     # https://docs.dasharo.com/guides/capsule-update/#how-to-use-uefi-update-capsules
     error_exit "Cannot fuse platform, ME has to be HAP disabled."
   fi
+  print_warning "
+Fusing is irreversible!
+After it is done, you won't be able to use firmware other than one signed by ${AUTHORITY_NAME}.
+You can read more at:
+https://docs.dasharo.com/dasharo-tools-suite/documentation/features/#fuse-platform-dasharo-trustroot
 
-  if ! ask_for_confirmation "Fusing is irreversible. Are you sure you want to continue?"; then
+By continuing, you confirm that you know what you are doing."
+  if ! ask_for_confirmation "Are you sure you want to continue?"; then
     exit "${CANCEL}"
   fi
 

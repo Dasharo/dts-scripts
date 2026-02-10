@@ -369,10 +369,10 @@ check_flash_chip() {
   return 0
 }
 
+# compare_versions ver1 ver2
+# return 1 if ver2 > ver1
+# return 0 otherwise
 compare_versions() {
-  # compare_versions ver1 ver2
-  # return 1 if ver2 > ver1
-  # return 0 otherwise
   local ver1="$1"
   local ver2="$2"
 
@@ -383,9 +383,9 @@ compare_versions() {
   fi
 }
 
+# semver_version_compare ver1 ver2
+# print to stdout: 0 if ver1 == ver2, 1 if ver1 > ver2 and -1 if ver1 < ver2
 semver_version_compare() {
-  # semver_version_compare ver1 ver2
-  # echo 0 if ver1 == ver2, 1 if ver1 > ver2 and -1 if ver1 < ver2
   local ver1="$1"
   local ver2="$2"
   local compare=
@@ -1852,4 +1852,47 @@ dump_pcrs() {
       done
     done
   done
+}
+
+# Check if we are in Firmware Update Mode
+check_if_in_fum() {
+  if [ -z "${IN_FUM}" ]; then
+    if $FSREAD_TOOL test -f "${FUM_EFIVAR}"; then
+      IN_FUM="true"
+      return 0
+    fi
+    IN_FUM="false"
+    return 1
+  elif [ "${IN_FUM}" = "true" ]; then
+    return 0
+  elif [ "${IN_FUM}" = "false" ]; then
+    return 1
+  else
+    # Fairly safe default, we don't want to error_exit in function called in
+    # dts-boot. Shouldn't happen unless there is bug in code.
+    print_warning "Couldn't detect if we are in Firmware Update Mode, assuming no."
+    return 1
+  fi
+}
+
+# return 0 if not in FUM or in FUM and firmware supports capsule update,
+# otherwise return 1. Has to be called after board_config().
+check_if_fum_and_capsule_supported() {
+  if check_if_in_fum && {
+    [ -z "${DASHARO_SUPPORT_CAP_WITH_FUM_FROM}" ] ||
+      [ "$(semver_version_compare "${DASHARO_VERSION}" "${DASHARO_SUPPORT_CAP_WITH_FUM_FROM}")" = -1 ]
+  }; then
+    return 1
+  fi
+  return 0
+}
+
+# error_exit with relevant message if using capsules while in FUM mode is not
+# supported. Has to be called after board_config().
+fum_and_capsule_check() {
+  if ! check_if_fum_and_capsule_supported; then
+    error_exit "Current firmware doesn't support capsules while in Firmware Update Mode.
+Please boot DTS normally, either via USB or iPXE.
+You can read more at: https://docs.dasharo.com/guides/firmware-update/#known-issues"
+  fi
 }
