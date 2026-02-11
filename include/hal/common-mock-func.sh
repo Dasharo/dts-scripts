@@ -611,6 +611,7 @@ TEST_INTEL_IS_FUSED="${TEST_INTEL_IS_FUSED:-}"
 TEST_SOUND_CARD_PRESENT="${TEST_SOUND_CARD_PRESENT:-true}"
 TEST_EFI_PRESENT="${TEST_EFI_PRESENT:-true}"
 TEST_FUM="${TEST_FUM:-false}"
+TEST_FUM_ORIG="${TEST_FUM_ORIG:-false}"
 
 fsread_tool_common_mock() {
   # This functionn emulates read hardware specific file system resources or its
@@ -648,6 +649,11 @@ fsread_tool_test_mock() {
   if [ "$_arg_f" = "${FUM_EFIVAR}" ]; then
     # Emulate Firmware Update Mode (FUM)
     [ "$TEST_FUM" = "true" ] && return 0
+  fi
+
+  if [ "$_arg_f" = "${FUM_EFIVAR_ORIG}" ]; then
+    # Emulate Firmware Update Mode (FUM)
+    [ "$TEST_FUM_ORIG" = "true" ] && return 0
   fi
 
   if [ "$_arg_e" = "/sys/class/power_supply/AC/online" ]; then

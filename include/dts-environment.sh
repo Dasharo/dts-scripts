@@ -229,10 +229,17 @@ fi
 # no internet connection when booting via iPXE on MTL iGPU 0.9.0
 FETCH_LOCALLY="false"
 
+# Set by replace_fum_efivar.efi
+# Workaround for https://github.com/Dasharo/dasharo-issues/issues/1759
+FUM_EFIVAR="/sys/firmware/efi/efivars/FirmwareUpdateModeRT-d15b327e-ff2d-4fc1-abf6-c12bd08c1359"
 # Set by firmware
 # https://github.com/Dasharo/edk2/blob/edbff52d39d1420a22cc4df8b56d8e78dd43fce4/DasharoModulePkg/Library/DasharoVariablesLib/DasharoVariablesLib.c#L573-L579
-FUM_EFIVAR="/sys/firmware/efi/efivars/FirmwareUpdateMode-d15b327e-ff2d-4fc1-abf6-c12bd08c1359"
+# If this efivar exists then most likely we skipped running
+# replace_fum_efivar.efi before booting DTS
+FUM_EFIVAR_ORIG="/sys/firmware/efi/efivars/FirmwareUpdateMode-d15b327e-ff2d-4fc1-abf6-c12bd08c1359"
 # Empty - we haven't checked yet
-# "true" - we are in FUM
+# "true" - we are in FUM (either FUM efivar exists)
 # "false" - we are not in FUM
 export IN_FUM
+# only set if FUM_EFIVAR_ORIG exists.
+export IN_FUM_ORIG

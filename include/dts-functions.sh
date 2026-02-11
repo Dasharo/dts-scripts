@@ -1859,10 +1859,22 @@ check_if_in_fum() {
   if [ -z "${IN_FUM}" ]; then
     if $FSREAD_TOOL test -f "${FUM_EFIVAR}"; then
       IN_FUM="true"
-      return 0
+    else
+      IN_FUM="false"
     fi
-    IN_FUM="false"
-    return 1
+
+    if $FSREAD_TOOL test -f "${FUM_EFIVAR_ORIG}"; then
+      IN_FUM="true"
+      IN_FUM_ORIG="true"
+    else
+      IN_FUM_ORIG="false"
+    fi
+
+    if [[ "${IN_FUM}" == "true" || "${IN_FUM_ORIG}" == "true" ]]; then
+      return 0
+    else
+      return 1
+    fi
   elif [ "${IN_FUM}" = "true" ]; then
     return 0
   elif [ "${IN_FUM}" = "false" ]; then
@@ -1875,10 +1887,22 @@ check_if_in_fum() {
   fi
 }
 
-# return 0 if not in FUM or in FUM and firmware supports capsule update,
-# otherwise return 1. Has to be called after board_config().
+# Check if we are in Firmware Update Mode with old FUM efivar set
+check_if_in_fum_orig() {
+  check_if_in_fum &>/dev/null
+  if [[ "${IN_FUM_ORIG}" == "true" ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+# Return 0 if not in FUM, otherwise check if capsule update can proceed.
+# Fails if FUM_EFIVAR_ORIG (FUM efi variable set by firmware) exists and
+# current firmware doesn't support it.
+# Has to be called after board_config().
 check_if_fum_and_capsule_supported() {
-  if check_if_in_fum && {
+  if check_if_in_fum_orig && {
     [ -z "${DASHARO_SUPPORT_CAP_WITH_FUM_FROM}" ] ||
       [ "$(semver_version_compare "${DASHARO_VERSION}" "${DASHARO_SUPPORT_CAP_WITH_FUM_FROM}")" = -1 ]
   }; then
