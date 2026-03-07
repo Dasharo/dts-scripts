@@ -1715,12 +1715,6 @@ if ! check_if_dasharo; then
   fi
 fi
 
-# For FUM we start in dasharo-deploy so we need to verify that we have internet
-# connection to download shasums in board_config
-if [ "$FUM" == "fum" ]; then
-  wait_for_network_connection true
-fi
-
 # flashrom does not support QEMU. TODO: this could be handled in a better way:
 if [ "${SYSTEM_VENDOR}" != "QEMU" ] && [ "${SYSTEM_VENDOR}" != "Emulation" ]; then
   # Size of flashchip should be checked before board_config func. because the
