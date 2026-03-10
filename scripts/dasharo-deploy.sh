@@ -1225,6 +1225,12 @@ install_workflow() {
 
   check_if_cpu_compatible
 
+  # Check for network connection before downloading binaries:
+  if ! wait_for_network_connection true; then
+    FETCH_LOCALLY="true"
+    print_warning "DTS couldn't connect to the internet! Using local files instead."
+  fi
+
   # Download and verify firmware:
   if [ "$HAVE_EC" == "true" ]; then
     download_ec
@@ -1308,6 +1314,12 @@ update_workflow() {
   check_if_cpu_compatible
   if [ "$FIRMWARE_VERSION" == "community_cap" ] || [ "$FIRMWARE_VERSION" == "dpp_cap" ]; then
     fum_and_capsule_check
+  fi
+
+  # Check for network connection before downloading binaries:
+  if ! wait_for_network_connection true; then
+    FETCH_LOCALLY="true"
+    print_warning "DTS couldn't connect to the internet! Using local files instead."
   fi
 
   if [ "$HAVE_EC" == "true" ]; then
@@ -1618,6 +1630,9 @@ restore() {
     2)
       echo
       echo "Searching for HCL report on cloud..."
+
+      # Check for network connection before downloading HCL:
+      wait_for_network_connection
 
       ${CMD_CLOUD_LIST} $uuid
       error_check "Could not download HCL report from cloud."
