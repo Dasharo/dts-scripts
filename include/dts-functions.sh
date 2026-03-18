@@ -1116,7 +1116,9 @@ main_menu_options() {
       # dts scripting should get some LOGLEVEL and maybe dumping working
       # logs to file
       export DEPLOY_REPORT="false"
-      wait_for_network_connection && ${CMD_DASHARO_HCL_REPORT} && LOGS_SENT="1"
+      wait_for_network_connection &&
+        sync_clocks &&
+        ${CMD_DASHARO_HCL_REPORT} && LOGS_SENT="1"
     else
       export DEPLOY_REPORT="false"
       ${CMD_DASHARO_HCL_REPORT}
