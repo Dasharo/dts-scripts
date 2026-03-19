@@ -275,13 +275,8 @@ board_config() {
   # set. This is made with a goal to limit global variables declaration to
   # dts-environment.sh and board_config function.
 
-  # We download firmwares via network. At this point, the network connection
-  # must be up already.
-
-  if ! wait_for_network_connection true; then
-    FETCH_LOCALLY="true"
-    print_warning "DTS couldn't connect to the internet! Using local files instead."
-  fi
+  # board_config should not force a network check globally.
+  # Connection checks are handled at concrete download points in workflows.
 
   mkdir -p "$BOARD_CONFIG_PATH"
   if [ "$FETCH_LOCALLY" = "true" ]; then

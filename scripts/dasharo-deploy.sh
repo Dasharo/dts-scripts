@@ -1226,6 +1226,8 @@ install_workflow() {
   check_if_cpu_compatible
 
   # Download and verify firmware:
+  wait_for_network_connection true
+
   if [ "$HAVE_EC" == "true" ]; then
     download_ec
     verify_artifacts ec
@@ -1309,6 +1311,8 @@ update_workflow() {
   if [ "$FIRMWARE_VERSION" == "community_cap" ] || [ "$FIRMWARE_VERSION" == "dpp_cap" ]; then
     fum_and_capsule_check
   fi
+
+  wait_for_network_connection true
 
   if [ "$HAVE_EC" == "true" ]; then
     download_ec
@@ -1619,6 +1623,7 @@ restore() {
       echo
       echo "Searching for HCL report on cloud..."
 
+      wait_for_network_connection true
       ${CMD_CLOUD_LIST} $uuid
       error_check "Could not download HCL report from cloud."
 
