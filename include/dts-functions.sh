@@ -235,7 +235,7 @@ wait_for_network_connection() {
 
     if check_network_connection; then
       echo
-      print_ok "Network connection have been established!"
+      print_ok "Network connection has been established!"
       NETWORK_CONNECTION_ESTABLISHED="1"
       return 0
     fi
