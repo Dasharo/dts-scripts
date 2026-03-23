@@ -207,25 +207,41 @@ check_network_connection() {
 
 wait_for_network_connection() {
   # if first argument equals true then print warning else print error
-  local print_warning="$1"
-  echo 'Waiting for network connection ...'
-  n="10"
+  local print_warning_on_fail="$1"
+  local n="10"
+
+  # Reuse previously confirmed network state to avoid duplicate waits/messages
+  if [ "${NETWORK_CONNECTION_ESTABLISHED:-0}" = "1" ]; then
+    return 0
+  fi
+
+  if check_network_connection; then
+    NETWORK_CONNECTION_ESTABLISHED="1"
+    return 0
+  fi
+
+  echo -n 'Waiting for network connection'
 
   while :; do
-    if check_network_connection; then
-      print_ok "Network connection have been established!"
-      return 0
-    fi
-
-    n=$((n - 1))
     if [ "${n}" == "0" ]; then
-      if [ "${print_warning}" = "true" ]; then
+      echo
+      if [ "${print_warning_on_fail}" = "true" ]; then
         print_warning "Could not connect to network, please check network connection!"
       else
         print_error "Could not connect to network, please check network connection!"
       fi
       return 1
     fi
+
+    if check_network_connection; then
+      echo
+      print_ok "Network connection has been established!"
+      NETWORK_CONNECTION_ESTABLISHED="1"
+      return 0
+    fi
+
+    echo -n '.'
+    n=$((n - 1))
     sleep 1
   done
 }
