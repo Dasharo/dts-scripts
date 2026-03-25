@@ -596,61 +596,97 @@ check_blobs_in_binary() {
   fi
 }
 
+check_me_op_mode_hfsts1() {
+  # This function checks the HFSTS1, then reports to logs the ME state and
+  # informs DTS the ME state via return value basing on the HFSTS1 value.
+  # Mappings between the HFSTS1 values and the prints are done according to:
+  #
+  # * coreboot source code: https://github.com/coreboot/coreboot/blob/1879b6a34a6e93a93d691a0d9f2457d6251a17c1/src/soc/intel/skylake/me.c#L44
+  # The 6 and 7 values were reported by a firmware developer but not confirmed
+  # by any public documentation/code:
+  local hfsts1="$1"
+  if [ "$hfsts1" == "0" ]; then
+    echo "ME is not disabled" >>$ERR_LOG_FILE
+    return 0
+  elif [ "$hfsts1" == "2" ]; then
+    echo "ME is disabled (HAP/Debug Mode)" >>$ERR_LOG_FILE
+    return 2
+  elif [ "$hfsts1" == "3" ]; then
+    echo "ME is soft disabled (HECI)" >>$ERR_LOG_FILE
+    return 1
+  elif [ "$hfsts1" == "4" ]; then
+    echo "ME disabled by Security Override Jumper/FDOPS" >>$ERR_LOG_FILE
+    return 1
+  elif [ "$hfsts1" == "5" ]; then
+    echo "ME disabled by Security Override MEI Message/HMRFPO" >>$ERR_LOG_FILE
+    return 1
+  elif [ "$hfsts1" == "6" ]; then
+    echo "ME disabled by Security Override MEI Message/HMRFPO" >>$ERR_LOG_FILE
+    return 1
+  elif [ "$hfsts1" == "7" ]; then
+    echo "ME disabled (Enhanced Debug Mode) or runs Ignition FW" >>$ERR_LOG_FILE
+    return 1
+  else
+    echo "Cannot determine ME operation mode from HFSTS1 register" >>$ERR_LOG_FILE
+    return 0
+  fi
+}
+
 check_if_me_disabled() {
-  ME_DISABLED=0
+  # This function checks the ME operation mode. Depending on the result of the
+  # check it reports the ME mode to ERR_LOG_FILE/DTS UI and informs DTS via
+  # ME_DISABLED global variable.
+  #
+  # Possible ME_DISABLED values:
+  # 0: ME is enabled. This mode means the ME cannot be flashed or the flashing
+  # might cause issues.
+  # 1: ME is in any state other than enabled or HAP disabled. It is assumed to
+  # be a safe state to flash ME.
+  # 2: ME is HAP disabled. It is a safe state to flash ME.
+  #
+  # Currently, there are 3 possible methods implemented. This function uses
+  # every method in the following order, and exits immediately after any of the
+  # methods detects that the ME is not in the enabled mode:
+  # 1. Check the HFSTS1 bits 19:16 via PCI
+  # 2. Check the coreboot logs for ME/CSE mode reports
+  # 3. Check the HFSTS1 bits 19:16 via coreboot logs
+  local hfsts1
+  ME_DISABLED="0"
 
   if [ $BOARD_HAS_ME_REGION -eq 0 ]; then
-    # No ME region
-    ME_DISABLED=2
+    # No ME region declared in the board's DTS metadata, assume HAP disabled:
+    ME_DISABLED="2"
     return
   fi
 
+  # Check for the ME state using HFSTS1 via PCI:
   if check_if_heci_present; then
-    ME_OPMODE="$(check_me_op_mode)"
-    if [ $ME_OPMODE == "0" ]; then
-      echo "ME is not disabled" >>$ERR_LOG_FILE
-      return
-    elif [ $ME_OPMODE == "2" ]; then
-      echo "ME is disabled (HAP/Debug Mode)" >>$ERR_LOG_FILE
-      ME_DISABLED=2
-      return
-    elif [ $ME_OPMODE == "3" ]; then
-      echo "ME is soft disabled (HECI)" >>$ERR_LOG_FILE
-      ME_DISABLED=1
-      return
-    elif [ $ME_OPMODE == "4" ]; then
-      echo "ME disabled by Security Override Jumper/FDOPS" >>$ERR_LOG_FILE
-      ME_DISABLED=1
-      return
-    elif [ $ME_OPMODE == "5" ]; then
-      echo "ME disabled by Security Override MEI Message/HMRFPO" >>$ERR_LOG_FILE
-      ME_DISABLED=1
-      return
-    elif [ $ME_OPMODE == "6" ]; then
-      echo "ME disabled by Security Override MEI Message/HMRFPO" >>$ERR_LOG_FILE
-      ME_DISABLED=1
-      return
-    elif [ $ME_OPMODE == "7" ]; then
-      echo "ME disabled (Enhanced Debug Mode) or runs Ignition FW" >>$ERR_LOG_FILE
-      ME_DISABLED=1
-      return
-    else
-      print_warning "Unknown ME operation mode, assuming enabled."
-      echo "Unknown ME operation mode, assuming enabled." >>$ERR_LOG_FILE
-      return
-    fi
-  else
-    # If we are running coreboot, check for status in logs
-    $CBMEM check_if_me_disabled_mock -1 |
-      grep "ME is disabled" &>/dev/null && ME_DISABLED=1 && return # HECI (soft) disabled
-    $CBMEM check_if_me_disabled_mock -1 |
-      grep "ME is HAP disabled" &>/dev/null && ME_DISABLED=2 && return # HAP disabled
-    # TODO: If proprietary BIOS, then also try to check SMBIOS for ME FWSTS
-    # BTW we could do the same in coreboot, expose FWSTS in SMBIOS before it
-    # gets disabled
-    print_warning "Can not determine if ME is disabled, assuming enabled."
-    echo "Can not determine if ME is disabled, assuming enabled." >>$ERR_LOG_FILE
+    hfsts1="$(check_hfsts1_heci)"
+    check_me_op_mode_hfsts1 "$hfsts1"
+    ME_DISABLED="$?"
+    [ "$ME_DISABLED" -ne "0" ] && return
   fi
+
+  # If we are running coreboot, check for status in logs. The CSE, CSME, and ME
+  # are interchangeable names for the same Intel technology: ME
+  # (https://www.intel.com/content/www/us/en/support/articles/000100063/processors.html).
+  # So it is ok to conclude on the ME state using the "CSE is disabled".
+  $CBMEM check_if_me_disabled_mock -1 |
+    grep "ME is HAP disabled" &>/dev/null && ME_DISABLED=2 && return # HAP disabled
+  $CBMEM check_if_me_disabled_mock -1 |
+    grep "\(CSE\|ME\) is disabled" &>/dev/null && ME_DISABLED=1 && return # HECI (soft) disabled
+
+  # Check for the ME state using HFSTS1 via coreboot logs:
+  hfsts1="$(check_hfsts1_cbmem)"
+  check_me_op_mode_hfsts1 "$hfsts1"
+  ME_DISABLED="$?"
+  [ "$ME_DISABLED" -ne "0" ] && return
+
+  # TODO: If proprietary BIOS, then also try to check SMBIOS for ME FWSTS
+  # BTW we could do the same in coreboot, expose FWSTS in SMBIOS before it
+  # gets disabled
+  print_warning "Can not determine if ME is disabled, assuming enabled."
+  echo "Can not determine if ME is disabled, assuming enabled." >>$ERR_LOG_FILE
 }
 
 force_me_update() {
