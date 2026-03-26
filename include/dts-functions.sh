@@ -628,7 +628,7 @@ check_me_op_mode_hfsts1() {
     return 1
   else
     echo "Cannot determine ME operation mode from HFSTS1 register" >>$ERR_LOG_FILE
-    return 0
+    return 3
   fi
 }
 
@@ -643,6 +643,8 @@ check_if_me_disabled() {
   # 1: ME is in any state other than enabled or HAP disabled. It is assumed to
   # be a safe state to flash ME.
   # 2: ME is HAP disabled. It is a safe state to flash ME.
+  # 3: ME is in unknown state. The variable ME_DISABLED should not have this
+  # value assigned after this function returns.
   #
   # Currently, there are 3 possible methods implemented. This function uses
   # every method in the following order, and exits immediately after any of the
@@ -664,7 +666,7 @@ check_if_me_disabled() {
     hfsts1="$(check_hfsts1_heci)"
     check_me_op_mode_hfsts1 "$hfsts1"
     ME_DISABLED="$?"
-    [ "$ME_DISABLED" -ne "0" ] && return
+    [ "$ME_DISABLED" != "3" ] && return
   fi
 
   # If we are running coreboot, check for status in logs. The CSE, CSME, and ME
@@ -680,13 +682,16 @@ check_if_me_disabled() {
   hfsts1="$(check_hfsts1_cbmem)"
   check_me_op_mode_hfsts1 "$hfsts1"
   ME_DISABLED="$?"
-  [ "$ME_DISABLED" -ne "0" ] && return
+  [ "$ME_DISABLED" != "3" ] && return
 
   # TODO: If proprietary BIOS, then also try to check SMBIOS for ME FWSTS
   # BTW we could do the same in coreboot, expose FWSTS in SMBIOS before it
   # gets disabled
+
   print_warning "Can not determine if ME is disabled, assuming enabled."
   echo "Can not determine if ME is disabled, assuming enabled." >>$ERR_LOG_FILE
+  ME_DISABLED="0"
+  return
 }
 
 force_me_update() {
