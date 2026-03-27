@@ -395,6 +395,8 @@ cbmem_check_if_me_disabled_mock() {
 }
 
 cbmem_check_hfsts1_mock() {
+  [ "$TEST_IS_COREBOOT" != "true" ] && return 1
+
   # Emulating current ME operation mode, check functions check_if_me_disabled and
   # check_me_op_mode:
   echo "HFSTS1 : 0x000${TEST_ME_OP_MODE}0000"
