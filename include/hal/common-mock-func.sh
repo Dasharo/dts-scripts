@@ -367,6 +367,7 @@ ifdtool_check_blobs_in_binary_mock() {
 ################################################################################
 TEST_ME_DISABLED="${TEST_ME_DISABLED:-true}"
 TEST_ME_HAP_DISABLED="${TEST_ME_HAP_DISABLED:-}"
+TEST_CSE_DISABLED="${TEST_CSE_DISABLED:-false}"
 
 cbmem_common_mock() {
   # should fail if fw is not coreboot
@@ -386,7 +387,19 @@ cbmem_check_if_me_disabled_mock() {
     echo "ME is HAP disabled"
   elif [ "$TEST_ME_DISABLED" = "true" ]; then
     echo "ME is disabled"
+  elif [ "$TEST_CSE_DISABLED" = "true" ]; then
+    echo "CSE is disabled"
   fi
+
+  return 0
+}
+
+cbmem_check_hfsts1_mock() {
+  [ "$TEST_IS_COREBOOT" != "true" ] && return 1
+
+  # Emulating current ME operation mode, check functions check_if_me_disabled and
+  # check_me_op_mode:
+  echo "HFSTS1 : 0x000${TEST_ME_OP_MODE}0000"
 
   return 0
 }
@@ -725,7 +738,7 @@ fsread_tool_cat_mock() {
 ################################################################################
 TEST_ME_OP_MODE="${TEST_ME_OP_MODE:-0}"
 
-setpci_check_me_op_mode_mock() {
+setpci_check_hfsts1_mock() {
   # Emulating current ME operation mode, check functions check_if_me_disabled and
   # check_me_op_mode:
   echo "0$TEST_ME_OP_MODE"

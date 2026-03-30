@@ -196,13 +196,23 @@ check_if_heci_present() {
   return $?
 }
 
-check_me_op_mode() {
+check_hfsts1_heci() {
   # Checks ME Current Operation Mode at offset 0x40 bits 19:16:
   local _mode
 
-  _mode="$($SETPCI check_me_op_mode_mock -s 00:16.0 42.B 2>>"$ERR_LOG_FILE" | cut -c2-)"
+  _mode="$($SETPCI check_hfsts1_mock -s 00:16.0 42.B 2>>"$ERR_LOG_FILE" | cut -c2-)"
 
   echo "$_mode"
+
+  return 0
+}
+
+check_hfsts1_cbmem() {
+  local _mode
+
+  _mode=$($CBMEM check_hfsts1_mock -1 | grep HFSTS1)
+
+  echo "${_mode: -5:-4}"
 
   return 0
 }
