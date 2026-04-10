@@ -4,11 +4,13 @@
 
 SBINDIR ?= /usr/sbin
 SYSCONFDIR ?= /etc
+DTS_CONFIGS_REF ?= refs/heads/main
 
 install:
 	install -d $(DESTDIR)$(SBINDIR)
 
 	install -m 0755 include/dts-environment.sh $(DESTDIR)$(SBINDIR)
+	sed -i "s|refs/heads/main|$(DTS_CONFIGS_REF)|g" $(DESTDIR)$(SBINDIR)/dts-environment.sh
 	install -m 0755 include/dts-functions.sh $(DESTDIR)$(SBINDIR)
 	install -m 0755 include/dts-subscription.sh $(DESTDIR)$(SBINDIR)
 	install -m 0755 include/hal/dts-hal.sh $(DESTDIR)$(SBINDIR)
